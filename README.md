@@ -16,16 +16,16 @@ Skills не должны содержать жёсткую привязку к �
 
 ## Первая настройка проекта
 
-Для стабильной установки сначала выберите exact release tag. После публикации
-первого релиза рекомендуемый checkout будет выглядеть так:
+Для стабильной установки используйте exact release tag. Текущий опубликованный
+релиз — [`v0.1.0`](https://github.com/rubyhat/marshall-ai-agent/releases/tag/v0.1.0):
 
 ```bash
-git clone --branch <release-tag> --depth 1 git@github.com:rubyhat/marshall-ai-agent.git
+git clone --branch v0.1.0 --depth 1 git@github.com:rubyhat/marshall-ai-agent.git
 cd marshall-ai-agent
 ```
 
-До первого релиза текущий checkout считается development source, а не
-стабильной revision.
+Ветка `main` может содержать ещё не выпущенные изменения и считается
+development source, а не стабильной revision.
 
 Затем установите bootstrap skill:
 
@@ -215,6 +215,7 @@ Release Please поддерживает один Release PR:
 
 - [правила участия](CONTRIBUTING.md);
 - [release runbook](docs/releasing.md);
+- [текущий опубликованный релиз `v0.1.0`](https://github.com/rubyhat/marshall-ai-agent/releases/tag/v0.1.0);
 - текущая development version — [version.txt](version.txt);
 - история изменений — [CHANGELOG.md](CHANGELOG.md).
 
