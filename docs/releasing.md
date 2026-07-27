@@ -75,6 +75,8 @@ token позволяет Release PR пройти ту же обязательн�
 
 До первого релиза `version.txt` и manifest содержат `0.0.0`. Первый merged
 releasable commit должен иметь тип `feat`; Release Please предложит `v0.1.0`.
+Bootstrap-версия `CHANGELOG.md` содержит только managed comment без
+Markdown-заголовка: canonical `# Changelog` создаёт сам Release Please.
 
 Перед merge первого Release PR:
 

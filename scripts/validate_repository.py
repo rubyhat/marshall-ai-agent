@@ -294,6 +294,7 @@ def validate_root_files(validation: Validation) -> None:
     version_path = ROOT / "version.txt"
     if not version_path.is_file():
         validation.error(version_path, "missing version.txt")
+        version = ""
     else:
         version = version_path.read_text(encoding="utf-8").strip()
         if not re.fullmatch(
@@ -301,6 +302,15 @@ def validate_root_files(validation: Validation) -> None:
             version,
         ):
             validation.error(version_path, f"invalid SemVer core version {version!r}")
+
+    changelog_path = ROOT / "CHANGELOG.md"
+    if changelog_path.is_file() and version == "0.0.0":
+        changelog = changelog_path.read_text(encoding="utf-8")
+        if re.search(r"^#{1,6}\s+", changelog, re.MULTILINE):
+            validation.error(
+                changelog_path,
+                "bootstrap changelog must not define a heading before Release Please",
+            )
 
     manifest_path = ROOT / ".release-please-manifest.json"
     if manifest_path.is_file() and version_path.is_file():
