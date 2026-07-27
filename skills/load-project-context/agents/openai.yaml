@@ -1,0 +1,4 @@
+interface:
+  display_name: "Load Project Context"
+  short_description: "Точечно загружает контекст проектной задачи"
+  default_prompt: "Use $load-project-context to load only the project context needed for this task."

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "include-v-in-tag": true,
+  "include-component-in-tag": false,
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": false,
+  "packages": {
+    ".": {
+      "component": "marshall-ai-agent",
+      "package-name": "marshall-ai-agent",
+      "changelog-path": "CHANGELOG.md",
+      "changelog-sections": [
+        {
+          "type": "feat",
+          "section": "Новые возможности"
+        },
+        {
+          "type": "fix",
+          "section": "Исправления"
+        },
+        {
+          "type": "docs",
+          "section": "Документация"
+        },
+        {
+          "type": "refactor",
+          "section": "Изменения без нового поведения"
+        },
+        {
+          "type": "perf",
+          "section": "Производительность"
+        },
+        {
+          "type": "test",
+          "section": "Проверки",
+          "hidden": true
+        },
+        {
+          "type": "ci",
+          "section": "Инфраструктура",
+          "hidden": true
+        },
+        {
+          "type": "build",
+          "section": "Сборка",
+          "hidden": true
+        },
+        {
+          "type": "chore",
+          "section": "Обслуживание",
+          "hidden": true
+        }
+      ]
+    }
+  }
+}

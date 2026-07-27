@@ -1,0 +1,26 @@
+{
+  "pull_request": {
+    "state": "open",
+    "merged_at": null,
+    "html_url": "https://github.com/example/project/pull/1",
+    "head": {"sha": "head-1"}
+  },
+  "request_comment": {
+    "id": 100,
+    "created_at": "2026-07-27T10:00:00Z",
+    "html_url": "https://github.com/example/project/pull/1#issuecomment-100",
+    "user": {"login": "local-author"}
+  },
+  "reactions": [],
+  "issue_comments": [
+    {
+      "id": 102,
+      "created_at": "2026-07-27T10:08:00Z",
+      "body": "Codex Review: Didn't find any major issues.",
+      "html_url": "https://github.com/example/project/pull/1#issuecomment-102",
+      "user": {"login": "codex-reviewer[bot]"}
+    }
+  ],
+  "reviews": [],
+  "inline_comments": []
+}

@@ -1,0 +1,43 @@
+schema_version: 1
+
+workflow_kit:
+  source: "{{WORKFLOW_KIT_SOURCE}}"
+  revision: "{{WORKFLOW_KIT_REVISION}}"
+  installation_mode: "{{INSTALLATION_MODE}}"
+  selected_modules: []
+
+project:
+  name: "{{PROJECT_NAME}}"
+  product_type: "{{PRODUCT_TYPE}}"
+  repositories: {}
+
+language:
+  interaction: "{{INTERACTION_LANGUAGE}}"
+  project_docs: "{{PROJECT_DOCS_LANGUAGE}}"
+  internal_memory: "{{INTERNAL_MEMORY_LANGUAGE}}"
+
+interaction:
+  clarifying_questions:
+    options_per_decision: "2-3"
+    recommended_option_first: true
+  conflict_and_risk_gate:
+    enabled: true
+
+paths:
+  root_instructions: "AGENTS.md"
+  project_docs: "{{PROJECT_DOCS_ROOT}}"
+  internal_memory: "{{INTERNAL_MEMORY_ROOT}}"
+
+protection:
+  default_setup_boundary: enforced
+  additional_restrictions: []
+
+skills:
+  active: {}
+
+commands:
+  aliases_are_plain_text: true
+  aliases_do_not_expand_authority: true
+  aliases: {}
+
+# Add only sections required by selected modules.

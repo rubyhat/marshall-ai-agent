@@ -1,0 +1,75 @@
+# Update canonical context
+
+Use this reference when changing stable memory, runbooks, project configuration, architecture, known issues, or the context map.
+
+## Preserve current truth
+
+Treat canonical context as a description of the current project, not a chronological record of tasks.
+
+1. Find the existing owning section.
+2. Verify the candidate against its source.
+3. Replace outdated wording in the affected scope.
+4. Merge duplicate statements.
+5. Keep only rationale that affects future decisions.
+6. Link to detailed historical evidence.
+
+Do not append a dated task or merge entry when the durable result can be expressed as current state.
+
+## Type the statement
+
+Make the status explicit when ambiguity matters:
+
+- `fact`: verified current behavior;
+- `decision`: accepted direction or invariant;
+- `hypothesis`: unverified interpretation;
+- `risk`: possible harmful outcome;
+- `gotcha`: non-obvious implementation or operational trap;
+- `runbook`: verified repeatable procedure;
+- `todo`: unresolved action that does not belong in an issue system.
+
+Keep operational task status in its configured task system.
+
+## Use provenance selectively
+
+Add a source when the statement is disputed, external, surprising, or expensive to verify:
+
+- code or configuration path;
+- command and relevant result;
+- task spec, ADR, issue, pull request, or report;
+- official external documentation.
+
+Add a verification date when the fact can become stale. Do not date every stable statement.
+
+## Update by destination
+
+### Stable memory
+
+Keep concise current-state facts and non-obvious relationships. Avoid copying implementation detail that code search reveals cheaply.
+
+### Runbook
+
+Record only commands and sequences that were verified or whose unverified status is explicit. Include prerequisites, safety boundaries, expected result, and recovery guidance when relevant.
+
+### Architecture or ADR
+
+Keep current invariants in architecture. Keep alternatives, reasoning, and consequences in an ADR. Cross-link rather than duplicate.
+
+### Known issues
+
+Keep actionable unresolved risks. When an issue is resolved, update the current state and link to durable evidence; do not grow an indefinite resolved-task archive.
+
+### Project configuration
+
+Update only when the owning workflow explicitly changes a project-specific setting. Do not use configuration as free-form memory.
+
+### Context map
+
+Update only when a canonical route is added, removed, renamed, or materially reclassified. Do not add ordinary task specs, reports, or rolling notes individually.
+
+## Verify the result
+
+- Ensure that the edited section does not contain both old and new truth.
+- Ensure that another artifact does not now compete as canonical.
+- Ensure that links resolve.
+- Ensure that project language policy is respected.
+- Keep cleanup outside the directly edited scope for the maintenance workflow.

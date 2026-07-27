@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shape Project Work"
+  short_description: "Формирует scope и декомпозицию работы"
+  default_prompt: "Use $shape-project-work to turn this idea into an agreed scope and a risk-checked work breakdown."

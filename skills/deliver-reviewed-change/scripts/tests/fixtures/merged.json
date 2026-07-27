@@ -1,0 +1,18 @@
+{
+  "pull_request": {
+    "state": "closed",
+    "merged_at": "2026-07-27T10:20:00Z",
+    "html_url": "https://github.com/example/project/pull/1",
+    "head": {"sha": "head-1"}
+  },
+  "request_comment": {
+    "id": 100,
+    "created_at": "2026-07-27T10:00:00Z",
+    "html_url": "https://github.com/example/project/pull/1#issuecomment-100",
+    "user": {"login": "local-author"}
+  },
+  "reactions": [],
+  "issue_comments": [],
+  "reviews": [],
+  "inline_comments": []
+}

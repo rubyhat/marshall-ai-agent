@@ -1,0 +1,4 @@
+interface:
+  display_name: "Execute Project Task"
+  short_description: "Безопасно выполняет готовые project tasks"
+  default_prompt: "Use $execute-project-task to implement an exact ready project task in an isolated workspace and prepare it for local review."

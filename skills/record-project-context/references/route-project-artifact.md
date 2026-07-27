@@ -1,0 +1,83 @@
+# Route a project artifact
+
+Use this reference to decide whether to skip, link, update, or create and to select the logical owner of project information.
+
+## Identify the candidate
+
+State the candidate as one concise fact or artifact purpose. Separate mixed candidates before routing them.
+
+Determine:
+
+- lifetime: ephemeral, active, durable, or historical;
+- audience: agent, human, project tooling, or external task system;
+- scope: task, repository, cross-repository, project, or operations;
+- owner: the source that must remain authoritative;
+- recovery cost: how difficult and risky rediscovery would be.
+
+## Use the action order
+
+### Skip
+
+Skip when the candidate is:
+
+- routine tool output;
+- an intermediate attempt;
+- ordinary success status;
+- already obvious from code or configuration;
+- already recorded with no meaningful change;
+- too uncertain to present as a fact;
+- unlikely to help a later task or handoff.
+
+### Link
+
+Link when another source owns the detail:
+
+- code or schema owns implementation truth;
+- task spec owns scope and acceptance criteria;
+- ADR owns architectural rationale;
+- report owns detailed analysis or evidence;
+- issue or project owns operational status and priority;
+- pull request owns review and merge history;
+- external documentation owns third-party behavior.
+
+Store only the non-obvious implication or relationship when a link alone is insufficient.
+
+### Update
+
+Update when a current canonical artifact already owns the candidate. Search for the exact task ID, domain, concept, command, or decision before adding a section.
+
+Prefer replacing current state over adding a dated duplicate.
+
+### Create
+
+Create only when:
+
+- no existing artifact has the same responsibility;
+- the information has a unique active or durable purpose;
+- another agent or person must discover it later;
+- the configured project structure defines or permits the destination.
+
+Do not create a document merely to prove that work occurred.
+
+## Select the logical destination
+
+- Active objective, blocker, open question, next action: rolling active task note.
+- Stable product fact: project context.
+- Stable engineering convention: engineering rules.
+- Repository-specific fact: repository memory.
+- Verified repeatable procedure: runbook.
+- Cross-repository invariant: shared architecture.
+- Important decision rationale: ADR.
+- Current unresolved risk or discrepancy: known-issues registry.
+- Planned task scope and acceptance criteria: task spec.
+- Human-facing analysis, report, or guide: project documentation.
+- Project workflow value: project workflow configuration.
+- Status, priority, roadmap, or pull-request lifecycle: external task system.
+
+Use project configuration and the context map to translate these roles into paths.
+
+## Respect content ownership
+
+Let the owning domain workflow decide what a spec, ADR, report, or plan should say. Apply this skill to routing, duplication control, persistence, and consistency.
+
+Ask only when two plausible destinations would create competing sources of truth. Otherwise choose the configured owner and proceed.

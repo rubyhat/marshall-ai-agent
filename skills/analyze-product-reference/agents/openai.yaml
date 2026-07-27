@@ -1,0 +1,4 @@
+interface:
+  display_name: "Analyze Product Reference"
+  short_description: "Анализирует и адаптирует продуктовые референсы"
+  default_prompt: "Use $analyze-product-reference to investigate this external product reference, grade the evidence, and adapt the findings to my project."

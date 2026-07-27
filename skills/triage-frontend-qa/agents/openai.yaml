@@ -1,0 +1,4 @@
+interface:
+  display_name: "Triage Frontend QA"
+  short_description: "Проверяет и локализует frontend-дефекты"
+  default_prompt: "Use $triage-frontend-qa to reproduce, localize, classify, and safely hand off this reported frontend defect."

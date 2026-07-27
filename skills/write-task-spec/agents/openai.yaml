@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Task Spec"
+  short_description: "Создаёт и проверяет task specifications"
+  default_prompt: "Use $write-task-spec to create an implementation-ready task specification from the agreed project scope."

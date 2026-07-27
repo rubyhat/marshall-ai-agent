@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Project Work"
+  short_description: "Управление lifecycle проектных задач"
+  default_prompt: "Use $manage-project-work to create or reconcile a configured project task and verify its operational state."

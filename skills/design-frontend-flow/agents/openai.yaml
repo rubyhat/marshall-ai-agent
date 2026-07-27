@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Frontend Flow"
+  short_description: "Проектирует согласованный frontend-flow"
+  default_prompt: "Use $design-frontend-flow to define the user flow, surfaces, states, actions, responsive behavior, and frontend contract needs for this idea."

@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "full_product": [
+      "configure-project-workflow",
+      "load-project-context",
+      "record-project-context",
+      "maintain-project-context",
+      "manage-project-work",
+      "shape-project-work",
+      "write-task-spec",
+      "execute-project-task",
+      "deliver-reviewed-change",
+      "design-frontend-flow",
+      "triage-frontend-qa",
+      "analyze-product-reference"
+    ],
+    "core_development": [
+      "configure-project-workflow",
+      "load-project-context",
+      "record-project-context",
+      "maintain-project-context",
+      "shape-project-work",
+      "write-task-spec",
+      "execute-project-task",
+      "deliver-reviewed-change"
+    ],
+    "product_discovery": [
+      "configure-project-workflow",
+      "load-project-context",
+      "record-project-context",
+      "shape-project-work",
+      "design-frontend-flow",
+      "analyze-product-reference"
+    ],
+    "context_only": [
+      "configure-project-workflow",
+      "load-project-context",
+      "record-project-context",
+      "maintain-project-context"
+    ]
+  },
+  "modules": [
+    {
+      "name": "configure-project-workflow",
+      "group": "setup",
+      "config_section": "workflow_kit",
+      "requires": [],
+      "recommended_with": [],
+      "aliases": ["--workflow-setup", "--workflow-check"],
+      "question_stages": ["safety", "project_identity", "instructions", "installation"]
+    },
+    {
+      "name": "load-project-context",
+      "group": "context",
+      "config_section": "memory.context_loading",
+      "requires": [],
+      "recommended_with": ["record-project-context"],
+      "aliases": [],
+      "question_stages": ["context"]
+    },
+    {
+      "name": "record-project-context",
+      "group": "context",
+      "config_section": "memory.context_recording",
+      "requires": [],
+      "recommended_with": ["load-project-context"],
+      "aliases": [],
+      "question_stages": ["context"]
+    },
+    {
+      "name": "maintain-project-context",
+      "group": "context",
+      "config_section": "memory.context_maintenance",
+      "requires": ["record-project-context"],
+      "recommended_with": ["load-project-context"],
+      "aliases": ["--context-audit"],
+      "question_stages": ["context"]
+    },
+    {
+      "name": "manage-project-work",
+      "group": "task_management",
+      "config_section": "task_tracking",
+      "requires": [],
+      "recommended_with": ["shape-project-work", "write-task-spec"],
+      "aliases": ["--task-check", "--task-status"],
+      "question_stages": ["task_management"]
+    },
+    {
+      "name": "shape-project-work",
+      "group": "work_definition",
+      "config_section": "work_shaping",
+      "requires": [],
+      "recommended_with": ["load-project-context", "write-task-spec"],
+      "aliases": ["--shape-work"],
+      "question_stages": ["shaping_and_specs"]
+    },
+    {
+      "name": "write-task-spec",
+      "group": "work_definition",
+      "config_section": "task_specs",
+      "requires": ["record-project-context"],
+      "recommended_with": ["shape-project-work", "manage-project-work"],
+      "aliases": ["--spec-check"],
+      "question_stages": ["shaping_and_specs"]
+    },
+    {
+      "name": "execute-project-task",
+      "group": "implementation",
+      "config_section": "implementation",
+      "requires": ["write-task-spec"],
+      "recommended_with": ["manage-project-work", "deliver-reviewed-change"],
+      "aliases": ["--execute-task"],
+      "question_stages": ["implementation"]
+    },
+    {
+      "name": "deliver-reviewed-change",
+      "group": "delivery",
+      "config_section": "delivery",
+      "requires": ["execute-project-task"],
+      "recommended_with": ["manage-project-work"],
+      "aliases": ["--deliver-task"],
+      "question_stages": ["review_and_delivery"]
+    },
+    {
+      "name": "design-frontend-flow",
+      "group": "frontend",
+      "config_section": "frontend_design",
+      "requires": ["shape-project-work"],
+      "recommended_with": ["write-task-spec"],
+      "aliases": ["--design-flow"],
+      "question_stages": ["domain_modules"]
+    },
+    {
+      "name": "triage-frontend-qa",
+      "group": "frontend",
+      "config_section": "frontend_qa",
+      "requires": ["manage-project-work", "write-task-spec"],
+      "recommended_with": ["design-frontend-flow", "execute-project-task"],
+      "aliases": ["--qa-triage"],
+      "question_stages": ["domain_modules"]
+    },
+    {
+      "name": "analyze-product-reference",
+      "group": "product_research",
+      "config_section": "product_reference_analysis",
+      "requires": [],
+      "recommended_with": ["shape-project-work", "design-frontend-flow"],
+      "aliases": ["--reference-analysis"],
+      "question_stages": ["domain_modules"]
+    }
+  ]
+}

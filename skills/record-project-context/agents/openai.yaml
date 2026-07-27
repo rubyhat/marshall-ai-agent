@@ -1,0 +1,4 @@
+interface:
+  display_name: "Record Project Context"
+  short_description: "Сохраняет проектный контекст без дублирования"
+  default_prompt: "Use $record-project-context to route and persist this project knowledge without duplicating its source of truth."

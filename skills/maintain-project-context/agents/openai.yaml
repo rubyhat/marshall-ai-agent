@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maintain Project Context"
+  short_description: "Аудит и безопасная очистка контекста"
+  default_prompt: "Use $maintain-project-context to audit project context read-only, report candidates, and stop without changing files."

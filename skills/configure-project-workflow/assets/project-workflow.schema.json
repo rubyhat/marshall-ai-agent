@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rubyhat/marshall-ai-agent/project-workflow.schema.json",
+  "title": "Marshall AI Agent project workflow",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "workflow_kit",
+    "project",
+    "language",
+    "interaction",
+    "paths",
+    "protection",
+    "skills",
+    "commands"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "workflow_kit": {
+      "type": "object",
+      "required": ["source", "revision", "installation_mode", "selected_modules"],
+      "properties": {
+        "source": {"type": "string", "minLength": 1},
+        "revision": {"type": "string", "minLength": 1},
+        "installation_mode": {
+          "enum": ["centralized", "vendored", "symlink"]
+        },
+        "selected_modules": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+          "uniqueItems": true,
+          "minItems": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "project": {
+      "type": "object",
+      "required": ["name", "product_type", "repositories"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "product_type": {"type": "string", "minLength": 1},
+        "repositories": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "language": {
+      "type": "object",
+      "required": ["interaction", "project_docs", "internal_memory"],
+      "additionalProperties": true
+    },
+    "interaction": {
+      "type": "object",
+      "required": ["clarifying_questions", "conflict_and_risk_gate"],
+      "additionalProperties": true
+    },
+    "paths": {
+      "type": "object",
+      "required": ["root_instructions", "project_docs", "internal_memory"],
+      "additionalProperties": {"type": "string"}
+    },
+    "protection": {
+      "type": "object",
+      "required": ["default_setup_boundary", "additional_restrictions"],
+      "properties": {
+        "default_setup_boundary": {"const": "enforced"},
+        "additional_restrictions": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "additionalProperties": true
+    },
+    "skills": {
+      "type": "object",
+      "required": ["active"],
+      "properties": {
+        "active": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "commands": {
+      "type": "object",
+      "required": ["aliases_are_plain_text", "aliases_do_not_expand_authority", "aliases"],
+      "properties": {
+        "aliases_are_plain_text": {"const": true},
+        "aliases_do_not_expand_authority": {"const": true},
+        "aliases": {"type": "object"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
