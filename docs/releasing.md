@@ -11,6 +11,8 @@
 
 - `version.txt` — текущая SemVer-версия репозитория;
 - `.release-please-manifest.json` — та же версия для Release Please;
+- `release-please-config.json` → `initial-version: 0.1.0` — явная версия
+  первой публикации вместо bootstrap default `1.0.0`;
 - `CHANGELOG.md` — история пользовательски значимых изменений;
 - `v<MAJOR>.<MINOR>.<PATCH>` — immutable release tag.
 

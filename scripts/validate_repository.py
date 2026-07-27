@@ -268,14 +268,28 @@ def validate_readme_catalog(validation: Validation, skill_names: list[str]) -> N
 
 
 def validate_root_files(validation: Validation) -> None:
+    release_config_path = ROOT / "release-please-config.json"
     for path in (
         ROOT / ".release-please-manifest.json",
-        ROOT / "release-please-config.json",
+        release_config_path,
     ):
         if not path.is_file():
             validation.error(path, "required release configuration is missing")
         else:
             validate_json(validation, path)
+
+    if release_config_path.is_file():
+        try:
+            release_config = json.loads(
+                release_config_path.read_text(encoding="utf-8")
+            )
+            if release_config.get("initial-version") != "0.1.0":
+                validation.error(
+                    release_config_path,
+                    "initial-version must preserve the v0.1.0 bootstrap policy",
+                )
+        except (AttributeError, json.JSONDecodeError):
+            pass
 
     version_path = ROOT / "version.txt"
     if not version_path.is_file():
