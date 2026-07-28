@@ -7,4 +7,9 @@ workflow phase. If it is premature, stale, ambiguous, or out of order, stop
 before mutations, explain the mismatch, and recommend the exact safest next
 alias or action.
 
+Resolve sticky current-conversation constraints before alias-specific
+authority. A later alias may narrow authority but cannot implicitly release a
+planning, no-code, no-implementation, no-delivery, or read-only constraint.
+Apply the same capability gate to equivalent natural-language requests.
+
 {{COMMAND_CATALOG}}

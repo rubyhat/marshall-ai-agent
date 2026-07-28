@@ -62,7 +62,28 @@ Classify its audience:
 
 Read [route-project-artifact.md](references/route-project-artifact.md) when the destination or source-of-truth owner is not immediately clear.
 
-### 4. Choose the least duplicative action
+### 4. Resolve the output contract
+
+Before writing an artifact or composing the final response, determine:
+
+- whether the requested result is chat-only or persistent;
+- whether another agent or person must consume it later;
+- the configured logical destination and format;
+- whether the user requested a file, link, path, path-only response, or another
+  exact output surface.
+
+Give an explicit user-requested form precedence within applicable project and
+safety policy. Treat a handoff or incident report as a persistent
+human-facing artifact when project policy defines such reports as file-backed.
+Do not infer a file destination merely from an existing directory; resolve it
+from configuration, project instructions, or an owning documentation route.
+
+When the user explicitly requests only a path, verify the artifact first and
+return only that path. When the user requests a transferable file without a
+path-only response, return a compact link or path instead of duplicating the
+full artifact in chat.
+
+### 5. Choose the least duplicative action
 
 Use this order:
 
@@ -73,7 +94,7 @@ Use this order:
 
 Search the likely canonical destination before creating a file or section. Do not create a new artifact merely because the current session is significant.
 
-### 5. Write current state
+### 6. Write current state
 
 - Replace superseded current-state wording instead of appending a task changelog.
 - Keep explanations compact and decision-oriented.
@@ -84,7 +105,7 @@ Search the likely canonical destination before creating a file or section. Do no
 
 Read [update-canonical-context.md](references/update-canonical-context.md) when changing stable memory, runbooks, configuration, architecture, known issues, or a context map.
 
-### 6. Manage active task state
+### 7. Manage active task state
 
 Use one rolling note per stable active Task ID. Use a stable slug only when a multi-session initiative has no Task ID.
 
@@ -97,7 +118,7 @@ Use one rolling note per stable active Task ID. Use a stable slug only when a mu
 
 Read [manage-active-task-note.md](references/manage-active-task-note.md) when creating, updating, handing off, or closing a rolling note.
 
-### 7. Verify the mutation
+### 8. Verify the mutation
 
 After writing:
 
@@ -106,7 +127,8 @@ After writing:
 3. Confirm that links and paths resolve.
 4. Update the context map only when a canonical route was added or changed.
 5. Confirm that the active note does not duplicate its linked spec, issue, or pull request.
-6. Report only material recording choices, conflicts, or assumptions.
+6. Confirm that the final response matches the resolved output contract.
+7. Report only material recording choices, conflicts, or assumptions.
 
 ## Close a task recording cycle
 

@@ -1,6 +1,6 @@
 ---
 name: deliver-reviewed-change
-description: Deliver an exact current implementation task from an uncommitted local-review handoff through independent local review, intentional commit and push, pull-request creation, review-feedback handling, GitHub Codex review monitoring, authorized merge, tracker closure, synchronization, and workspace cleanup. Use when the user explicitly asks to review, publish, deliver, finish, or merge the current task; invokes `--deliver-task` with a Task ID, Issue URL, PR URL, spec path, or current task anchor; asks to resume or address feedback on that exact task's pull request; or when a configured heartbeat resumes its active review cycle. Respect narrower requested endpoints. Do not use for initial implementation, unrelated pull requests, generic GitHub orientation, force-push, deployment, production mutations, or broad repository cleanup.
+description: Deliver an exact current implementation task from an uncommitted local-review handoff through independent local review, intentional commit and push, pull-request creation, review-feedback handling, GitHub Codex review monitoring, authorized merge, tracker closure, synchronization, and workspace cleanup. Use when the user explicitly asks to review, publish, deliver, finish, or merge the current task; invokes `--deliver-task` with a Task ID, Issue URL, PR URL, spec path, or current task anchor; asks to resume or address feedback on that exact task's pull request; or when a configured heartbeat resumes its active review cycle. Verify active conversation authority before review or delivery mutations and respect narrower requested endpoints. Do not use for initial implementation, unrelated pull requests, generic GitHub orientation, force-push, deployment, production mutations, or broad repository cleanup.
 ---
 
 # Deliver Reviewed Change
@@ -15,6 +15,26 @@ Move one exact implementation task through review and delivery without losing ta
 - Do not perform initial feature implementation, silently expand scope, select an unrelated pull request, force-push, deploy, mutate production, or bypass required gates.
 - Use `manage-project-work` for lifecycle mutations and `record-project-context` for durable findings or closing state.
 
+## Resolve active conversation authority first
+
+Before task or pull-request reconciliation, review fixes, status changes,
+commit, push, pull-request comments, heartbeat creation, merge, or cleanup,
+inspect already loaded conversation state and project policy for:
+
+- an active planning-session profile;
+- an explicit current-session no-code, no-delivery, read-only, or
+  discussion-only constraint;
+- another sticky negative constraint that excludes review or delivery
+  mutations.
+
+Treat a conflicting alias or natural-language delivery request as a conflict,
+not as an implicit override. Stop before mutations, state the received request,
+active constraint, conflict, and exact configured release action, and confirm
+that no task, Git, pull-request, heartbeat, or file state changed.
+
+A heartbeat may resume only an already authorized delivery cycle. It cannot
+release or broaden a later sticky conversation constraint.
+
 ## Establish mode and endpoint
 
 Choose one mode:
@@ -27,7 +47,9 @@ Choose one mode:
 Resolve the authorized endpoint from the user's request:
 
 - a narrow request such as “open a PR” stops at that endpoint;
-- `--deliver-task` authorizes the configured full lifecycle for the exact current task, including merge and cleanup when all gates and merge-ownership rules pass;
+- after the active-conversation gate passes, `--deliver-task` authorizes the
+  configured full lifecycle for the exact current task, including merge and
+  cleanup when all gates and merge-ownership rules pass;
 - a heartbeat inherits the existing endpoint and cannot broaden it;
 - ambiguity about task, pull request, repository, or merge target blocks mutations.
 

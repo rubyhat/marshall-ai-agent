@@ -32,12 +32,36 @@ protection:
   default_setup_boundary: enforced
   additional_restrictions: []
 
+artifacts:
+  output_contract:
+    resolve_before_response: true
+    explicit_user_form_precedence: true
+    path_only_response_must_be_exact: true
+  reports:
+    root: "{{PROJECT_REPORTS_ROOT}}"
+    chat_default: chat
+    handoff_default: file
+    incident_default: file
+    file_response: concise_link_or_path
+
 skills:
   active: {}
 
 commands:
   aliases_are_plain_text: true
   aliases_do_not_expand_authority: true
+  authority_resolution:
+    order:
+      - active_session_constraints
+      - explicit_current_request
+      - alias_or_workflow_contract
+      - task_readiness
+      - safety_policy
+    sticky_negative_constraints_precede_alias_authority: true
+    later_requests_may_narrow_but_not_implicitly_expand: true
+    natural_language_requests_use_capability_gate: true
+    authorized_handoffs_inherit_parent_capability_without_expansion: true
+  session_profiles: {}
   sequence_guard:
     enabled: true
     stop_before_mutation_on_mismatch: true

@@ -119,7 +119,7 @@ Apply operations idempotently:
 
 Read [validate-project-setup.md](references/validate-project-setup.md).
 
-Validate configuration structure, module dependencies, skill paths, active-copy identity, managed instruction routing, aliases, links, placeholders, safety policy, preservation of user content, and representative dry-run routes. Do not run project builds, tests, migrations, services, or network workflows as setup validation unless separately requested and authorized.
+Validate configuration structure, module dependencies, skill paths, active-copy identity, managed instruction routing, aliases, sticky session constraints, capability gates, artifact output contracts, links, placeholders, safety policy, preservation of user content, and representative dry-run routes. Do not run project builds, tests, migrations, services, or network workflows as setup validation unless separately requested and authorized.
 
 ### 8. Close or preserve setup state
 
