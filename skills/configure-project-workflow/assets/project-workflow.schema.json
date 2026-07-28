@@ -76,6 +76,37 @@
       },
       "additionalProperties": true
     },
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "output_contract": {
+          "type": "object",
+          "required": [
+            "resolve_before_response",
+            "explicit_user_form_precedence",
+            "path_only_response_must_be_exact"
+          ],
+          "properties": {
+            "resolve_before_response": {"const": true},
+            "explicit_user_form_precedence": {"const": true},
+            "path_only_response_must_be_exact": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "reports": {
+          "type": "object",
+          "properties": {
+            "root": {"type": "string", "minLength": 1},
+            "chat_default": {"enum": ["chat", "file"]},
+            "handoff_default": {"enum": ["chat", "file"]},
+            "incident_default": {"enum": ["chat", "file"]},
+            "file_response": {"enum": ["concise_link_or_path", "path_only"]}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
     "skills": {
       "type": "object",
       "required": ["active"],
@@ -98,6 +129,57 @@
       "properties": {
         "aliases_are_plain_text": {"const": true},
         "aliases_do_not_expand_authority": {"const": true},
+        "authority_resolution": {
+          "type": "object",
+          "required": [
+            "order",
+            "sticky_negative_constraints_precede_alias_authority",
+            "later_requests_may_narrow_but_not_implicitly_expand",
+            "natural_language_requests_use_capability_gate",
+            "authorized_handoffs_inherit_parent_capability_without_expansion"
+          ],
+          "properties": {
+            "order": {
+              "type": "array",
+              "items": {"type": "string"},
+              "minItems": 1
+            },
+            "sticky_negative_constraints_precede_alias_authority": {"const": true},
+            "later_requests_may_narrow_but_not_implicitly_expand": {"const": true},
+            "natural_language_requests_use_capability_gate": {"const": true},
+            "authorized_handoffs_inherit_parent_capability_without_expansion": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "session_profiles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "lifetime",
+              "sticky",
+              "implicit_override_by_alias",
+              "release"
+            ],
+            "properties": {
+              "lifetime": {"type": "string", "minLength": 1},
+              "sticky": {"const": true},
+              "implicit_override_by_alias": {"const": false},
+              "release": {"type": "string", "minLength": 1},
+              "allowed_capabilities": {
+                "type": "array",
+                "items": {"type": "string"},
+                "uniqueItems": true
+              },
+              "blocked_capabilities": {
+                "type": "array",
+                "items": {"type": "string"},
+                "uniqueItems": true
+              }
+            },
+            "additionalProperties": true
+          }
+        },
         "sequence_guard": {
           "type": "object",
           "required": [

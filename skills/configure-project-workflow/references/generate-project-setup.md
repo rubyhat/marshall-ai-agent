@@ -49,6 +49,9 @@ Include only selected modules. Record:
 - selected skills and active paths;
 - aliases;
 - alias prerequisites, workflow-phase checks, and mismatch behavior;
+- sticky session profiles, capability allow/block rules, precedence, lifetime,
+  and release semantics;
+- persistent artifact destinations and exact output-form precedence;
 - applicable task, spec, implementation, delivery, context, and domain sections.
 
 Generate only aliases listed in the approved
@@ -75,6 +78,11 @@ The command catalog must explain each enabled alias, arguments, owning workflow,
 authority boundary, prerequisites, terminal result, and recommended
 sequences. Do not generate expanded prompt copies that duplicate `SKILL.md`;
 the owning skill remains the procedural source of truth.
+
+When planning-session behavior is enabled, show an explicit new-conversation
+boundary before implementation and delivery. Do not describe a later
+implementation or delivery alias as an implicit release of a sticky planning
+profile.
 
 Use assets from owning skills for task-spec or reference templates. Do not duplicate those assets in this skill.
 

@@ -27,10 +27,15 @@ Classify the request before shaping:
 - `specification requested`: finish shaping, then hand the agreed task to `write-task-spec`;
 - `shaping review`: inspect an existing proposal or work breakdown and report gaps without silently rewriting it.
 
-A planning-session profile is a conversation constraint, not a host application
-mode. It does not authorize artifacts, tracker mutations, implementation, or
-delivery. A later exact command may authorize its own bounded workflow without
-ending the profile for unrelated work.
+A planning-session profile is a sticky conversation constraint, not a host
+application mode. It remains active for the current conversation. It does not
+authorize artifacts or tracker mutations by itself, and it blocks
+implementation and delivery capabilities. Later planning, roadmap,
+task-management, frontend-design, reference-analysis, or specification
+requests may authorize only their bounded non-implementation workflows.
+Implementation or delivery aliases and equivalent natural-language requests
+never release the profile implicitly. Require a new conversation when project
+policy defines `new_conversation_only` release semantics.
 
 Do not treat silence as authorization to create a full task specification.
 
@@ -53,6 +58,12 @@ Use an already sufficient project orientation or invoke `load-project-context` f
 Do not load unrelated memory, specifications, or repositories.
 
 ## Enforce workflow order
+
+Resolve active conversation constraints before alias-specific authority, task
+readiness, or mutation-capable tool calls. Treat an explicit current-session
+no-code, no-implementation, no-delivery, read-only, or planning-only
+instruction as sticky when its wording or project policy makes it persistent.
+A later request may narrow the active boundary but must not silently expand it.
 
 Before acting on a quick alias, resolve the strongest available workflow state:
 current idea or task anchor, shaping verdict, tracker identity, specification
@@ -167,7 +178,12 @@ Keep the result usable as input to task management without pretending it is a fu
 
 - `--planning-session [scope]`: establish the planning-session profile. Use the
   optional text only to bound the conversation. Do not create artifacts or
-  require a task anchor merely to acknowledge the profile.
+  require a task anchor merely to acknowledge the profile. Keep the profile
+  active for the current conversation. Permit only separately authorized
+  bounded planning and specification capabilities, and block implementation
+  and delivery. When either is requested, stop before mutations, name the
+  active profile and conflict, confirm that no mutation occurred, and require
+  the configured release action.
 - `--shape-work <idea or task anchor>`: start discussion or guided shaping. The
   alias does not authorize file creation, Issue/Project mutation, or a full
   task specification.

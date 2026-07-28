@@ -9,12 +9,20 @@ Validate the configured workflow without executing ordinary project work.
 - Verify unique module names, aliases, paths, and managed markers.
 - Verify every alias has a resolvable owning workflow, authority boundary,
   prerequisites, and sequence-mismatch behavior.
+- Verify every alias maps to a capability when session profiles are enabled.
+- Verify sticky negative session constraints are evaluated before
+  alias-specific authority and task readiness.
+- Verify each session profile has explicit lifetime, precedence, allowed or
+  blocked capabilities, and release semantics.
+- Verify natural-language requests use the same capability gate as aliases.
 - Verify every enabled conditional alias has all modules declared by its
   catalog `requires` list, and that ineligible conditional aliases are absent
   from configuration, routing, and the project command catalog.
 - Verify no unresolved template placeholders.
 - Verify every generated relative link.
 - Verify no configured path escapes its intended root.
+- Verify persistent report types have a configured destination and that
+  file/link/path-only output rules do not conflict.
 
 Do not install a parser or dependency automatically. If no YAML parser is safely available, validate the approved setup state, generated text structure, and a full agent readback, then report the parser limitation.
 
@@ -57,6 +65,17 @@ Evaluate representative prompts without performing their mutations:
 - accept current recommendations -> only the latest recommended question set;
 - request implementation -> readiness and explicit authority gate;
 - request delivery -> exact endpoint gate;
+- planning session then request implementation -> stop before task lookup or
+  mutations and require the configured release action;
+- planning session then request delivery -> stop before review or delivery
+  mutations and require the configured release action;
+- planning session then request a specification -> permit only the bounded
+  specification workflow;
+- natural-language current-session no-code constraint then request
+  implementation -> stop as for the equivalent alias;
+- request a transferable handoff report -> use the configured persistent
+  destination;
+- request a path-only report response -> return only the verified path;
 - report a frontend defect when QA is selected;
 - request external reference analysis when selected;
 - run `--workflow-check` -> read-only audit.

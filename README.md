@@ -16,11 +16,11 @@ Skills не должны содержать жёсткую привязку к �
 
 ## Первая настройка проекта
 
-Для стабильной установки используйте exact release tag. Текущий опубликованный
-релиз — [`v0.1.0`](https://github.com/rubyhat/marshall-ai-agent/releases/tag/v0.1.0):
+Для стабильной установки используйте exact release tag. Версия, выпускаемая
+этим изменением, — [`v0.2.1`](https://github.com/rubyhat/marshall-ai-agent/releases/tag/v0.2.1):
 
 ```bash
-git clone --branch v0.1.0 --depth 1 git@github.com:rubyhat/marshall-ai-agent.git
+git clone --branch v0.2.1 --depth 1 git@github.com:rubyhat/marshall-ai-agent.git
 cd marshall-ai-agent
 ```
 
@@ -76,7 +76,8 @@ flowchart LR
     C -- "Нет" --> E["Создать task identity и tracker anchors"]
     D --> E
     E --> F["Создать task-spec"]
-    F --> G{"Implementation явно разрешена?"}
+    F --> S["Открыть новую Codex-сессию"]
+    S --> G{"Implementation явно разрешена?"}
     G -- "Да" --> H["Выполнить задачу"]
     G -- "Нет" --> I["Остановиться на готовой спецификации"]
     H --> J["Review и delivery"]
@@ -93,6 +94,10 @@ flowchart LR
 7. `deliver-reviewed-change` — провести independent review, PR, bounded review cycle, merge и cleanup в пределах разрешённого endpoint.
 
 `record-project-context` применяется в durable checkpoints по всему flow, а не только в конце. Готовая спецификация сама по себе не разрешает implementation, а выполненная implementation-задача сама по себе не разрешает commit, push или merge.
+
+Если shaping начат через `--planning-session`, переход к implementation всегда
+проходит через новую Codex-сессию: готовая specification или поздний
+implementation alias не снимают sticky planning lock.
 
 ## Дополнительные flows
 
@@ -158,7 +163,7 @@ analyze-product-reference
 | `--context-audit [scope]` | Запустить только read-only аудит project context. |
 | `--task-check <Task ID или Issue URL>` | Проверить согласованность одной задачи. |
 | `--task-status <Task ID или Issue URL> <status>` | Изменить только статус одной точной задачи. |
-| `--planning-session [scope]` | Зафиксировать discussion/shaping профиль текущей сессии. |
+| `--planning-session [scope]` | Зафиксировать sticky discussion/shaping профиль до конца текущей сессии. |
 | `--shape-work <идея или task anchor>` | Запустить guided shaping без автоматических mutations. |
 | `--shape-roadmap <идея или task anchor>` | Подготовить roadmap decomposition и mutation preview без full specs. |
 | `--prepare-spec <Task ID или task anchor>` | Обсудить точную задачу и после ответов создать task-spec. |
@@ -171,6 +176,11 @@ analyze-product-reference
 | `--deliver-task <Task ID, PR URL, spec path или current task>` | Запустить разрешённый delivery-flow одной точной задачи. |
 
 Это plain-text соглашения проекта, а не встроенные пользовательские slash-команды Codex. Они начинают работать только после маршрутизации в project instructions и configuration. Alias не расширяет полномочия за пределы, явно описанные соответствующим skill и проектной политикой.
+
+`--planning-session` создаёт жёсткую границу текущего разговора:
+implementation и delivery требуют новой Codex-сессии. Поздние
+`--execute-task`, `--deliver-task` или эквивалентные natural-language запросы
+не снимают planning/no-code lock.
 
 Подробные contracts, защита от ошибочного порядка и рекомендуемые
 последовательности собраны в
@@ -223,7 +233,7 @@ Release Please поддерживает один Release PR:
 
 - [правила участия](CONTRIBUTING.md);
 - [release runbook](docs/releasing.md);
-- [текущий опубликованный релиз `v0.1.0`](https://github.com/rubyhat/marshall-ai-agent/releases/tag/v0.1.0);
+- [релиз `v0.2.1`](https://github.com/rubyhat/marshall-ai-agent/releases/tag/v0.2.1);
 - текущая development version — [version.txt](version.txt);
 - история изменений — [CHANGELOG.md](CHANGELOG.md).
 
@@ -310,4 +320,4 @@ Repository validator проверяет каталог skills, frontmatter, UI m
 - расширять schema и validation вместе с contract changes;
 - дополнять reusable project templates только по подтверждённым сценариям;
 - добавить сценарные проверки для single-repo, multi-repo и проектов без GitHub Projects;
-- подготовить первый `v0.1.0` после начального forward-test.
+- подготовить стабильный `v1.0.0` после начального forward-test.

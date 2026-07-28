@@ -94,8 +94,9 @@ Ask 7–10 prompts covering:
 5. active task note policy;
 6. session-note and historical-context policy;
 7. recording language and provenance requirements;
-8. retention, archive, and manual cleanup policy;
-9. docs or memory categories that must not be created;
+8. retention, archive, manual cleanup, and categories that must not be created;
+9. human-facing report root and chat, file, handoff, incident, link, and
+   path-only output policy;
 10. whether `load`, `record`, and `maintain` modules are applicable.
 
 ## Stage 5 — shaping and specifications

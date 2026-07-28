@@ -25,6 +25,8 @@ prerequisites и разрешённые mutations находятся в
 Перед выполнением каждого alias агент обязан определить текущую фазу workflow
 и проверить:
 
+- активные sticky constraints текущего разговора;
+- capability запрошенного действия;
 - точный idea, Task, Issue, spec или PR anchor;
 - readiness текущей фазы;
 - обязательные зависимости и их стабильность;
@@ -46,6 +48,11 @@ implementation-задач. Downstream specification блокируется то�
 когда незавершённая зависимость оставляет outcome, contract, scope, ownership
 или acceptance behavior существенно нестабильными.
 
+Sticky negative constraint проверяется раньше alias authority и readiness.
+Поздний alias может сузить полномочия, но не может неявно снять
+planning/no-code/no-implementation/no-delivery/read-only ограничение.
+Natural-language запрос проходит тот же capability gate, что и alias.
+
 ## Основной workflow
 
 ```text
@@ -54,7 +61,10 @@ implementation-задач. Downstream specification блокируется то�
   → --shape-roadmap <idea или feature anchor>
   → отдельное подтверждение точного roadmap mutation preview
   → --prepare-spec <Task ID>
-  → --execute-task <Task ID>
+
+=== НОВАЯ СЕССИЯ CODEX ОБЯЗАТЕЛЬНА ===
+
+--execute-task <Task ID>
   → --deliver-task <Task ID>
 ```
 
@@ -71,8 +81,14 @@ Domain-команды подключаются только при примен�
 декомпозиции и подготовки спецификаций. Не разрешает сам по себе создание
 файлов, Issues, task-spec, кода или delivery actions.
 
-Это workflow profile, а не переключатель системного Plan mode Codex. Следующий
-точный alias может разрешить только свой bounded workflow.
+Это workflow profile, а не переключатель системного Plan mode Codex. Профиль
+является sticky constraint и действует до конца текущего разговора.
+
+Planning, roadmap, frontend-design, reference-analysis, task-check и
+specification aliases могут разрешить только свои bounded
+non-implementation workflows. `--execute-task`, `--deliver-task` и
+эквивалентные natural-language запросы не отменяют профиль. Агент
+останавливается до mutations и требует новую сессию.
 
 ### `--shape-work <идея или task anchor>`
 
@@ -136,6 +152,11 @@ Alias не отвечает на factual questions, не распростран�
 
 ### `--execute-task <Task ID, Issue URL или spec path>`
 
+Команда доступна только в разговоре без активного planning/no-code
+implementation lock. Если такой lock существует, агент останавливается до
+task lookup, status transition, Git, dependency и file mutations и рекомендует
+новую сессию.
+
 Выполняет одну exact implementation-ready задачу через
 `execute-project-task`:
 
@@ -150,6 +171,10 @@ Alias не отвечает на factual questions, не распростран�
 Не разрешает commit, push, PR, merge, deploy, production mutation или cleanup.
 
 ### `--deliver-task <Task ID, Issue URL, PR URL, spec path или current task>`
+
+Команда доступна только в разговоре без активного planning/no-delivery lock.
+Конфликтующий профиль блокирует review fixes, commit, push, PR actions,
+heartbeat, merge, tracker mutations и cleanup.
 
 Проводит точную задачу через configured independent review и delivery flow.
 Точная конечная точка может быть сужена дополнительным текстом пользователя.
@@ -266,11 +291,17 @@ handoff, агент сообщает недостающий checkpoint и рек
 --execute-task <Task ID>
 ```
 
+Если `--execute-task` или `--deliver-task` отправлен в активной
+planning-сессии, readiness не проверяется и mutations не выполняются. Агент
+называет активный профиль и просит открыть новую сессию.
+
 ## Что настраивается в проекте
 
 Reusable aliases сохраняют одинаковый смысл, но конкретный проект определяет:
 
 - включённые modules и aliases;
+- session profiles, capabilities, lifetime, precedence и release semantics;
+- persistent report destinations и output-form rules;
 - repositories, services и ownership;
 - Task ID и hierarchy policy;
 - task tracker, fields и statuses;

@@ -71,10 +71,28 @@ Do not create a document merely to prove that work occurred.
 - Current unresolved risk or discrepancy: known-issues registry.
 - Planned task scope and acceptance criteria: task spec.
 - Human-facing analysis, report, or guide: project documentation.
+- Transferable handoff or incident report: the configured report destination
+  when one exists; otherwise the owning project-documentation route.
 - Project workflow value: project workflow configuration.
 - Status, priority, roadmap, or pull-request lifecycle: external task system.
 
 Use project configuration and the context map to translate these roles into paths.
+An existing directory is evidence, not authority. Do not call it canonical
+unless configuration, project instructions, or the context map assigns that
+role.
+
+## Respect the requested output form
+
+- Chat-only analysis does not create a project artifact unless the user or
+  owning workflow requests persistence.
+- A report intended for transfer to another agent or person uses the configured
+  persistent destination when project policy marks that report type as
+  file-backed.
+- An explicit file request requires a verified file.
+- An explicit path-only request requires a final response containing only the
+  verified path.
+- Do not repeat a complete persistent report in chat unless the user explicitly
+  requests both surfaces.
 
 ## Respect content ownership
 

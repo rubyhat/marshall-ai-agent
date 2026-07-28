@@ -1,6 +1,6 @@
 ---
 name: execute-project-task
-description: Execute an exact implementation-ready project task in an isolated, project-configured workspace and prepare the uncommitted changes for independent local review. Use when the user explicitly asks to implement, build, fix, start, continue, or resume a resolved task or specification, or invokes `--execute-task` with a Task ID, Issue URL, or spec path. Verify readiness, select affected repositories, create or reuse task worktrees and branches, protect parallel work, implement against the agreed specification, control scope drift, run relevant quality gates, self-check the diff, and establish the local-review checkpoint. Do not use for discussion or diagnosis-only requests, shaping, specification writing, independent review, commit, push, pull-request creation, merge, workspace cleanup, or production mutations.
+description: Execute an exact implementation-ready project task in an isolated, project-configured workspace and prepare the uncommitted changes for independent local review. Use when the user explicitly asks to implement, build, fix, start, continue, or resume a resolved task or specification, or invokes `--execute-task` with a Task ID, Issue URL, or spec path. Verify active conversation authority before task lookup or mutations, then verify readiness, select affected repositories, create or reuse task worktrees and branches, protect parallel work, implement against the agreed specification, control scope drift, run relevant quality gates, self-check the diff, and establish the local-review checkpoint. Do not use for discussion or diagnosis-only requests, shaping, specification writing, independent review, commit, push, pull-request creation, merge, workspace cleanup, or production mutations.
 ---
 
 # Execute Project Task
@@ -14,6 +14,25 @@ Turn one authorized, ready implementation task into verified uncommitted changes
 - Own readiness preflight, repository selection, isolated workspace setup, implementation, relevant quality gates, diff self-check, and the local-review handoff.
 - Do not reshape product scope, silently repair a material specification conflict, perform independent review, commit, push, create a pull request, merge, deploy, mutate production data, or clean the task workspace.
 - Do not begin implementation merely because shaping or specification reached a ready verdict. Require explicit implementation authority.
+
+## Resolve active conversation authority first
+
+Before task lookup, status transition, workspace or branch creation, dependency
+commands, file edits, or another mutation-capable action, inspect already
+loaded conversation state and project policy for:
+
+- an active planning-session profile;
+- an explicit current-session no-code, no-implementation, read-only, or
+  discussion-only constraint;
+- another sticky negative constraint that excludes implementation.
+
+Treat a conflicting alias or natural-language implementation request as a
+conflict, not as an implicit override. Stop before mutations, state the
+received request, active constraint, conflict, and exact configured release
+action, and confirm that no task, Git, dependency, or file state changed.
+
+A later request may narrow authority but cannot silently expand it beyond a
+sticky constraint. Task readiness never overrides this gate.
 
 ## Resolve project policy
 
@@ -33,7 +52,8 @@ Keep project names, repository paths, status labels, branch formats, test comman
 
 ## Interpret the exact quick alias
 
-Treat `--execute-task <Task ID, Issue URL, or spec path>` as authority to execute that exact task locally:
+After the active-conversation gate passes, treat `--execute-task <Task ID,
+Issue URL, or spec path>` as authority to execute that exact task locally:
 
 - resolve and validate the task;
 - create or reuse configured worktrees and feature branches;
