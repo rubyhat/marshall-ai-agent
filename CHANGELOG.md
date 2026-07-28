@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.1.0...v0.2.0) (2026-07-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **workflow:** project workflow schema v2 requires commands.sequence_guard; setup tracker schema v2 requires modules.enabled_aliases; reconfigure schema v1 projects before enabling the new aliases.
+
+### Новые возможности
+
+* **workflow:** add guarded workflow aliases ([93e6d11](https://github.com/rubyhat/marshall-ai-agent/commit/93e6d1151acaa894ca5f93ba6b2b9a55f171b299))
+
+
+### Документация
+
+* **readme:** point setup to v0.1.0 ([#6](https://github.com/rubyhat/marshall-ai-agent/issues/6)) ([5faf381](https://github.com/rubyhat/marshall-ai-agent/commit/5faf3811896069e0f067023fe18ad4f2193eb8be))
+
 ## 0.1.0 (2026-07-27)
 
 
