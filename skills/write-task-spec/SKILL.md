@@ -1,6 +1,6 @@
 ---
 name: write-task-spec
-description: Create, update, and audit full or lightweight project task specifications from an agreed shaped task or another configured authorized specification handoff. Use when the user explicitly asks for a complete task spec, approves specification as the next step after shaping, asks to revise an existing spec, invokes `--spec-check` for a read-only completeness and readiness audit, or when an authorized domain workflow such as confirmed QA hands off an exact sufficiently scoped task for specification. Select project-configured templates first and use bundled generic defaults as fallback; verify relevant code, contracts, dependencies, acceptance criteria, tests, and cross-cutting impacts. Do not trigger merely from an initial idea, roadmap commitment, or Issue creation, and do not allocate Task IDs, mutate task trackers, implement code, or silently resolve product-scope conflicts.
+description: Create, update, and audit full or lightweight project task specifications from an agreed shaped task or another configured authorized specification handoff. Use when the user explicitly asks for a complete task spec, approves specification as the next step after shaping, asks to revise an existing spec, invokes `--spec-check` for a read-only completeness and readiness audit, or receives an authorized exact task from a shaping or domain workflow such as confirmed QA. Select project-configured templates first and use bundled generic defaults as fallback; verify relevant code, contracts, dependencies, acceptance criteria, tests, and cross-cutting impacts. Do not trigger merely from an initial idea, roadmap commitment, or Issue creation, and do not allocate Task IDs, mutate task trackers, implement code, or silently resolve product-scope conflicts.
 ---
 
 # Write Task Spec
@@ -27,6 +27,10 @@ Choose one mode:
 - `draft`: persist incomplete work only when the user explicitly requests a draft.
 
 Silence, backlog commitment, Issue creation, `--shape-work`, or a shaping-readiness verdict does not authorize specification files.
+
+A resolved `--prepare-spec <exact task anchor>` handoff from
+`shape-project-work` is explicit create authority. Do not ask again whether to
+write the specification after its shaping questions are settled.
 
 Treat exact `--spec-check <Task ID or spec path>` as read-only audit authority. Do not repair files, tracker links, or status during that command.
 
@@ -137,7 +141,9 @@ For create or update mode:
 2. reread the written spec and every created annex;
 3. verify relative links and task identity;
 4. ask `manage-project-work` to link the spec and apply the authorized status;
-5. report the selected depth, files, verdict, blockers, assumptions, and handoff.
+5. read [report-specification-handoff.md](references/report-specification-handoff.md);
+6. report the standardized task identity, artifacts, verdicts, outcome,
+   blockers, and next action.
 
 Do not start implementation automatically when the user requested only a specification.
 

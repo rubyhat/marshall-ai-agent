@@ -119,6 +119,71 @@ def module_index(catalog: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
         if name in result:
             raise ValueError(f"Duplicate module in catalog: {name}")
         result[name] = module
+
+    seen_aliases: Dict[str, str] = {}
+    for name, module in result.items():
+        dependencies = module.get("requires", [])
+        if not isinstance(dependencies, list) or not all(
+            isinstance(item, str) for item in dependencies
+        ):
+            raise ValueError(f"Module {name} requires must be an array of names")
+        for dependency in dependencies:
+            if dependency not in result:
+                raise ValueError(f"Module {name} requires unknown module {dependency}")
+
+        aliases = module.get("aliases", [])
+        if not isinstance(aliases, list) or not all(
+            isinstance(item, str) and item for item in aliases
+        ):
+            raise ValueError(f"Module {name} aliases must be an array of commands")
+
+        conditional_aliases = module.get("conditional_aliases", [])
+        if not isinstance(conditional_aliases, list):
+            raise ValueError(f"Module {name} conditional_aliases must be an array")
+
+        alias_entries = [(alias, []) for alias in aliases]
+        for index, entry in enumerate(conditional_aliases):
+            if not isinstance(entry, dict):
+                raise ValueError(
+                    f"Module {name} conditional_aliases[{index}] must be an object"
+                )
+            command = entry.get("command")
+            requirements = entry.get("requires")
+            if not isinstance(command, str) or not command:
+                raise ValueError(
+                    f"Module {name} conditional_aliases[{index}] needs a command"
+                )
+            if not isinstance(requirements, list) or not requirements or not all(
+                isinstance(item, str) for item in requirements
+            ):
+                raise ValueError(
+                    f"Conditional alias {command} requires a non-empty module list"
+                )
+            alias_entries.append((command, requirements))
+
+        for command, requirements in alias_entries:
+            if command in seen_aliases:
+                raise ValueError(
+                    f"Duplicate alias {command}: {seen_aliases[command]} and {name}"
+                )
+            seen_aliases[command] = name
+            for dependency in requirements:
+                if dependency not in result:
+                    raise ValueError(
+                        f"Conditional alias {command} requires unknown module {dependency}"
+                    )
+    return result
+
+
+def alias_index(
+    modules: Dict[str, Dict[str, Any]]
+) -> Dict[str, Tuple[str, List[str]]]:
+    result: Dict[str, Tuple[str, List[str]]] = {}
+    for name, module in modules.items():
+        for command in module.get("aliases", []):
+            result[command] = (name, [])
+        for entry in module.get("conditional_aliases", []):
+            result[entry["command"]] = (name, entry["requires"])
     return result
 
 
@@ -130,8 +195,8 @@ def validate(state: Dict[str, Any], catalog: Dict[str, Any]) -> Tuple[List[str],
     if missing:
         errors.append(f"Missing required keys: {', '.join(missing)}")
 
-    if state.get("schema_version") != 1:
-        errors.append("schema_version must be 1")
+    if state.get("schema_version") != 2:
+        errors.append("schema_version must be 2")
     if state.get("mode") not in MODES:
         errors.append(f"Unsupported mode: {state.get('mode')!r}")
     if state.get("phase") not in PHASES:
@@ -174,11 +239,23 @@ def validate(state: Dict[str, Any], catalog: Dict[str, Any]) -> Tuple[List[str],
 
     modules = state.get("modules", {})
     selected = modules.get("selected", []) if isinstance(modules, dict) else []
+    enabled_aliases = (
+        modules.get("enabled_aliases", []) if isinstance(modules, dict) else []
+    )
+    if isinstance(modules, dict) and "enabled_aliases" not in modules:
+        errors.append("modules.enabled_aliases is required")
     if not isinstance(modules, dict) or not isinstance(selected, list) or not all(isinstance(item, str) for item in selected):
         errors.append("modules.selected must be an array of skill names")
         selected = []
+    if not isinstance(enabled_aliases, list) or not all(
+        isinstance(item, str) for item in enabled_aliases
+    ):
+        errors.append("modules.enabled_aliases must be an array of commands")
+        enabled_aliases = []
     if len(selected) != len(set(selected)):
         errors.append("modules.selected contains duplicates")
+    if len(enabled_aliases) != len(set(enabled_aliases)):
+        errors.append("modules.enabled_aliases contains duplicates")
 
     selected_set = set(selected)
     for name in sorted(selected_set):
@@ -188,6 +265,18 @@ def validate(state: Dict[str, Any], catalog: Dict[str, Any]) -> Tuple[List[str],
         for dependency in available[name].get("requires", []):
             if dependency not in selected_set:
                 errors.append(f"Module {name} requires {dependency}")
+
+    aliases = alias_index(available)
+    for command in sorted(set(enabled_aliases)):
+        if command not in aliases:
+            errors.append(f"Unknown enabled alias: {command}")
+            continue
+        owner, requirements = aliases[command]
+        if owner not in selected_set:
+            errors.append(f"Alias {command} requires owning module {owner}")
+        for dependency in requirements:
+            if dependency not in selected_set:
+                errors.append(f"Alias {command} requires module {dependency}")
 
     manifest = state.get("manifest", [])
     if isinstance(manifest, list):

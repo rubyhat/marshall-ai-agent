@@ -28,6 +28,8 @@ The managed section should contain:
 - exact resolvable paths;
 - project configuration path;
 - plain-text alias catalog path;
+- a compact alias-sequence guard that routes detailed behavior to configuration
+  and the command catalog;
 - always-on project safety and engineering invariants;
 - minimal routing and authority boundaries.
 
@@ -46,7 +48,17 @@ Include only selected modules. Record:
 - protection additions;
 - selected skills and active paths;
 - aliases;
+- alias prerequisites, workflow-phase checks, and mismatch behavior;
 - applicable task, spec, implementation, delivery, context, and domain sections.
+
+Generate only aliases listed in the approved
+`modules.enabled_aliases` setup-state field. For every ordinary alias, require
+its owning module to be selected. For every conditional alias, additionally
+require every module in its catalog `requires` list. Never advertise an alias
+excluded from the approved enabled set or an ineligible conditional alias in
+configuration, `AGENTS.md`, or the project command catalog.
+Add alias-specific interaction settings such as the bounded
+`--accept-recommended` scope only when the owning module and alias are enabled.
 
 Do not copy project-specific values from an example project.
 
@@ -58,6 +70,11 @@ Use bundled templates only when the project lacks an existing owner:
 - `engineering-rules.md`;
 - `local-memory-map.md`;
 - `agent-commands.md`.
+
+The command catalog must explain each enabled alias, arguments, owning workflow,
+authority boundary, prerequisites, terminal result, and recommended
+sequences. Do not generate expanded prompt copies that duplicate `SKILL.md`;
+the owning skill remains the procedural source of truth.
 
 Use assets from owning skills for task-spec or reference templates. Do not duplicate those assets in this skill.
 

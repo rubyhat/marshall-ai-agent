@@ -34,7 +34,13 @@ For each selected module:
 2. explain recommended integrations separately;
 3. reject an impossible dependency under current safety or provider policy;
 4. record why every optional module is selected or skipped;
-5. validate unique aliases.
+5. enable a `conditional_aliases` entry only when all of its listed modules are
+   selected; otherwise suppress that alias without disabling the owning module;
+6. if the user explicitly selects a conditional alias, add its required modules
+   or report why the requested command cannot be enabled;
+7. store the exact enabled command set in setup state as
+   `modules.enabled_aliases`;
+8. validate uniqueness across ordinary and enabled conditional aliases.
 
 Removing a module disables its routing and configuration only. Do not delete its existing task specs, memory, references, Issues, or historical artifacts automatically.
 

@@ -1,6 +1,6 @@
 ---
 name: shape-project-work
-description: Shape a project idea, feature, problem, research initiative, epic, or oversized task into an agreed outcome, bounded scope, explicit decisions, and a risk-checked conceptual work breakdown. Use when the user wants to discuss or formalize new work, compare solution options, answer decision-changing questions, define an epic or feature, split work into implementation tasks, resolve cross-repository ownership and ordering, check shaping readiness, or invokes `--shape-work`. Challenge material conflicts with established rules, architecture, decisions, or safety constraints before continuing. Do not write a full task specification, allocate Task IDs, mutate Issues or Projects, implement code, perform QA intake, or own broad external reference research.
+description: Shape a project idea, feature, problem, research initiative, epic, or oversized task into an agreed outcome, bounded scope, explicit decisions, and a risk-checked conceptual work breakdown. Use when the user wants to discuss or formalize new work, compare solution options, answer decision-changing questions, define an epic or feature, split work into implementation tasks, resolve cross-repository ownership and ordering, check shaping readiness, invokes `--planning-session`, `--shape-work`, `--shape-roadmap`, or `--prepare-spec`, or answers the current shaping questions with `--accept-recommended`. Challenge material conflicts with established rules, architecture, decisions, workflow order, or safety constraints before continuing. Do not itself write a full task specification, allocate Task IDs, mutate Issues or Projects, implement code, perform QA intake, or own broad external reference research.
 ---
 
 # Shape Project Work
@@ -20,10 +20,17 @@ Turn unclear project intent into an agreed and traceable work definition. Preser
 
 Classify the request before shaping:
 
+- `planning session`: keep the current conversation focused on discussion,
+  product and architecture shaping, roadmap work, and specification preparation;
 - `discussion`: explore an idea and return a synthesis without writing files or creating tasks;
 - `roadmap shaping`: define durable Epic, Feature/Story, or Implementation Task candidates and hand authorized operational work to `manage-project-work`;
 - `specification requested`: finish shaping, then hand the agreed task to `write-task-spec`;
 - `shaping review`: inspect an existing proposal or work breakdown and report gaps without silently rewriting it.
+
+A planning-session profile is a conversation constraint, not a host application
+mode. It does not authorize artifacts, tracker mutations, implementation, or
+delivery. A later exact command may authorize its own bounded workflow without
+ending the profile for unrelated work.
 
 Do not treat silence as authorization to create a full task specification.
 
@@ -44,6 +51,25 @@ Use an already sufficient project orientation or invoke `load-project-context` f
 - whether a task-spec writer and templates are configured.
 
 Do not load unrelated memory, specifications, or repositories.
+
+## Enforce workflow order
+
+Before acting on a quick alias, resolve the strongest available workflow state:
+current idea or task anchor, shaping verdict, tracker identity, specification
+verdict, dependencies, implementation checkpoint, and delivery checkpoint.
+
+If the alias is premature, stale, ambiguous, or belongs to another phase:
+
+1. stop before mutations;
+2. state the received alias and resolved current state;
+3. name the unmet prerequisite or ordering conflict;
+4. recommend the exact safest next alias or action;
+5. explain what evidence will unblock the requested alias.
+
+Do not require every preceding implementation task to be complete merely
+because it appears earlier in a roadmap. Block downstream specification only
+when an unfinished dependency leaves the outcome, contract, scope, ownership,
+or acceptance behavior materially unstable.
 
 ## Run the shaping workflow
 
@@ -137,6 +163,27 @@ Keep the result usable as input to task management without pretending it is a fu
 - If a full specification was explicitly requested, resolve the project's required task anchors. When project policy says that request authorizes their creation, hand the exact shaped task to `manage-project-work`, verify the anchors, and then hand it to `write-task-spec` without asking for duplicate permission. Otherwise ask only for the missing anchor authority.
 - If the specification workflow is unavailable, stop after shaping and report the missing dependency instead of writing an ad hoc specification.
 
-## Interpret the quick alias
+## Interpret quick aliases
 
-Treat exact `--shape-work <idea or task anchor>` as a request to start this workflow. The alias does not by itself authorize file creation, Issue/Project mutation, or a full task specification. Text after the alias supplies the shaping input.
+- `--planning-session [scope]`: establish the planning-session profile. Use the
+  optional text only to bound the conversation. Do not create artifacts or
+  require a task anchor merely to acknowledge the profile.
+- `--shape-work <idea or task anchor>`: start discussion or guided shaping. The
+  alias does not authorize file creation, Issue/Project mutation, or a full
+  task specification.
+- `--shape-roadmap <idea or task anchor>`: run roadmap shaping and produce a
+  conceptual work graph without full specifications. After questions are
+  resolved, present the exact proposed tracker and optional durable-artifact
+  mutations. Require a separate approval of that preview before handing
+  operational changes to `manage-project-work` or durable recording to
+  `record-project-context`.
+- `--prepare-spec <Task ID or exact task anchor>`: treat this as an explicit
+  request for one complete task specification. First validate workflow order,
+  shape the exact task, explain the proposed bounded direction, and resolve all
+  decision-changing questions. When no shaping blocker remains, establish any
+  project-required task anchors through `manage-project-work` and hand the task
+  to `write-task-spec` without asking again whether to create the specification.
+  The alias does not authorize implementation or delivery.
+
+Ask for a missing required argument. Treat trailing text as bounded input, not
+broader authority.

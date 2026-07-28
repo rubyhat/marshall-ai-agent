@@ -103,6 +103,8 @@ GitHub Actions закреплять полным commit SHA.
 - `README.md` — human-facing обзор, каталог и основной flow.
 - `CONTRIBUTING.md` — правила contribution и Conventional Commits.
 - `docs/releasing.md` — канонический versioning/release runbook.
+- `docs/workflow-aliases.md` — human-facing contracts быстрых команд,
+  sequence guards и рекомендуемые последовательности.
 - `release-please-config.json` — release automation policy.
 - `scripts/validate_repository.py` — repository-level validation.
 

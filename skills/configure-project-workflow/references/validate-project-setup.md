@@ -7,6 +7,11 @@ Validate the configured workflow without executing ordinary project work.
 - Parse the setup tracker and generated configuration with an available safe parser.
 - Verify required generic fields and selected module sections.
 - Verify unique module names, aliases, paths, and managed markers.
+- Verify every alias has a resolvable owning workflow, authority boundary,
+  prerequisites, and sequence-mismatch behavior.
+- Verify every enabled conditional alias has all modules declared by its
+  catalog `requires` list, and that ineligible conditional aliases are absent
+  from configuration, routing, and the project command catalog.
 - Verify no unresolved template placeholders.
 - Verify every generated relative link.
 - Verify no configured path escapes its intended root.
@@ -44,9 +49,12 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
 
 Evaluate representative prompts without performing their mutations:
 
+- start a planning-only conversation -> planning-session profile;
 - start a substantive task -> context loading;
 - discuss a new idea -> shaping;
+- request roadmap decomposition -> read-only preview before tracker mutations;
 - request a full spec -> configured task/spec handoff;
+- accept current recommendations -> only the latest recommended question set;
 - request implementation -> readiness and explicit authority gate;
 - request delivery -> exact endpoint gate;
 - report a frontend defect when QA is selected;

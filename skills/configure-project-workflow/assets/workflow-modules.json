@@ -92,14 +92,20 @@
       "config_section": "work_shaping",
       "requires": [],
       "recommended_with": ["load-project-context", "write-task-spec"],
-      "aliases": ["--shape-work"],
+      "aliases": ["--planning-session", "--shape-work", "--shape-roadmap", "--accept-recommended"],
+      "conditional_aliases": [
+        {
+          "command": "--prepare-spec",
+          "requires": ["write-task-spec"]
+        }
+      ],
       "question_stages": ["shaping_and_specs"]
     },
     {
       "name": "write-task-spec",
       "group": "work_definition",
       "config_section": "task_specs",
-      "requires": ["record-project-context"],
+      "requires": ["record-project-context", "shape-project-work"],
       "recommended_with": ["shape-project-work", "manage-project-work"],
       "aliases": ["--spec-check"],
       "question_stages": ["shaping_and_specs"]

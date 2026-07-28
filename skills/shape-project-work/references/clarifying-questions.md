@@ -69,6 +69,34 @@ Also accept full-sentence answers, mixed formats, and a user-defined alternative
 
 If one answer is ambiguous, clarify only that answer. Preserve every settled decision and do not ask it again.
 
+## Accept the current recommendations safely
+
+Treat exact `--accept-recommended` as selecting every explicitly recommended
+option in only the most recent unanswered numbered question set.
+
+Before applying it:
+
+1. confirm that a current unanswered set exists;
+2. map each question to one unambiguous recommended option;
+3. apply only those mapped choices;
+4. restate the accepted decisions compactly;
+5. ask only about questions that have no recommendation or remain ambiguous.
+
+The alias does not:
+
+- answer factual questions that require user-supplied truth;
+- apply to earlier settled or future questions;
+- accept an unstated or insufficiently described material risk;
+- expand scope or mutate files, trackers, external systems, production, or Git;
+- grant destructive, merge, deploy, billing, legal, credential, or permission
+  authority;
+- override a confirmation required by project policy or higher-priority
+  instructions.
+
+If using all recommendations would create a contradiction or material risk,
+stop and identify the exact exception instead of partially applying the alias
+silently.
+
 ## Close the clarification cycle
 
 After the final answers:
