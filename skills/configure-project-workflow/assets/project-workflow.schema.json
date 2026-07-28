@@ -16,8 +16,7 @@
   ],
   "properties": {
     "schema_version": {
-      "type": "integer",
-      "minimum": 1
+      "const": 2
     },
     "workflow_kit": {
       "type": "object",
@@ -90,10 +89,31 @@
     },
     "commands": {
       "type": "object",
-      "required": ["aliases_are_plain_text", "aliases_do_not_expand_authority", "aliases"],
+      "required": [
+        "aliases_are_plain_text",
+        "aliases_do_not_expand_authority",
+        "sequence_guard",
+        "aliases"
+      ],
       "properties": {
         "aliases_are_plain_text": {"const": true},
         "aliases_do_not_expand_authority": {"const": true},
+        "sequence_guard": {
+          "type": "object",
+          "required": [
+            "enabled",
+            "stop_before_mutation_on_mismatch",
+            "report_current_state_and_unmet_prerequisite",
+            "recommend_exact_next_alias_or_action"
+          ],
+          "properties": {
+            "enabled": {"const": true},
+            "stop_before_mutation_on_mismatch": {"const": true},
+            "report_current_state_and_unmet_prerequisite": {"const": true},
+            "recommend_exact_next_alias_or_action": {"const": true}
+          },
+          "additionalProperties": true
+        },
         "aliases": {"type": "object"}
       },
       "additionalProperties": true

@@ -1,3 +1,4 @@
+import copy
 import importlib.util
 import unittest
 from pathlib import Path
@@ -23,7 +24,7 @@ class ValidateSetupStateTest(unittest.TestCase):
 
     def valid_state(self):
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "setup_id": "project-workflow-setup",
             "mode": "initialize",
             "phase": "interview",
@@ -43,6 +44,7 @@ class ValidateSetupStateTest(unittest.TestCase):
                     "record-project-context",
                     "maintain-project-context",
                 ],
+                "enabled_aliases": ["--workflow-check", "--context-audit"],
             },
             "questions": [
                 {"id": "SAFE-01", "stage": "safety", "status": "answered", "answer": "confirmed"}
@@ -83,6 +85,51 @@ class ValidateSetupStateTest(unittest.TestCase):
         state["manifest"][0]["target"] = "../outside"
         errors, _ = self.module.validate(state, self.catalog)
         self.assertTrue(any("safe relative path" in error for error in errors))
+
+    def test_unknown_conditional_alias_dependency_fails(self):
+        catalog = copy.deepcopy(self.catalog)
+        shape = next(
+            item for item in catalog["modules"] if item["name"] == "shape-project-work"
+        )
+        shape["conditional_aliases"][0]["requires"] = ["missing-writer"]
+        with self.assertRaisesRegex(
+            ValueError, "requires unknown module missing-writer"
+        ):
+            self.module.module_index(catalog)
+
+    def test_duplicate_conditional_alias_fails(self):
+        catalog = copy.deepcopy(self.catalog)
+        shape = next(
+            item for item in catalog["modules"] if item["name"] == "shape-project-work"
+        )
+        shape["conditional_aliases"][0]["command"] = "--shape-work"
+        with self.assertRaisesRegex(ValueError, "Duplicate alias --shape-work"):
+            self.module.module_index(catalog)
+
+    def test_enabled_conditional_alias_requires_selected_module(self):
+        state = self.valid_state()
+        state["modules"]["selected"] = [
+            "configure-project-workflow",
+            "record-project-context",
+            "shape-project-work",
+        ]
+        state["modules"]["enabled_aliases"] = ["--prepare-spec"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn("Alias --prepare-spec requires module write-task-spec", errors)
+
+    def test_enabled_alias_requires_selected_owner(self):
+        state = self.valid_state()
+        state["modules"]["enabled_aliases"] = ["--shape-work"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn(
+            "Alias --shape-work requires owning module shape-project-work", errors
+        )
+
+    def test_enabled_aliases_field_is_required(self):
+        state = self.valid_state()
+        del state["modules"]["enabled_aliases"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn("modules.enabled_aliases is required", errors)
 
 
 if __name__ == "__main__":

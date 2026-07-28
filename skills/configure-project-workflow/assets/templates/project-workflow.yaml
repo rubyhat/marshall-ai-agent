@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 
 workflow_kit:
   source: "{{WORKFLOW_KIT_SOURCE}}"
@@ -38,6 +38,11 @@ skills:
 commands:
   aliases_are_plain_text: true
   aliases_do_not_expand_authority: true
+  sequence_guard:
+    enabled: true
+    stop_before_mutation_on_mismatch: true
+    report_current_state_and_unmet_prerequisite: true
+    recommend_exact_next_alias_or_action: true
   aliases: {}
 
 # Add only sections required by selected modules.

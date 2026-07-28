@@ -158,7 +158,11 @@ analyze-product-reference
 | `--context-audit [scope]` | Запустить только read-only аудит project context. |
 | `--task-check <Task ID или Issue URL>` | Проверить согласованность одной задачи. |
 | `--task-status <Task ID или Issue URL> <status>` | Изменить только статус одной точной задачи. |
+| `--planning-session [scope]` | Зафиксировать discussion/shaping профиль текущей сессии. |
 | `--shape-work <идея или task anchor>` | Запустить guided shaping без автоматических mutations. |
+| `--shape-roadmap <идея или task anchor>` | Подготовить roadmap decomposition и mutation preview без full specs. |
+| `--prepare-spec <Task ID или task anchor>` | Обсудить точную задачу и после ответов создать task-spec. |
+| `--accept-recommended` | Принять рекомендации только в текущем наборе вопросов. |
 | `--design-flow <идея или task anchor>` | Обсудить frontend-flow без создания кода или артефакта. |
 | `--qa-triage <report, URL или task anchor>` | Провести bounded triage конкретного frontend-дефекта. |
 | `--reference-analysis <product, URL, artifact или вопрос>` | Выполнить chat-first анализ внешнего reference. |
@@ -167,6 +171,10 @@ analyze-product-reference
 | `--deliver-task <Task ID, PR URL, spec path или current task>` | Запустить разрешённый delivery-flow одной точной задачи. |
 
 Это plain-text соглашения проекта, а не встроенные пользовательские slash-команды Codex. Они начинают работать только после маршрутизации в project instructions и configuration. Alias не расширяет полномочия за пределы, явно описанные соответствующим skill и проектной политикой.
+
+Подробные contracts, защита от ошибочного порядка и рекомендуемые
+последовательности собраны в
+[`docs/workflow-aliases.md`](docs/workflow-aliases.md).
 
 ## Установка
 

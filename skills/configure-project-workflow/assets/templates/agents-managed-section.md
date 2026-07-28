@@ -13,6 +13,11 @@ Plain-text command catalog:
 
 - `{{AGENT_COMMANDS_PATH}}`
 
+Before acting on an alias, validate its current workflow phase and prerequisites
+through `commands.sequence_guard` in `{{PROJECT_WORKFLOW_CONFIG_PATH}}` and the
+command catalog. On a mismatch, stop before mutations and recommend the exact
+next alias or action.
+
 Aliases do not expand the authority defined by their owning skills or project policy.
 
 ## Project safety and engineering invariants
