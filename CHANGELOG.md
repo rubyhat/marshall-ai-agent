@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.2.0...v0.2.1) (2026-07-28)
+
+
+### Исправления
+
+* **workflow:** enforce planning session boundaries ([91125cd](https://github.com/rubyhat/marshall-ai-agent/commit/91125cd050301cfaaa85608b2ee0d61cb9bc893e))
+
 ## [0.2.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.1.0...v0.2.0) (2026-07-28)
 
 
