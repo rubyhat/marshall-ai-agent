@@ -432,6 +432,100 @@ Canonical fact.
             self.assertEqual(largest["completed_markers"], 0)
             self.assertEqual(largest["unresolved_markers"], 0)
 
+    def test_indented_code_inside_block_quote_is_ignored(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+>     ## TASK_123 completed
+>     TODO blocked
+
+## Current behavior
+
+Canonical fact.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 2)
+            self.assertEqual(largest["task_headings"], 0)
+            self.assertEqual(largest["task_id_count"], 0)
+            self.assertEqual(largest["completed_markers"], 0)
+            self.assertEqual(largest["unresolved_markers"], 0)
+
+    def test_external_uri_schemes_are_not_broken_project_links(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "source.md"
+            source.write_text(
+                """# Source
+
+[FTP](ftp://example.com/file)
+[Telephone](tel:+123)
+[Uppercase HTTPS](HTTPS://example.com/path)
+[Custom](vscode://workspace/file)
+[Protocol relative](//example.com/file)
+[Missing internal](missing.md)
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["broken_targets"], ["memory/missing.md"])
+
     def test_raw_html_opener_inside_multiline_comment_does_not_leak_state(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

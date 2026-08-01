@@ -109,6 +109,7 @@ MARKDOWN_HTML_BLOCK_TAG_RE = re.compile(
 MARKDOWN_COMPLETE_HTML_TAG_RE = re.compile(
     r"^[ ]{0,3}</?[A-Za-z][A-Za-z0-9-]*(?:[ \t]+[^<>]*)?[ \t]*/?>[ \t]*$"
 )
+URI_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 SUPERSESSION_FIELD_RE = re.compile(
     r"^\s*(?:[-*]\s*)?superseded by\s*:\s*(.*?)\s*$",
     re.I,
@@ -632,7 +633,11 @@ def normalize_link_target(root: Path, source: Path, raw_target: str) -> Optional
     else:
         target = target.split(maxsplit=1)[0]
     target = unquote(target.split("#", 1)[0].strip())
-    if not target or target.startswith(("#", "http://", "https://", "mailto:", "data:")):
+    if (
+        not target
+        or target.startswith(("#", "//"))
+        or URI_SCHEME_RE.match(target)
+    ):
         return None
     if any(token in target for token in ("<", ">", "{", "}", "$")):
         return None
@@ -846,7 +851,7 @@ def inspect_text(
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
-                if markdown_indentation_columns(line) >= 4:
+                if markdown_indentation_columns(container_line) >= 4:
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue

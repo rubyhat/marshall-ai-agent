@@ -221,10 +221,10 @@ def rendered_adr_filename_is_portable(pattern: str, identifier: str) -> bool:
     )
 
 
-def template_identifier_candidate(
+def template_identifier_match(
     template: str, target: str, *, ignore_case: bool = False
-) -> Optional[str]:
-    """Return the ID when a concrete portable target can be rendered."""
+) -> tuple[bool, Optional[str]]:
+    """Report whether a portable target can be rendered and return its ID."""
     pieces: List[str] = []
     cursor = 0
     identifier_seen = False
@@ -242,11 +242,11 @@ def template_identifier_candidate(
             pieces.append(ADR_TEMPLATE_VALUE_PATTERN)
         cursor = placeholder.end()
     pieces.append(re.escape(template[cursor:]))
-    if not identifier_seen:
-        return None
     flags = re.IGNORECASE if ignore_case else 0
     match = re.fullmatch("".join(pieces), target, flags)
-    return match.group("identifier") if match else None
+    if not match:
+        return False, None
+    return True, match.group("identifier") if identifier_seen else None
 
 
 def adr_id_pattern_accepts(
@@ -265,17 +265,17 @@ def filename_pattern_can_render_windows_device_name(
         if "<ID>" not in basename_template:
             continue
         for reserved in WINDOWS_RESERVED_BASENAMES:
-            identifier = template_identifier_candidate(
+            matches, identifier = template_identifier_match(
                 basename_template, reserved, ignore_case=True
             )
-            if identifier is not None and adr_id_pattern_accepts(
+            if matches and identifier is not None and adr_id_pattern_accepts(
                 compiled_id, identifier, ignore_case=True
             ):
                 return True
     return False
 
 
-def adr_index_can_collide_with_rendered_filename(
+def adr_index_conflicts_with_rendered_filename(
     adr_root: str,
     adr_index: str,
     filename_pattern: str,
@@ -287,13 +287,18 @@ def adr_index_can_collide_with_rendered_filename(
         relative_index = index.relative_to(root)
     except ValueError:
         return False
-    normalized_pattern = "/".join(PureWindowsPath(filename_pattern).parts)
-    normalized_index = "/".join(relative_index.parts)
-    identifier = template_identifier_candidate(
-        normalized_pattern, normalized_index, ignore_case=True
+    pattern_parts = PureWindowsPath(filename_pattern).parts
+    index_parts = relative_index.parts
+    if len(index_parts) > len(pattern_parts):
+        return False
+    prefix_pattern = "/".join(pattern_parts[: len(index_parts)])
+    normalized_index = "/".join(index_parts)
+    matches, identifier = template_identifier_match(
+        prefix_pattern, normalized_index, ignore_case=True
     )
-    return identifier is not None and adr_id_pattern_accepts(
-        compiled_id, identifier, ignore_case=True
+    return matches and (
+        identifier is None
+        or adr_id_pattern_accepts(compiled_id, identifier, ignore_case=True)
     )
 
 
@@ -428,7 +433,7 @@ def validate_semantics(
                     compiled_id is not None
                     and isinstance(adr_root, str)
                     and isinstance(adr_index, str)
-                    and adr_index_can_collide_with_rendered_filename(
+                    and adr_index_conflicts_with_rendered_filename(
                         adr_root,
                         adr_index,
                         filename_pattern,
@@ -436,8 +441,8 @@ def validate_semantics(
                     )
                 ):
                     errors.append(
-                        "architecture_decisions.index can collide with a "
-                        "rendered ADR filename"
+                        "architecture_decisions.index can collide with or "
+                        "contain a rendered ADR filename"
                     )
         statuses = adr.get("statuses")
         if not isinstance(statuses, dict):
