@@ -13,6 +13,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from html import unescape as html_unescape
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 from urllib.parse import unquote
@@ -167,6 +168,27 @@ class MarkdownReferenceTargetMatch:
         return self.end_position
 
 
+class MarkdownHtmlTargetParser(HTMLParser):
+    """Collect non-executable local-reference candidates from raw HTML."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.targets: Set[str] = set()
+
+    def handle_starttag(
+        self, tag: str, attrs: List[Tuple[str, Optional[str]]]
+    ) -> None:
+        del tag
+        for name, value in attrs:
+            if name.casefold() in {"href", "src"} and value:
+                self.targets.add(value)
+
+    def handle_startendtag(
+        self, tag: str, attrs: List[Tuple[str, Optional[str]]]
+    ) -> None:
+        self.handle_starttag(tag, attrs)
+
+
 def fail(message: str, code: int = 2) -> None:
     print(f"error: {message}", file=sys.stderr)
     raise SystemExit(code)
@@ -299,6 +321,15 @@ def markdown_character_is_escaped(line: str, position: int) -> bool:
         backslashes += 1
         cursor -= 1
     return backslashes % 2 == 1
+
+
+def markdown_mask_escaped_html_openers(line: str) -> str:
+    """Prevent escaped `<` characters from starting raw-HTML parsing."""
+    characters = list(line)
+    for position, character in enumerate(line):
+        if character == "<" and markdown_character_is_escaped(line, position):
+            characters[position] = " "
+    return "".join(characters)
 
 
 def markdown_reference_label_is_valid(raw: str) -> bool:
@@ -1320,6 +1351,7 @@ def inspect_text(
     nonblank = 0
     open_sections: List[Tuple[int, int]] = []
     markdown = item.absolute_path.suffix.lower() in {".md", ".markdown", ".mdx"}
+    html_target_parser = MarkdownHtmlTargetParser()
     front_matter_end = (
         markdown_front_matter_end(item.absolute_path) if markdown else None
     )
@@ -1476,6 +1508,7 @@ def inspect_text(
                         html_block_until_blank = False
                         html_block_container_tokens = ()
                     elif html_block_end_token is not None:
+                        html_target_parser.feed(html_container_line)
                         if html_block_end_token in html_container_line.lower():
                             html_block_end_token = None
                             html_block_container_tokens = ()
@@ -1483,6 +1516,7 @@ def inspect_text(
                         previous_setext_candidate = None
                         continue
                     else:
+                        html_target_parser.feed(html_container_line)
                         if not html_container_line.strip():
                             html_block_until_blank = False
                             html_block_container_tokens = ()
@@ -1526,6 +1560,7 @@ def inspect_text(
                 )
                 if html_block_start is not None:
                     end_token, until_blank = html_block_start
+                    html_target_parser.feed(container_line)
                     if (
                         end_token is not None
                         and end_token not in container_line.lower()
@@ -1621,6 +1656,11 @@ def inspect_text(
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
+
+                html_target_parser.feed(markdown_mask_escaped_html_openers(line))
+
+            else:
+                html_target_parser.feed(line)
 
             semantic_line = line
             inline_links = markdown_inline_links(line)
@@ -1950,6 +1990,11 @@ def inspect_text(
                 else:
                     paragraph_container_tokens = ()
     defined_labels = set(reference_definitions)
+    html_target_parser.close()
+    for raw_target in html_target_parser.targets:
+        normalized = normalize_link_target(root, item.absolute_path, raw_target)
+        if normalized is not None:
+            links.add(normalized)
     for raw_target, nested_reference_labels in inline_link_candidates:
         if nested_reference_labels & defined_labels:
             continue

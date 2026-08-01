@@ -317,6 +317,52 @@ completed"
                 1,
             )
 
+    def test_reference_root_counts_local_targets_in_raw_html(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            history = root / "history"
+            references = root / "references"
+            history.mkdir()
+            references.mkdir()
+            (history / "target.md").write_text("# Target\n", encoding="utf-8")
+            (history / "image.md").write_text("# Image\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                """<a href="../history/target.md">Target</a>
+<img src='../history/image.md' alt="Image">
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "history",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["history/target.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["history/image.md"]["incoming_links"], 1)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_reference_root_symlink_marks_link_coverage_incomplete(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
