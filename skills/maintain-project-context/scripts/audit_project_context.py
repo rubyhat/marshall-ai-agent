@@ -269,7 +269,9 @@ def markdown_fence_opens(line: str) -> Optional[re.Match]:
     return match
 
 
-def markdown_visible_signal_text(line: str) -> str:
+def markdown_visible_signal_text(
+    line: str, defined_reference_labels: Optional[Set[str]] = None
+) -> str:
     """Keep rendered link labels while removing non-rendered destinations."""
     links = markdown_inline_links(line)
     if links:
@@ -277,7 +279,12 @@ def markdown_visible_signal_text(line: str) -> str:
         cursor = 0
         for start, end, label, _ in links:
             pieces.extend(
-                (line[cursor:start], markdown_visible_signal_text(label))
+                (
+                    line[cursor:start],
+                    markdown_visible_signal_text(
+                        label, defined_reference_labels
+                    ),
+                )
             )
             cursor = end
         pieces.append(line[cursor:])
@@ -289,10 +296,22 @@ def markdown_visible_signal_text(line: str) -> str:
         return visible
     pieces = []
     cursor = 0
-    for start, end, label, _, _ in reference_links:
-        pieces.extend(
-            (visible[cursor:start], markdown_visible_signal_text(label))
+    for start, end, label, reference_label, _ in reference_links:
+        raw_label = reference_label or label
+        is_defined = (
+            defined_reference_labels is None
+            or (
+                markdown_reference_label_is_valid(raw_label)
+                and normalize_reference_label(raw_label)
+                in defined_reference_labels
+            )
         )
+        rendered = (
+            markdown_visible_signal_text(label, defined_reference_labels)
+            if is_defined
+            else visible[start:end]
+        )
+        pieces.extend((visible[cursor:start], rendered))
         cursor = end
     pieces.append(visible[cursor:])
     return "".join(pieces)
@@ -307,8 +326,13 @@ def markdown_mask_inline_links(line: str) -> str:
     cursor = 0
     for start, end, label, _ in links:
         pieces.append(line[cursor:start])
-        nested_reference_labels = markdown_reference_use_labels(label)
-        pieces.append(label if nested_reference_labels else " " * (end - start))
+        is_image = line[start : start + 1] == "!"
+        nested_reference_labels = (
+            set() if is_image else markdown_reference_use_labels(label)
+        )
+        pieces.append(
+            label if nested_reference_labels else " " * (end - start)
+        )
         cursor = end
     pieces.append(line[cursor:])
     return "".join(pieces)
@@ -1379,6 +1403,7 @@ def inspect_text(
     reference_definitions: Dict[str, str] = {}
     used_reference_labels: Set[str] = set()
     inline_link_candidates: List[Tuple[str, Set[str]]] = []
+    signal_lines: List[str] = []
     pending_reference_label: Optional[str] = None
     pending_reference_container_tokens: Tuple[Tuple[str, int], ...] = ()
     pending_reference_title_container_tokens: Optional[
@@ -1674,19 +1699,6 @@ def inspect_text(
                         }
                     )
 
-            if markdown:
-                html_reference_line = container_line
-                if not MARKDOWN_REFERENCE_DEFINITION_RE.match(
-                    html_reference_line
-                ):
-                    html_target_parser.feed(
-                        markdown_mask_escaped_html_openers(
-                            markdown_visible_signal_text(semantic_line)
-                        )
-                    )
-            else:
-                html_target_parser.feed(line)
-
             reference_line = container_line if markdown else line
             definition_prefix_match = (
                 MARKDOWN_REFERENCE_DEFINITION_RE.match(reference_line)
@@ -1913,24 +1925,8 @@ def inspect_text(
                     item.dated_heading_count += 1
             if heading_match and DATED_HEADING_RE.search(structure_line):
                 item.dated_heading_count += 1
-            signal_line = (
-                ""
-                if reference_definition
-                else (
-                    markdown_visible_signal_text(semantic_line)
-                    if markdown
-                    else semantic_line
-                )
-            )
-            item.unresolved_marker_count += len(UNRESOLVED_RE.findall(signal_line))
-            supersession_field = SUPERSESSION_FIELD_RE.match(signal_line)
-            if supersession_field:
-                value = supersession_field.group(1).strip().strip("`<>").strip().lower()
-                if value not in EMPTY_SUPERSESSION_VALUES:
-                    item.superseded_marker_count += 1
-            else:
-                item.superseded_marker_count += len(SUPERSEDED_RE.findall(signal_line))
-            item.completed_marker_count += len(STATUS_RE.findall(signal_line))
+            if not reference_definition:
+                signal_lines.append(semantic_line)
             for start, _, label, raw_target in inline_links:
                 if line[start : start + 1] != "!":
                     for nested_label, nested_target in markdown_nested_image_links(
@@ -1998,6 +1994,29 @@ def inspect_text(
                 else:
                     paragraph_container_tokens = ()
     defined_labels = set(reference_definitions)
+    for raw_signal_line in signal_lines:
+        signal_line = (
+            markdown_visible_signal_text(raw_signal_line, defined_labels)
+            if markdown
+            else raw_signal_line
+        )
+        if markdown:
+            html_target_parser.feed(
+                markdown_mask_escaped_html_openers(signal_line)
+            )
+        else:
+            html_target_parser.feed(signal_line)
+        item.unresolved_marker_count += len(UNRESOLVED_RE.findall(signal_line))
+        supersession_field = SUPERSESSION_FIELD_RE.match(signal_line)
+        if supersession_field:
+            value = supersession_field.group(1).strip().strip("`<>").strip().lower()
+            if value not in EMPTY_SUPERSESSION_VALUES:
+                item.superseded_marker_count += 1
+        else:
+            item.superseded_marker_count += len(SUPERSEDED_RE.findall(signal_line))
+        item.completed_marker_count += len(STATUS_RE.findall(signal_line))
+        if task_id_pattern is not None:
+            task_ids.update(configured_task_ids(signal_line, task_id_pattern))
     html_target_parser.close()
     for raw_target in html_target_parser.targets:
         normalized = normalize_link_target(root, item.absolute_path, raw_target)

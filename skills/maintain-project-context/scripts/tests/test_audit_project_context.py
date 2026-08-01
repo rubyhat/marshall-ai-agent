@@ -939,6 +939,45 @@ completed"
             self.assertEqual(by_path["memory/page.md"]["incoming_links"], 1)
             self.assertEqual(by_path["memory/badge.md"]["incoming_links"], 1)
 
+    def test_reference_link_inside_inline_image_alt_is_not_a_resource(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "outer.md").write_text("# Outer\n", encoding="utf-8")
+            (memory / "inner.md").write_text("# Inner\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                "![outer [inner][ref]](outer.md)\n\n[ref]: inner.md\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/outer.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/inner.md"]["incoming_links"], 0)
+
     def test_image_inside_image_alt_does_not_count_inner_target(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -4738,6 +4777,48 @@ This decision was replaced by a newer source.
             self.assertEqual(by_path["memory/service.md"]["unresolved_markers"], 0)
             self.assertEqual(by_path["memory/service.md"]["completed_markers"], 0)
             self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+
+    def test_undefined_reference_syntax_remains_visible_to_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                "# Service memory\n\n[Guide][TODO completed]\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["unresolved_markers"], 1)
+            self.assertEqual(largest["completed_markers"], 1)
+            self.assertIn(
+                "mixed_lifecycle_signal",
+                report["candidates"][0]["review_hints"],
+            )
 
 
 if __name__ == "__main__":
