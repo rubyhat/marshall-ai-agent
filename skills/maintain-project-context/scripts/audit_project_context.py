@@ -81,9 +81,14 @@ MARKDOWN_REFERENCE_LINK_LABEL_RE = re.compile(
 MARKDOWN_REFERENCE_SHORTCUT_RE = re.compile(
     r"(?<!!)!?\[([^\]]+)\](?![\[(:])"
 )
-MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(r"^[ ]{0,3}\[[^\]]+\]:")
+MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(
+    r"^[ ]{0,3}\[([^\]]+)\]:"
+)
 MARKDOWN_REFERENCE_DEFINITION_TARGET_RE = re.compile(
     r"^[ ]{0,3}\[([^\]]+)\]:[ \t]*(?:<([^>\r\n]+)>|([^ \t\r\n]+))"
+)
+MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE = re.compile(
+    r"^[ ]{1,3}(?:<([^>\r\n]+)>|([^ \t\r\n]+))"
 )
 MARKDOWN_HTML_COMMENT_BLOCK_START_RE = re.compile(r"^[ ]{0,3}<!--")
 MARKDOWN_RAW_HTML_TAG_RE = re.compile(
@@ -246,6 +251,25 @@ def markdown_indentation_columns(line: str) -> int:
     return columns
 
 
+def markdown_block_quote_content(line: str) -> Tuple[str, int]:
+    cursor = 0
+    depth = 0
+    while cursor < len(line):
+        marker_start = cursor
+        spaces = 0
+        while cursor < len(line) and line[cursor] == " " and spaces < 3:
+            cursor += 1
+            spaces += 1
+        if cursor >= len(line) or line[cursor] != ">":
+            cursor = marker_start
+            break
+        cursor += 1
+        depth += 1
+        if cursor < len(line) and line[cursor] in " \t":
+            cursor += 1
+    return line[cursor:], depth
+
+
 def matching_backtick_run_end(
     line: str, start: int, run_length: int
 ) -> Optional[int]:
@@ -264,12 +288,21 @@ def matching_backtick_run_end(
 
 
 def future_paragraph_has_backtick_run(
-    lines: Sequence[str], start_index: int, run_length: int
+    lines: Sequence[str],
+    start_index: int,
+    run_length: int,
+    block_quote_depth: int,
 ) -> bool:
     for line_index in range(start_index, len(lines)):
-        future_line = lines[line_index]
+        future_line, future_quote_depth = markdown_block_quote_content(
+            lines[line_index]
+        )
+        quote_container_changed = future_quote_depth != block_quote_depth and not (
+            block_quote_depth > 0 and future_quote_depth == 0
+        )
         if (
-            not future_line.strip()
+            quote_container_changed
+            or not future_line.strip()
             or MARKDOWN_HEADING_RE.match(future_line)
             or MARKDOWN_FENCE_RE.match(future_line)
             or MARKDOWN_SETEXT_RE.match(future_line)
@@ -376,7 +409,10 @@ def sanitize_markdown_inline(
         closing_end = matching_backtick_run_end(line, opening_end, run_length)
         if closing_end is None:
             if future_paragraph_has_backtick_run(
-                lines, next_line_index, run_length
+                lines,
+                next_line_index,
+                run_length,
+                markdown_block_quote_content(line)[1],
             ):
                 result.append(line[cursor:start])
                 result.append(" " * (length - start))
@@ -590,10 +626,12 @@ def inspect_text(
     html_block_end_token: Optional[str] = None
     html_block_until_blank = False
     html_comment_open = False
+    html_comment_block_open = False
     inline_code_span_length = 0
     previous_setext_candidate: Optional[Tuple[int, str, Set[str]]] = None
     reference_definitions: Dict[str, str] = {}
     used_reference_labels: Set[str] = set()
+    pending_reference_label: Optional[str] = None
 
     def register_heading(
         heading_level: int,
@@ -631,6 +669,8 @@ def inspect_text(
     with item.absolute_path.open("r", encoding="utf-8", errors="replace") as handle:
         lines = handle.readlines()
         for line_index, line in enumerate(lines):
+            previous_pending_reference_label = pending_reference_label
+            pending_reference_label = None
             line_count += 1
             if line.strip():
                 nonblank += 1
@@ -656,6 +696,7 @@ def inspect_text(
                     previous_setext_candidate = None
                     continue
                 if html_comment_open:
+                    comment_was_block = html_comment_block_open
                     line, html_comment_open, inline_code_span_length = (
                         sanitize_markdown_inline(
                             line,
@@ -666,6 +707,10 @@ def inspect_text(
                         )
                     )
                     inline_sanitized = True
+                    if comment_was_block:
+                        html_comment_block_open = html_comment_open
+                        previous_setext_candidate = None
+                        continue
                     if not line.strip():
                         previous_setext_candidate = None
                         continue
@@ -682,6 +727,9 @@ def inspect_text(
                     previous_setext_candidate = None
                     continue
                 if not inline_sanitized:
+                    comment_block_starts = bool(
+                        MARKDOWN_HTML_COMMENT_BLOCK_START_RE.match(line)
+                    )
                     line, html_comment_open, inline_code_span_length = (
                         sanitize_markdown_inline(
                             line,
@@ -691,6 +739,10 @@ def inspect_text(
                             line_index + 1,
                         )
                     )
+                    if comment_block_starts:
+                        html_comment_block_open = html_comment_open
+                        previous_setext_candidate = None
+                        continue
                 if not line.strip():
                     previous_setext_candidate = None
                     continue
@@ -712,10 +764,27 @@ def inspect_text(
             reference_definition = bool(
                 markdown and MARKDOWN_REFERENCE_DEFINITION_RE.match(line)
             )
-            if definition_match:
+            continuation_match = (
+                MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE.match(line)
+                if markdown and previous_pending_reference_label is not None
+                else None
+            )
+            if continuation_match:
+                target = continuation_match.group(1) or continuation_match.group(2)
+                reference_definitions.setdefault(
+                    previous_pending_reference_label, target
+                )
+                reference_definition = True
+            elif definition_match:
                 label = normalize_reference_label(definition_match.group(1))
                 target = definition_match.group(2) or definition_match.group(3)
                 reference_definitions.setdefault(label, target)
+            elif reference_definition:
+                label_match = MARKDOWN_REFERENCE_DEFINITION_RE.match(line)
+                if label_match:
+                    pending_reference_label = normalize_reference_label(
+                        label_match.group(1)
+                    )
             elif markdown:
                 for reference_match in MARKDOWN_REFERENCE_LINK_RE.finditer(line):
                     label = reference_match.group(2) or reference_match.group(1)
@@ -747,7 +816,11 @@ def inspect_text(
                     item.dated_heading_count += 1
             if heading_match and DATED_HEADING_RE.search(line):
                 item.dated_heading_count += 1
-            signal_line = markdown_visible_signal_text(line) if markdown else line
+            signal_line = (
+                ""
+                if reference_definition
+                else (markdown_visible_signal_text(line) if markdown else line)
+            )
             item.unresolved_marker_count += len(UNRESOLVED_RE.findall(signal_line))
             supersession_field = SUPERSESSION_FIELD_RE.match(signal_line)
             if supersession_field:
