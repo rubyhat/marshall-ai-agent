@@ -449,6 +449,50 @@ completed"
             self.assertEqual(by_path["memory/page.md"]["incoming_links"], 1)
             self.assertEqual(by_path["memory/hidden.md"]["incoming_links"], 0)
 
+    def test_html_target_parser_does_not_cross_paragraph_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                "Notes <a\n\nhref=\"target.md\">\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 0)
+            self.assertEqual(
+                by_path["memory/target.md"]["incoming_links_coverage"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertEqual(
+                report["summary"]["skipped"]["reference_parse_incomplete"], 1
+            )
+
     def test_raw_html_attributes_do_not_create_lifecycle_signals(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

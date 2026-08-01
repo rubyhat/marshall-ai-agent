@@ -529,6 +529,29 @@ def markdown_inline_html_token_end(line: str, opening: int) -> Optional[int]:
     return None
 
 
+def markdown_has_incomplete_html_token(line: str) -> bool:
+    """Detect a tag-like opener that cannot be parsed within this line."""
+    cursor = 0
+    while cursor < len(line):
+        opening = line.find("<", cursor)
+        if opening < 0:
+            return False
+        if markdown_character_is_escaped(line, opening):
+            cursor = opening + 1
+            continue
+        name_start = opening + 1
+        if name_start < len(line) and line[name_start] == "/":
+            name_start += 1
+        if name_start >= len(line) or not line[name_start].isalpha():
+            cursor = opening + 1
+            continue
+        html_end = markdown_inline_html_token_end(line, opening)
+        if html_end is None:
+            return True
+        cursor = html_end
+    return False
+
+
 def markdown_reference_links(
     line: str, *, include_escaped: bool = False
 ) -> List[Tuple[int, int, str, str, bool]]:
@@ -1485,7 +1508,7 @@ def inspect_text(
     nonblank = 0
     open_sections: List[Tuple[int, int]] = []
     markdown = item.absolute_path.suffix.lower() in {".md", ".markdown", ".mdx"}
-    html_target_parser = MarkdownHtmlTargetParser()
+    html_targets: Set[str] = set()
     front_matter_end = (
         markdown_front_matter_end(item.absolute_path) if markdown else None
     )
@@ -1520,6 +1543,14 @@ def inspect_text(
     pending_reference_title_container_tokens: Optional[
         Tuple[Tuple[str, int], ...]
     ] = None
+
+    def register_html_fragment(fragment: str) -> None:
+        parser = MarkdownHtmlTargetParser()
+        parser.feed(fragment)
+        parser.close()
+        html_targets.update(parser.targets)
+        if markdown_has_incomplete_html_token(fragment):
+            item.link_parse_incomplete = True
 
     def register_heading(
         heading_level: int,
@@ -1641,7 +1672,7 @@ def inspect_text(
                         html_block_until_blank = False
                         html_block_container_tokens = ()
                     elif html_block_end_token is not None:
-                        html_target_parser.feed(html_container_line)
+                        register_html_fragment(html_container_line)
                         if html_block_end_token in html_container_line.lower():
                             html_block_end_token = None
                             html_block_container_tokens = ()
@@ -1649,7 +1680,7 @@ def inspect_text(
                         previous_setext_candidate = None
                         continue
                     else:
-                        html_target_parser.feed(html_container_line)
+                        register_html_fragment(html_container_line)
                         if html_container_line.strip():
                             signal_lines.append(html_container_line)
                         if not html_container_line.strip():
@@ -1695,7 +1726,7 @@ def inspect_text(
                 )
                 if html_block_start is not None:
                     end_token, until_blank = html_block_start
-                    html_target_parser.feed(container_line)
+                    register_html_fragment(container_line)
                     if until_blank and container_line.strip():
                         signal_lines.append(container_line)
                     if (
@@ -2131,12 +2162,7 @@ def inspect_text(
             if markdown
             else markdown_signal_line
         )
-        if markdown:
-            html_target_parser.feed(
-                html_signal_input
-            )
-        else:
-            html_target_parser.feed(html_signal_input)
+        register_html_fragment(html_signal_input)
         signal_line = html_visible_signal_text(html_signal_input)
         item.unresolved_marker_count += len(UNRESOLVED_RE.findall(signal_line))
         supersession_field = SUPERSESSION_FIELD_RE.match(signal_line)
@@ -2153,8 +2179,7 @@ def inspect_text(
                     raw_signal_line, task_id_pattern, defined_labels
                 )
             )
-    html_target_parser.close()
-    for raw_target in html_target_parser.targets:
+    for raw_target in html_targets:
         normalized = normalize_link_target(root, item.absolute_path, raw_target)
         if normalized is not None:
             links.add(normalized)
@@ -2467,7 +2492,7 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
                 reference_scan_incomplete = True
                 continue
             if item.link_parse_incomplete:
-                skipped["reference_parse_limit"] += 1
+                skipped["reference_parse_incomplete"] += 1
                 reference_scan_incomplete = True
             link_source_files_scanned += 1
             if is_external_source:
