@@ -430,7 +430,7 @@ def markdown_block_quote_content(line: str) -> Tuple[str, int]:
 
 
 def markdown_container_paragraph_content(line: str) -> str:
-    return markdown_fence_container(line)[0]
+    return markdown_container_details(line)[0]
 
 
 def strip_indentation_columns(line: str, required_columns: int) -> Optional[str]:
@@ -448,26 +448,60 @@ def strip_indentation_columns(line: str, required_columns: int) -> Optional[str]
     return line[cursor:] if columns >= required_columns else None
 
 
-def markdown_fence_container(line: str) -> Tuple[str, int, int]:
+def markdown_one_block_quote_content(line: str) -> Optional[str]:
+    cursor = 0
+    spaces = 0
+    while cursor < len(line) and line[cursor] == " " and spaces < 3:
+        cursor += 1
+        spaces += 1
+    if cursor >= len(line) or line[cursor] != ">":
+        return None
+    cursor += 1
+    if cursor < len(line) and line[cursor] in " \t":
+        cursor += 1
+    return line[cursor:]
+
+
+def markdown_container_details(
+    line: str,
+) -> Tuple[str, Tuple[Tuple[str, int], ...]]:
     content = line
-    quote_depth = 0
-    list_indent = 0
+    tokens: List[Tuple[str, int]] = []
     for _ in range(32):
-        changed = False
-        quoted_content, nested_quote_depth = markdown_block_quote_content(content)
-        if nested_quote_depth:
+        quoted_content = markdown_one_block_quote_content(content)
+        if quoted_content is not None:
             content = quoted_content
-            quote_depth += nested_quote_depth
-            changed = True
+            tokens.append(("quote", 0))
+            continue
         list_item = MARKDOWN_LIST_ITEM_RE.match(content)
         if list_item:
             prefix = content[: list_item.end()]
             content = content[list_item.end():]
-            list_indent += markdown_text_columns(prefix)
-            changed = True
-        if not changed:
-            break
-    return content, quote_depth, list_indent
+            tokens.append(("list", markdown_text_columns(prefix)))
+            continue
+        break
+    return content, tuple(tokens)
+
+
+def markdown_container_continuation(
+    line: str, tokens: Sequence[Tuple[str, int]]
+) -> Optional[str]:
+    content = line
+    for kind, width in tokens:
+        if kind == "quote":
+            quoted_content = markdown_one_block_quote_content(content)
+            if quoted_content is None:
+                return None
+            content = quoted_content
+        else:
+            if not content.strip():
+                content = ""
+                continue
+            continuation = strip_indentation_columns(content, width)
+            if continuation is None:
+                return None
+            content = continuation
+    return content
 
 
 def matching_backtick_run_end(
@@ -828,17 +862,16 @@ def inspect_text(
     )
     fence_character: Optional[str] = None
     fence_length = 0
-    fence_block_quote_depth = 0
-    fence_list_indent = 0
+    fence_container_tokens: Tuple[Tuple[str, int], ...] = ()
     html_block_end_token: Optional[str] = None
     html_block_until_blank = False
-    html_block_quote_depth = 0
-    html_block_list_indent = 0
+    html_block_container_tokens: Tuple[Tuple[str, int], ...] = ()
     html_comment_open = False
     html_comment_block_open = False
+    html_comment_container_tokens: Tuple[Tuple[str, int], ...] = ()
     inline_code_span_length = 0
     previous_setext_candidate: Optional[
-        Tuple[int, str, Set[str], int, int]
+        Tuple[int, str, Set[str], Tuple[Tuple[str, int], ...]]
     ] = None
     paragraph_active = False
     reference_definitions: Dict[str, str] = {}
@@ -888,88 +921,62 @@ def inspect_text(
                 nonblank += 1
             if markdown:
                 inline_sanitized = False
-                container_line, container_quote_depth = markdown_block_quote_content(
-                    line
-                )
+                container_line, container_tokens = markdown_container_details(line)
                 if front_matter_end is not None and line_count <= front_matter_end:
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
                 if fence_character is not None:
-                    if container_quote_depth == fence_block_quote_depth:
-                        fence_line = container_line
-                        if fence_list_indent:
-                            if not container_line.strip():
-                                paragraph_active = False
-                                previous_setext_candidate = None
-                                continue
-                            continuation = strip_indentation_columns(
-                                container_line, fence_list_indent
-                            )
-                            if continuation is None:
-                                fence_character = None
-                                fence_length = 0
-                                fence_block_quote_depth = 0
-                                fence_list_indent = 0
-                            else:
-                                fence_line = continuation
-                        if fence_character is None:
-                            pass
-                        elif markdown_fence_closes(
-                            fence_line, fence_character, fence_length
-                        ):
-                            fence_character = None
-                            fence_length = 0
-                            fence_block_quote_depth = 0
-                            fence_list_indent = 0
-                            paragraph_active = False
-                            previous_setext_candidate = None
-                            continue
-                        else:
-                            paragraph_active = False
-                            previous_setext_candidate = None
-                            continue
-                    fence_character = None
-                    fence_length = 0
-                    fence_block_quote_depth = 0
-                    fence_list_indent = 0
-                if html_block_end_token is not None or html_block_until_blank:
-                    html_container_line = container_line
-                    html_container_ended = (
-                        container_quote_depth != html_block_quote_depth
+                    fence_line = markdown_container_continuation(
+                        line, fence_container_tokens
                     )
-                    if not html_container_ended and html_block_list_indent:
-                        if not container_line.strip():
-                            html_container_line = ""
-                        else:
-                            continuation = strip_indentation_columns(
-                                container_line, html_block_list_indent
-                            )
-                            if continuation is None:
-                                html_container_ended = True
-                            else:
-                                html_container_line = continuation
-                    if html_container_ended:
+                    if fence_line is None:
+                        fence_character = None
+                        fence_length = 0
+                        fence_container_tokens = ()
+                    elif markdown_fence_closes(
+                        fence_line, fence_character, fence_length
+                    ):
+                        fence_character = None
+                        fence_length = 0
+                        fence_container_tokens = ()
+                        paragraph_active = False
+                        previous_setext_candidate = None
+                        continue
+                    else:
+                        paragraph_active = False
+                        previous_setext_candidate = None
+                        continue
+                if html_block_end_token is not None or html_block_until_blank:
+                    html_container_line = markdown_container_continuation(
+                        line, html_block_container_tokens
+                    )
+                    if html_container_line is None:
                         html_block_end_token = None
                         html_block_until_blank = False
-                        html_block_quote_depth = 0
-                        html_block_list_indent = 0
+                        html_block_container_tokens = ()
                     elif html_block_end_token is not None:
                         if html_block_end_token in html_container_line.lower():
                             html_block_end_token = None
-                            html_block_quote_depth = 0
-                            html_block_list_indent = 0
+                            html_block_container_tokens = ()
                         paragraph_active = False
                         previous_setext_candidate = None
                         continue
                     else:
                         if not html_container_line.strip():
                             html_block_until_blank = False
-                            html_block_quote_depth = 0
-                            html_block_list_indent = 0
+                            html_block_container_tokens = ()
                         paragraph_active = False
                         previous_setext_candidate = None
                         continue
+                if html_comment_open and html_comment_block_open:
+                    comment_container_line = markdown_container_continuation(
+                        line, html_comment_container_tokens
+                    )
+                    if comment_container_line is None:
+                        html_comment_open = False
+                        html_comment_block_open = False
+                        html_comment_container_tokens = ()
                 if html_comment_open:
                     comment_was_block = html_comment_block_open
                     line, html_comment_open, inline_code_span_length = (
@@ -984,31 +991,28 @@ def inspect_text(
                     inline_sanitized = True
                     if comment_was_block:
                         html_comment_block_open = html_comment_open
+                        if not html_comment_open:
+                            html_comment_container_tokens = ()
                         paragraph_active = False
                         previous_setext_candidate = None
                         continue
                     if not line.strip():
                         previous_setext_candidate = None
                         continue
-                (
-                    html_container_line,
-                    html_container_quote_depth,
-                    html_container_list_indent,
-                ) = markdown_fence_container(line)
                 html_block_start = markdown_html_block_start(
-                    html_container_line,
+                    container_line,
                     allow_type_7=not paragraph_active,
                 )
                 if html_block_start is not None:
                     end_token, until_blank = html_block_start
                     if (
                         end_token is not None
-                        and end_token not in html_container_line.lower()
+                        and end_token not in container_line.lower()
                     ):
                         html_block_end_token = end_token
                     html_block_until_blank = until_blank
-                    html_block_quote_depth = html_container_quote_depth
-                    html_block_list_indent = html_container_list_indent
+                    if html_block_end_token is not None or html_block_until_blank:
+                        html_block_container_tokens = container_tokens
                     inline_code_span_length = 0
                     paragraph_active = False
                     previous_setext_candidate = None
@@ -1016,7 +1020,7 @@ def inspect_text(
                 if not inline_sanitized:
                     comment_block_starts = bool(
                         MARKDOWN_HTML_COMMENT_BLOCK_START_RE.match(
-                            html_container_line
+                            container_line
                         )
                     )
                     line, html_comment_open, inline_code_span_length = (
@@ -1030,6 +1034,9 @@ def inspect_text(
                     )
                     if comment_block_starts:
                         html_comment_block_open = html_comment_open
+                        html_comment_container_tokens = (
+                            container_tokens if html_comment_open else ()
+                        )
                         paragraph_active = False
                         previous_setext_candidate = None
                         continue
@@ -1037,15 +1044,13 @@ def inspect_text(
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
-                fence_line, fence_quote_depth, fence_item_indent = (
-                    markdown_fence_container(line)
-                )
+                container_line, container_tokens = markdown_container_details(line)
+                fence_line = container_line
                 fence_match = markdown_fence_opens(fence_line)
                 if fence_match:
                     fence_character = fence_match.group(1)[0]
                     fence_length = len(fence_match.group(1))
-                    fence_block_quote_depth = fence_quote_depth
-                    fence_list_indent = fence_item_indent
+                    fence_container_tokens = container_tokens
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
@@ -1101,27 +1106,18 @@ def inspect_text(
                 "" if reference_definition else line, task_id_pattern
             )
             task_ids.update(line_task_ids)
-            (
-                structure_line,
-                structure_quote_depth,
-                structure_list_indent,
-            ) = markdown_fence_container(line) if markdown else (line, 0, 0)
+            structure_line, structure_tokens = (
+                markdown_container_details(line) if markdown else (line, ())
+            )
             previous_container_continues = False
             if previous_setext_candidate is not None:
-                previous_quote_depth = previous_setext_candidate[3]
-                previous_list_indent = previous_setext_candidate[4]
-                previous_container_continues = (
-                    previous_quote_depth == structure_quote_depth
-                    and structure_list_indent == 0
+                previous_tokens = previous_setext_candidate[3]
+                continuation = markdown_container_continuation(
+                    line, previous_tokens
                 )
-                if previous_container_continues and previous_list_indent:
-                    continuation = strip_indentation_columns(
-                        container_line, previous_list_indent
-                    )
-                    if continuation is None:
-                        previous_container_continues = False
-                    else:
-                        structure_line = continuation
+                if continuation is not None:
+                    previous_container_continues = True
+                    structure_line = continuation
             heading_match = (
                 MARKDOWN_HEADING_RE.match(structure_line) if markdown else None
             )
@@ -1139,7 +1135,7 @@ def inspect_text(
                 and previous_setext_candidate is not None
                 and previous_container_continues
             ):
-                heading_start, heading_text, heading_task_ids, _, _ = (
+                heading_start, heading_text, heading_task_ids, _ = (
                     previous_setext_candidate
                 )
                 heading_level = 1 if setext_match.group(1).startswith("=") else 2
@@ -1184,23 +1180,20 @@ def inspect_text(
                         heading_start,
                         heading_text,
                         heading_task_ids,
-                        previous_quote_depth,
-                        previous_list_indent,
+                        previous_tokens,
                     ) = previous_setext_candidate
                     previous_setext_candidate = (
                         heading_start,
                         heading_text + "\n" + structure_line.rstrip("\r\n"),
                         heading_task_ids | line_task_ids,
-                        previous_quote_depth,
-                        previous_list_indent,
+                        previous_tokens,
                     )
                 elif is_candidate:
                     previous_setext_candidate = (
                         line_count,
                         structure_line.rstrip("\r\n"),
                         line_task_ids,
-                        structure_quote_depth,
-                        structure_list_indent,
+                        structure_tokens,
                     )
                 else:
                     previous_setext_candidate = None
