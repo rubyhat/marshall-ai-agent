@@ -293,15 +293,22 @@ def markdown_reference_label_is_valid(raw: str) -> bool:
     return bool(raw) and len(raw) <= 999
 
 
-def markdown_reference_use_labels(line: str) -> Set[str]:
+def markdown_reference_use_labels(
+    line: str, *, include_images: bool = True
+) -> Set[str]:
     labels: Set[str] = set()
     visible = list(line)
     for match in MARKDOWN_REFERENCE_LINK_RE.finditer(line):
         opening = match.start()
         if line[opening : opening + 1] == "!":
             opening += 1
+            is_image = True
+        else:
+            is_image = False
         visible[match.start() : match.end()] = " " * (match.end() - match.start())
         if markdown_character_is_escaped(line, opening):
+            continue
+        if is_image and not include_images:
             continue
         raw_label = match.group(2) or match.group(1)
         if not markdown_reference_label_is_valid(raw_label):
@@ -314,7 +321,12 @@ def markdown_reference_use_labels(line: str) -> Set[str]:
         opening = match.start()
         if without_explicit_references[opening : opening + 1] == "!":
             opening += 1
+            is_image = True
+        else:
+            is_image = False
         if markdown_character_is_escaped(without_explicit_references, opening):
+            continue
+        if is_image and not include_images:
             continue
         raw_label = match.group(1)
         if markdown_reference_label_is_valid(raw_label):
@@ -1044,6 +1056,7 @@ def iter_scope_files(
     excluded_dirs: Set[str],
     skipped: Optional[Counter] = None,
     symlink_skip_key: str = "symlink",
+    excluded_dir_skip_key: str = "excluded_dir",
 ) -> Iterable[Path]:
     if scope.is_symlink():
         if skipped is not None:
@@ -1058,6 +1071,8 @@ def iter_scope_files(
         for name in sorted(dirnames):
             child = current / name
             if name in excluded_dirs:
+                if skipped is not None:
+                    skipped[excluded_dir_skip_key] += 1
                 continue
             if child.is_symlink():
                 if skipped is not None:
@@ -1754,13 +1769,17 @@ def inspect_text(
                         label
                     ):
                         inline_link_candidates.append(
-                            (
-                                nested_target,
-                                markdown_reference_use_labels(nested_label),
-                            )
+                            (nested_target, set())
                         )
+                blocking_reference_labels = (
+                    set()
+                    if line[start : start + 1] == "!"
+                    else markdown_reference_use_labels(
+                        label, include_images=False
+                    )
+                )
                 inline_link_candidates.append(
-                    (raw_target, markdown_reference_use_labels(label))
+                    (raw_target, blocking_reference_labels)
                 )
             if markdown:
                 is_candidate = bool(
@@ -2049,6 +2068,7 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
                 excluded_dirs,
                 skipped,
                 "reference_symlink",
+                "reference_excluded_dir",
             ):
                 resolved = path.resolve(strict=False)
                 if resolved in link_source_paths:
@@ -2069,7 +2089,7 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
                     continue
                 link_source_paths[resolved] = path
 
-        if skipped["reference_symlink"]:
+        if skipped["reference_symlink"] or skipped["reference_excluded_dir"]:
             reference_scan_incomplete = True
 
         for resolved, source_path in sorted(

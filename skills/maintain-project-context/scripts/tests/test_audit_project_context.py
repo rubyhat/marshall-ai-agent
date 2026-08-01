@@ -369,6 +369,51 @@ completed"
             )
             self.assertEqual(report["summary"]["skipped"]["reference_symlink"], 1)
 
+    def test_reference_root_excluded_subtree_marks_coverage_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            history = root / "history"
+            references = root / "references"
+            vendor = references / "vendor"
+            history.mkdir()
+            vendor.mkdir(parents=True)
+            (history / "target.md").write_text("# Target\n", encoding="utf-8")
+            (vendor / "source.md").write_text(
+                "[Target](../../history/target.md)\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "history",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 0)
+            self.assertEqual(
+                target["incoming_links_coverage"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertEqual(
+                report["summary"]["skipped"]["reference_excluded_dir"], 1
+            )
+
     def test_reference_labels_decode_entities_and_backslash_escapes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -558,6 +603,50 @@ completed"
             (memory / "badge.md").write_text("# Badge\n", encoding="utf-8")
             (memory / "source.md").write_text(
                 "# Source\n\n[![Badge](badge.md)](page.md)\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/page.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/badge.md"]["incoming_links"], 1)
+
+    def test_linked_reference_image_counts_outer_and_image_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "page.md").write_text("# Page\n", encoding="utf-8")
+            (memory / "badge.md").write_text("# Badge\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                """# Source
+
+[![Badge][img]](page.md)
+
+[img]: badge.md
+""",
                 encoding="utf-8",
             )
 
