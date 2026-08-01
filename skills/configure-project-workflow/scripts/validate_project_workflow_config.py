@@ -143,6 +143,7 @@ def validate_semantics(
             if (
                 posix_filename.is_absolute()
                 or windows_filename.is_absolute()
+                or bool(windows_filename.drive)
                 or ".." in posix_filename.parts
                 or ".." in windows_filename.parts
             ):

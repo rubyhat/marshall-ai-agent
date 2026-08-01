@@ -46,6 +46,9 @@ TASK_ID_TOKEN_WRAPPERS = "`*_[](){}<>.,:;!?\"'"
 DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
 MARKDOWN_HEADING_RE = re.compile(r"^\s*(#{1,6})(?:[ \t]+|$)")
 MARKDOWN_SETEXT_RE = re.compile(r"^[ ]{0,3}(=+|-+)[ \t]*$")
+MARKDOWN_THEMATIC_BREAK_RE = re.compile(
+    r"^[ ]{0,3}(?:(?:\*[ \t]*){3,}|(?:_[ \t]*){3,}|(?:-[ \t]*){3,})$"
+)
 MARKDOWN_FENCE_RE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})")
 MARKDOWN_FRONT_MATTER_START_RE = re.compile(r"^\ufeff?---[ \t]*(?:\r?\n)?$")
 MARKDOWN_FRONT_MATTER_END_RE = re.compile(r"^(?:---|\.\.\.)[ \t]*(?:\r?\n)?$")
@@ -71,6 +74,21 @@ MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 MARKDOWN_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\([^)]+\)")
 MARKDOWN_REFERENCE_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\[[^\]]*\]")
 MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(r"^[ ]{0,3}\[[^\]]+\]:")
+MARKDOWN_RAW_HTML_TAG_RE = re.compile(
+    r"^[ ]{0,3}<(?P<tag>script|pre|style|textarea)(?:[ \t>]|$)", re.I
+)
+MARKDOWN_HTML_BLOCK_TAG_RE = re.compile(
+    r"^[ ]{0,3}</?(?:address|article|aside|base|basefont|blockquote|body|caption|"
+    r"center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|"
+    r"figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|"
+    r"legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|"
+    r"param|search|section|summary|table|tbody|td|tfoot|th|thead|title|tr|"
+    r"track|ul)(?:[ \t/>]|$)",
+    re.I,
+)
+MARKDOWN_COMPLETE_HTML_TAG_RE = re.compile(
+    r"^[ ]{0,3}</?[A-Za-z][A-Za-z0-9-]*(?:[ \t]+[^<>]*)?[ \t]*/?>[ \t]*$"
+)
 SUPERSESSION_FIELD_RE = re.compile(
     r"^\s*(?:[-*]\s*)?superseded by\s*:\s*(.*?)\s*$",
     re.I,
@@ -227,6 +245,7 @@ def future_paragraph_has_backtick_run(
             or MARKDOWN_HEADING_RE.match(future_line)
             or MARKDOWN_FENCE_RE.match(future_line)
             or MARKDOWN_SETEXT_RE.match(future_line)
+            or MARKDOWN_THEMATIC_BREAK_RE.match(future_line)
             or MARKDOWN_REFERENCE_DEFINITION_RE.match(future_line)
             or MARKDOWN_NON_PARAGRAPH_PREFIX_RE.match(future_line)
             or future_line.startswith(("\t", "    "))
@@ -235,6 +254,30 @@ def future_paragraph_has_backtick_run(
         if matching_backtick_run_end(future_line, 0, run_length) is not None:
             return True
     return False
+
+
+def markdown_html_block_start(line: str) -> Optional[Tuple[Optional[str], bool]]:
+    """Return an end token or blank-line mode for a CommonMark HTML block."""
+    raw_tag = MARKDOWN_RAW_HTML_TAG_RE.match(line)
+    if raw_tag:
+        return f"</{raw_tag.group('tag').lower()}>", False
+    candidate = (
+        line.lstrip(" ")
+        if len(line) - len(line.lstrip(" ")) <= 3
+        else line
+    )
+    lowered = candidate.lower()
+    if lowered.startswith("<?"):
+        return "?>", False
+    if re.match(r"<![A-Z]", candidate):
+        return ">", False
+    if lowered.startswith("<![cdata["):
+        return "]]>", False
+    if MARKDOWN_HTML_BLOCK_TAG_RE.match(line):
+        return None, True
+    if MARKDOWN_COMPLETE_HTML_TAG_RE.match(line.rstrip("\r\n")):
+        return None, True
+    return None
 
 
 def sanitize_markdown_inline(
@@ -510,6 +553,8 @@ def inspect_text(
     )
     fence_character: Optional[str] = None
     fence_length = 0
+    html_block_end_token: Optional[str] = None
+    html_block_until_blank = False
     html_comment_open = False
     inline_code_span_length = 0
     previous_setext_candidate: Optional[Tuple[int, str, Set[str]]] = None
@@ -563,6 +608,24 @@ def inspect_text(
                         fence_length = 0
                     previous_setext_candidate = None
                     continue
+                if html_block_end_token is not None:
+                    if html_block_end_token in line.lower():
+                        html_block_end_token = None
+                    previous_setext_candidate = None
+                    continue
+                if html_block_until_blank:
+                    if not line.strip():
+                        html_block_until_blank = False
+                    previous_setext_candidate = None
+                    continue
+                html_block_start = markdown_html_block_start(line)
+                if html_block_start is not None:
+                    end_token, until_blank = html_block_start
+                    if end_token is not None and end_token not in line.lower():
+                        html_block_end_token = end_token
+                    html_block_until_blank = until_blank
+                    previous_setext_candidate = None
+                    continue
                 line, html_comment_open, inline_code_span_length = (
                     sanitize_markdown_inline(
                         line,
@@ -594,6 +657,9 @@ def inspect_text(
             task_ids.update(line_task_ids)
             heading_match = MARKDOWN_HEADING_RE.search(line) if markdown else None
             setext_match = MARKDOWN_SETEXT_RE.match(line) if markdown else None
+            thematic_break = bool(
+                markdown and MARKDOWN_THEMATIC_BREAK_RE.match(line)
+            )
             if heading_match:
                 heading_level = len(heading_match.group(1))
                 register_heading(heading_level, line_count, line_task_ids)
@@ -624,6 +690,7 @@ def inspect_text(
                     line.strip()
                     and heading_match is None
                     and setext_match is None
+                    and not thematic_break
                     and not reference_definition
                     and not MARKDOWN_NON_PARAGRAPH_PREFIX_RE.match(line)
                 )

@@ -314,7 +314,12 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         self.assert_invalid(config)
 
     def test_adr_filename_pattern_must_stay_inside_root(self) -> None:
-        for pattern in ("../<ID>.md", "/tmp/<ID>.md", r"C:\\temp\\<ID>.md"):
+        for pattern in (
+            "../<ID>.md",
+            "/tmp/<ID>.md",
+            r"C:\\temp\\<ID>.md",
+            "C:<ID>.md",
+        ):
             with self.subTest(pattern=pattern):
                 config = rendered_config()
                 config["architecture_decisions"]["filename_pattern"] = pattern

@@ -190,7 +190,7 @@
         "filename_pattern": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^(?![A-Za-z]:[\\\\/])(?![\\\\/])(?:(?!\\.\\.(?:[\\\\/]|$)).)*<ID>"
+          "pattern": "^(?![A-Za-z]:)(?![\\\\/])(?:(?!\\.\\.(?:[\\\\/]|$)).)*<ID>"
         },
         "statuses": {
           "type": "object",
