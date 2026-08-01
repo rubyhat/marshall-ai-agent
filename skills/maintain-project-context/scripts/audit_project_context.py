@@ -279,6 +279,30 @@ def markdown_container_paragraph_content(line: str) -> str:
     return content[list_item.end():] if list_item else content
 
 
+def strip_indentation_columns(line: str, required_columns: int) -> Optional[str]:
+    columns = 0
+    cursor = 0
+    while cursor < len(line) and columns < required_columns:
+        character = line[cursor]
+        if character == " ":
+            columns += 1
+        elif character == "\t":
+            columns += 4 - (columns % 4)
+        else:
+            return None
+        cursor += 1
+    return line[cursor:] if columns >= required_columns else None
+
+
+def markdown_fence_container(line: str) -> Tuple[str, int, int]:
+    content, quote_depth = markdown_block_quote_content(line)
+    list_item = MARKDOWN_LIST_ITEM_RE.match(content)
+    if not list_item:
+        return content, quote_depth, 0
+    prefix = content[: list_item.end()]
+    return content[list_item.end():], quote_depth, markdown_indentation_columns(prefix)
+
+
 def matching_backtick_run_end(
     line: str, start: int, run_length: int
 ) -> Optional[int]:
@@ -633,6 +657,7 @@ def inspect_text(
     fence_character: Optional[str] = None
     fence_length = 0
     fence_block_quote_depth = 0
+    fence_list_indent = 0
     html_block_end_token: Optional[str] = None
     html_block_until_blank = False
     html_comment_open = False
@@ -696,18 +721,42 @@ def inspect_text(
                     continue
                 if fence_character is not None:
                     if container_quote_depth == fence_block_quote_depth:
-                        if markdown_fence_closes(
-                            container_line, fence_character, fence_length
+                        fence_line = container_line
+                        if fence_list_indent:
+                            if not container_line.strip():
+                                paragraph_active = False
+                                previous_setext_candidate = None
+                                continue
+                            continuation = strip_indentation_columns(
+                                container_line, fence_list_indent
+                            )
+                            if continuation is None:
+                                fence_character = None
+                                fence_length = 0
+                                fence_block_quote_depth = 0
+                                fence_list_indent = 0
+                            else:
+                                fence_line = continuation
+                        if fence_character is None:
+                            pass
+                        elif markdown_fence_closes(
+                            fence_line, fence_character, fence_length
                         ):
                             fence_character = None
                             fence_length = 0
                             fence_block_quote_depth = 0
-                        paragraph_active = False
-                        previous_setext_candidate = None
-                        continue
+                            fence_list_indent = 0
+                            paragraph_active = False
+                            previous_setext_candidate = None
+                            continue
+                        else:
+                            paragraph_active = False
+                            previous_setext_candidate = None
+                            continue
                     fence_character = None
                     fence_length = 0
                     fence_block_quote_depth = 0
+                    fence_list_indent = 0
                 if html_block_end_token is not None:
                     if html_block_end_token in line.lower():
                         html_block_end_token = None
@@ -775,12 +824,15 @@ def inspect_text(
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
-                fence_line, fence_quote_depth = markdown_block_quote_content(line)
+                fence_line, fence_quote_depth, fence_item_indent = (
+                    markdown_fence_container(line)
+                )
                 fence_match = MARKDOWN_FENCE_RE.match(fence_line)
                 if fence_match:
                     fence_character = fence_match.group(1)[0]
                     fence_length = len(fence_match.group(1))
                     fence_block_quote_depth = fence_quote_depth
+                    fence_list_indent = fence_item_indent
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue

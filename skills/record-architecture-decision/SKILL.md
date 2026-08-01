@@ -155,7 +155,9 @@ concrete ID to match both the configured pattern and the portable
 relative path, then reject an absolute path, Windows drive, parent component,
 or any lexical/resolved escape from the configured ADR root or project root,
 including a symlink boundary. Normalize a generated slug to a single safe
-filename segment; never interpolate raw user text into the path.
+filename segment, and reject Windows reserved device components such as
+`CON`, `NUL`, `COM1`, or `LPT1` even when they have an extension; never
+interpolate raw user text into the path.
 
 Include only applicable content:
 

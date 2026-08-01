@@ -332,8 +332,10 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         for field, path in (
             ("root", "/tmp/adrs"),
             ("root", r"C:\\temp\\adrs"),
+            ("root", "CON"),
             ("index", "../INDEX.md"),
             ("index", r"C:INDEX.md"),
+            ("index", "docs/NUL.md"),
         ):
             with self.subTest(field=field, path=path):
                 config = rendered_config()
@@ -370,6 +372,20 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                 config = rendered_config()
                 config["architecture_decisions"]["filename_pattern"] = pattern
                 self.assert_invalid(config)
+
+    def test_adr_filename_pattern_must_not_render_windows_device_name(self) -> None:
+        for identifier in ("CON", "nul", "COM1", "Lpt9"):
+            with self.subTest(identifier=identifier):
+                config = rendered_config()
+                config["architecture_decisions"]["id_pattern"] = identifier
+                config["architecture_decisions"]["filename_pattern"] = "<ID>.md"
+                self.assert_invalid(config)
+
+    def test_prefixed_windows_device_identifier_is_portable(self) -> None:
+        config = rendered_config()
+        config["architecture_decisions"]["id_pattern"] = "CON"
+        config["architecture_decisions"]["filename_pattern"] = "ADR-<ID>.md"
+        self.assert_valid(config)
 
     def test_adr_authority_and_trigger_entries_must_not_be_blank(self) -> None:
         cases = (

@@ -8,6 +8,7 @@ import json
 import re
 import sre_parse
 import sys
+from itertools import product
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
@@ -25,6 +26,15 @@ ADR_ID_SAFE_CODEPOINTS = frozenset(
     ord(character)
     for character in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 )
+WINDOWS_RESERVED_BASENAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{number}" for number in range(1, 10)),
+    *(f"LPT{number}" for number in range(1, 10)),
+}
+WINDOWS_FORBIDDEN_COMPONENT_CHARACTERS = frozenset('<>:"|?*')
 
 
 def load_mapping(path: Path) -> Mapping[str, Any]:
@@ -81,19 +91,28 @@ def validate_nonblank_string_list(
         )
 
 
-def safe_relative_project_path(raw: str) -> bool:
+def safe_relative_project_path(
+    raw: str, *, require_portable_components: bool = True
+) -> bool:
     posix_path = PurePosixPath(raw)
     windows_path = PureWindowsPath(raw)
-    return not (
+    contained = not (
         posix_path.is_absolute()
         or windows_path.is_absolute()
         or bool(windows_path.drive)
         or ".." in posix_path.parts
         or ".." in windows_path.parts
     )
+    return contained and (
+        not require_portable_components
+        or all(
+            windows_component_is_portable(component)
+            for component in windows_path.parts
+        )
+    )
 
 
-def regex_matches_only_safe_adr_id_characters(pattern: str) -> bool:
+def safe_adr_id_witness(pattern: str) -> Optional[str]:
     """Prove safety and produce one concrete witness for the ADR ID regex."""
 
     def safe_witness(subpattern: Any) -> Optional[str]:
@@ -163,15 +182,49 @@ def regex_matches_only_safe_adr_id_characters(pattern: str) -> bool:
         compiled = re.compile(pattern)
         parsed = sre_parse.parse(pattern)
     except re.error:
-        return False
+        return None
     if compiled.flags != re.UNICODE:
-        return False
+        return None
     witness = safe_witness(parsed)
-    return bool(
+    if not (
         witness
         and compiled.fullmatch("") is None
         and compiled.fullmatch(witness) is not None
+    ):
+        return None
+    return witness
+
+
+def regex_matches_only_safe_adr_id_characters(pattern: str) -> bool:
+    return safe_adr_id_witness(pattern) is not None
+
+
+def windows_component_is_portable(component: str) -> bool:
+    if not component or component.rstrip(" .") != component:
+        return False
+    if any(
+        ord(character) < 32 or character in WINDOWS_FORBIDDEN_COMPONENT_CHARACTERS
+        for character in component
+    ):
+        return False
+    basename = component.split(".", 1)[0].upper()
+    return basename not in WINDOWS_RESERVED_BASENAMES
+
+
+def rendered_adr_filename_is_portable(pattern: str, identifier: str) -> bool:
+    rendered = pattern.replace("<ID>", identifier)
+    rendered = re.sub(r"<[^<>]+>", "safe", rendered)
+    return all(
+        windows_component_is_portable(component)
+        for component in PureWindowsPath(rendered).parts
     )
+
+
+def case_variants(value: str) -> List[str]:
+    return [
+        "".join(characters)
+        for characters in product(*((char.lower(), char.upper()) for char in value))
+    ]
 
 
 def validate_semantics(
@@ -268,11 +321,37 @@ def validate_semantics(
                 "architecture_decisions.filename_pattern must contain <ID>"
             )
         if isinstance(filename_pattern, str):
-            if not safe_relative_project_path(filename_pattern):
+            if not safe_relative_project_path(
+                filename_pattern, require_portable_components=False
+            ):
                 errors.append(
                     "architecture_decisions.filename_pattern must stay inside "
                     "architecture_decisions.root"
                 )
+            if isinstance(id_pattern, str):
+                witness = safe_adr_id_witness(id_pattern)
+                try:
+                    compiled_id = re.compile(id_pattern)
+                except re.error:
+                    compiled_id = None
+                identifiers = {witness} if witness else set()
+                if compiled_id is not None:
+                    for reserved in WINDOWS_RESERVED_BASENAMES:
+                        identifiers.update(
+                            candidate
+                            for candidate in case_variants(reserved)
+                            if compiled_id.fullmatch(candidate)
+                        )
+                if any(
+                    not rendered_adr_filename_is_portable(
+                        filename_pattern, identifier
+                    )
+                    for identifier in identifiers
+                ):
+                    errors.append(
+                        "architecture_decisions.filename_pattern can render "
+                        "a Windows-reserved or invalid filename component"
+                    )
         statuses = adr.get("statuses")
         if not isinstance(statuses, dict):
             errors.append("architecture_decisions.statuses must be a mapping")
