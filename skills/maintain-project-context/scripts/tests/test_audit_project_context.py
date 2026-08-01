@@ -331,6 +331,10 @@ completed"
                 "[Escaped label][foo\\&bar]\n\n[foo&bar]: target.md\n",
                 encoding="utf-8",
             )
+            (memory / "bracket.md").write_text(
+                "[Escaped bracket][foo\\]]\n\n[foo\\]]: target.md\n",
+                encoding="utf-8",
+            )
 
             result = subprocess.run(
                 [
@@ -356,7 +360,51 @@ completed"
             self.assertEqual(result.returncode, 0, result.stderr)
             report = json.loads(result.stdout)
             by_path = {item["path"]: item for item in report["largest_files"]}
-            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 2)
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 3)
+
+    def test_reference_uses_inside_inline_link_metadata_are_ignored(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "other.md").write_text("# Other\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                """# Source
+
+[Guide](other.md "[hidden]")
+
+[hidden]: target.md
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/source.md"]["broken_targets"], [])
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 0)
 
     def test_escaped_reference_links_do_not_use_definitions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

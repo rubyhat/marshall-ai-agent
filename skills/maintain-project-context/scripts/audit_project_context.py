@@ -76,19 +76,19 @@ STATUS_RE = re.compile(
     re.I,
 )
 MARKDOWN_REFERENCE_LINK_RE = re.compile(
-    r"(?<!!)!?\[([^\]]+)\]\[([^\]]*)\]"
+    r"(?<!!)!?\[((?:\\.|[^\]\\])+)\]\[((?:\\.|[^\]\\])*)\]"
 )
 MARKDOWN_REFERENCE_LINK_LABEL_RE = re.compile(
-    r"(?<!!)!?\[([^\]]+)\]\[[^\]]*\]"
+    r"(?<!!)!?\[((?:\\.|[^\]\\])+)\]\[(?:\\.|[^\]\\])*\]"
 )
 MARKDOWN_REFERENCE_SHORTCUT_RE = re.compile(
-    r"(?<!!)!?\[([^\]]+)\](?![\[(:])"
+    r"(?<!!)!?\[((?:\\.|[^\]\\])+)\](?![\[(:])"
 )
 MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(
-    r"^[ ]{0,3}\[([^\]]+)\]:"
+    r"^[ ]{0,3}\[((?:\\.|[^\]\\])+)\]:"
 )
 MARKDOWN_REFERENCE_DEFINITION_TARGET_RE = re.compile(
-    r"^[ ]{0,3}\[([^\]]+)\]:[ \t]*(?:<([^>\r\n]*)>|([^ \t\r\n]+))"
+    r"^[ ]{0,3}\[((?:\\.|[^\]\\])+)\]:[ \t]*(?:<([^>\r\n]*)>|([^ \t\r\n]+))"
 )
 MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE = re.compile(
     r"^[ ]{1,3}(?:<([^>\r\n]*)>|([^ \t\r\n]+))"
@@ -265,6 +265,21 @@ def markdown_visible_signal_text(line: str) -> str:
     return MARKDOWN_REFERENCE_LINK_LABEL_RE.sub(
         lambda match: match.group(1), visible
     )
+
+
+def markdown_mask_inline_links(line: str) -> str:
+    """Hide complete inline-link spans before scanning for reference uses."""
+    links = markdown_inline_links(line)
+    if not links:
+        return line
+    pieces: List[str] = []
+    cursor = 0
+    for start, end, _, _ in links:
+        pieces.append(line[cursor:start])
+        pieces.append(" " * (end - start))
+        cursor = end
+    pieces.append(line[cursor:])
+    return "".join(pieces)
 
 
 def markdown_character_is_escaped(line: str, position: int) -> bool:
@@ -1583,16 +1598,19 @@ def inspect_text(
                     )
                     pending_reference_container_tokens = container_tokens
             elif markdown:
-                for reference_match in MARKDOWN_REFERENCE_LINK_RE.finditer(line):
+                reference_use_line = markdown_mask_inline_links(line)
+                for reference_match in MARKDOWN_REFERENCE_LINK_RE.finditer(
+                    reference_use_line
+                ):
                     opening = reference_match.start()
-                    if line[opening : opening + 1] == "!":
+                    if reference_use_line[opening : opening + 1] == "!":
                         opening += 1
-                    if markdown_character_is_escaped(line, opening):
+                    if markdown_character_is_escaped(reference_use_line, opening):
                         continue
                     label = reference_match.group(2) or reference_match.group(1)
                     used_reference_labels.add(normalize_reference_label(label))
                 without_explicit_references = MARKDOWN_REFERENCE_LINK_RE.sub(
-                    "", line
+                    "", reference_use_line
                 )
                 for shortcut_match in MARKDOWN_REFERENCE_SHORTCUT_RE.finditer(
                     without_explicit_references
