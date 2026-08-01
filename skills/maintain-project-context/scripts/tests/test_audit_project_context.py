@@ -273,6 +273,54 @@ Canonical fact.
             self.assertEqual(largest["broken_targets"], [])
             self.assertEqual(largest["unresolved_markers"], 1)
 
+    def test_reference_definition_rejects_non_title_suffix(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "source.md"
+            source.write_text(
+                """# Source
+
+[Guide][guide]
+
+[guide]: missing.md TODO completed
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["broken_targets"], [])
+            self.assertEqual(largest["unresolved_markers"], 1)
+            self.assertEqual(largest["completed_markers"], 1)
+            self.assertIn(
+                "mixed_lifecycle_signal",
+                report["candidates"][0]["review_hints"],
+            )
+
     def test_html_comment_block_closing_line_stays_non_structural(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

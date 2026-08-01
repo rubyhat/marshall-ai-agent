@@ -249,8 +249,6 @@ def markdown_fence_opens(line: str) -> Optional[re.Match]:
 
 def markdown_visible_signal_text(line: str) -> str:
     """Keep rendered link labels while removing non-rendered destinations."""
-    if MARKDOWN_REFERENCE_DEFINITION_RE.match(line):
-        return ""
     links = markdown_inline_links(line)
     if links:
         pieces: List[str] = []
@@ -1305,13 +1303,27 @@ def inspect_text(
                     )
 
             reference_line = container_line if markdown else line
+            definition_prefix_match = (
+                MARKDOWN_REFERENCE_DEFINITION_RE.match(reference_line)
+                if markdown
+                else None
+            )
             definition_match = (
                 MARKDOWN_REFERENCE_DEFINITION_TARGET_RE.match(reference_line)
                 if markdown
                 else None
             )
+            if definition_match and (
+                definition_suffix := reference_line[definition_match.end() :].strip()
+            ):
+                if MARKDOWN_REFERENCE_TITLE_RE.fullmatch(definition_suffix) is None:
+                    definition_match = None
+            incomplete_reference_definition = bool(
+                definition_prefix_match
+                and not reference_line[definition_prefix_match.end() :].strip()
+            )
             reference_definition = bool(
-                markdown and MARKDOWN_REFERENCE_DEFINITION_RE.match(reference_line)
+                definition_match or incomplete_reference_definition
             )
             reference_container_continues = False
             if markdown and previous_pending_reference_label is not None:
@@ -1340,6 +1352,13 @@ def inspect_text(
                 if reference_container_continues
                 else None
             )
+            if continuation_match and (
+                continuation_suffix := reference_line[
+                    continuation_match.end() :
+                ].strip()
+            ):
+                if MARKDOWN_REFERENCE_TITLE_RE.fullmatch(continuation_suffix) is None:
+                    continuation_match = None
             if reference_title_continues:
                 reference_definition = True
             elif continuation_match:
