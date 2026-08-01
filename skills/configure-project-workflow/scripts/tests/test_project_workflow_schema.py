@@ -356,6 +356,25 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                 config["architecture_decisions"]["index"] = index
                 self.assert_invalid(config)
 
+    def test_adr_index_must_not_collide_with_rendered_adr_filename(self) -> None:
+        for root, index, id_pattern, filename_pattern in (
+            ("docs/adr", "docs/adr/INDEX.md", "INDEX", "<ID>.md"),
+            ("docs/adr", "docs/ADR/index.md", "INDEX", "<ID>.md"),
+            (
+                "docs/adr",
+                "docs/adr/ADR-0001/current.md",
+                "ADR-[0-9]{4}",
+                "<ID>/<slug>.md",
+            ),
+        ):
+            with self.subTest(index=index, filename_pattern=filename_pattern):
+                config = rendered_config()
+                config["architecture_decisions"]["root"] = root
+                config["architecture_decisions"]["index"] = index
+                config["architecture_decisions"]["id_pattern"] = id_pattern
+                config["architecture_decisions"]["filename_pattern"] = filename_pattern
+                self.assert_invalid(config)
+
     def test_adr_filename_pattern_must_contain_complete_id(self) -> None:
         config = rendered_config()
         config["architecture_decisions"]["filename_pattern"] = "decision.md"
@@ -379,6 +398,18 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                 config = rendered_config()
                 config["architecture_decisions"]["id_pattern"] = identifier
                 config["architecture_decisions"]["filename_pattern"] = "<ID>.md"
+                self.assert_invalid(config)
+
+    def test_adr_filename_pattern_must_not_compose_windows_device_name(self) -> None:
+        for id_pattern, filename_pattern in (
+            ("[A-Z]", "CO<ID>.md"),
+            ("[0-9]", "COM<ID>.md"),
+            ("[0-9]", "folder/LPT<ID>.txt"),
+        ):
+            with self.subTest(filename_pattern=filename_pattern):
+                config = rendered_config()
+                config["architecture_decisions"]["id_pattern"] = id_pattern
+                config["architecture_decisions"]["filename_pattern"] = filename_pattern
                 self.assert_invalid(config)
 
     def test_prefixed_windows_device_identifier_is_portable(self) -> None:

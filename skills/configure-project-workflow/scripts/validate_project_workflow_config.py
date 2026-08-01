@@ -8,7 +8,6 @@ import json
 import re
 import sre_parse
 import sys
-from itertools import product
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
@@ -35,6 +34,8 @@ WINDOWS_RESERVED_BASENAMES = {
     *(f"LPT{number}" for number in range(1, 10)),
 }
 WINDOWS_FORBIDDEN_COMPONENT_CHARACTERS = frozenset('<>:"|?*')
+ADR_FILENAME_PLACEHOLDER_RE = re.compile(r"<[^<>]+>")
+ADR_TEMPLATE_VALUE_PATTERN = r"[A-Za-z0-9_-]+"
 
 
 def load_mapping(path: Path) -> Mapping[str, Any]:
@@ -220,11 +221,80 @@ def rendered_adr_filename_is_portable(pattern: str, identifier: str) -> bool:
     )
 
 
-def case_variants(value: str) -> List[str]:
-    return [
-        "".join(characters)
-        for characters in product(*((char.lower(), char.upper()) for char in value))
-    ]
+def template_identifier_candidate(
+    template: str, target: str, *, ignore_case: bool = False
+) -> Optional[str]:
+    """Return the ID when a concrete portable target can be rendered."""
+    pieces: List[str] = []
+    cursor = 0
+    identifier_seen = False
+    for placeholder in ADR_FILENAME_PLACEHOLDER_RE.finditer(template):
+        pieces.append(re.escape(template[cursor : placeholder.start()]))
+        if placeholder.group(0) == "<ID>":
+            if identifier_seen:
+                pieces.append(r"(?P=identifier)")
+            else:
+                pieces.append(
+                    rf"(?P<identifier>{ADR_TEMPLATE_VALUE_PATTERN})"
+                )
+                identifier_seen = True
+        else:
+            pieces.append(ADR_TEMPLATE_VALUE_PATTERN)
+        cursor = placeholder.end()
+    pieces.append(re.escape(template[cursor:]))
+    if not identifier_seen:
+        return None
+    flags = re.IGNORECASE if ignore_case else 0
+    match = re.fullmatch("".join(pieces), target, flags)
+    return match.group("identifier") if match else None
+
+
+def adr_id_pattern_accepts(
+    compiled: re.Pattern, identifier: str, *, ignore_case: bool = False
+) -> bool:
+    if not ignore_case:
+        return compiled.fullmatch(identifier) is not None
+    return re.compile(compiled.pattern, re.IGNORECASE).fullmatch(identifier) is not None
+
+
+def filename_pattern_can_render_windows_device_name(
+    filename_pattern: str, compiled_id: re.Pattern
+) -> bool:
+    for component in PureWindowsPath(filename_pattern).parts:
+        basename_template = component.split(".", 1)[0]
+        if "<ID>" not in basename_template:
+            continue
+        for reserved in WINDOWS_RESERVED_BASENAMES:
+            identifier = template_identifier_candidate(
+                basename_template, reserved, ignore_case=True
+            )
+            if identifier is not None and adr_id_pattern_accepts(
+                compiled_id, identifier, ignore_case=True
+            ):
+                return True
+    return False
+
+
+def adr_index_can_collide_with_rendered_filename(
+    adr_root: str,
+    adr_index: str,
+    filename_pattern: str,
+    compiled_id: re.Pattern,
+) -> bool:
+    root = PureWindowsPath(adr_root)
+    index = PureWindowsPath(adr_index)
+    try:
+        relative_index = index.relative_to(root)
+    except ValueError:
+        return False
+    normalized_pattern = "/".join(PureWindowsPath(filename_pattern).parts)
+    normalized_index = "/".join(relative_index.parts)
+    identifier = template_identifier_candidate(
+        normalized_pattern, normalized_index, ignore_case=True
+    )
+    return identifier is not None and adr_id_pattern_accepts(
+        compiled_id, identifier, ignore_case=True
+    )
 
 
 def validate_semantics(
@@ -335,13 +405,6 @@ def validate_semantics(
                 except re.error:
                     compiled_id = None
                 identifiers = {witness} if witness else set()
-                if compiled_id is not None:
-                    for reserved in WINDOWS_RESERVED_BASENAMES:
-                        identifiers.update(
-                            candidate
-                            for candidate in case_variants(reserved)
-                            if compiled_id.fullmatch(candidate)
-                        )
                 if any(
                     not rendered_adr_filename_is_portable(
                         filename_pattern, identifier
@@ -351,6 +414,30 @@ def validate_semantics(
                     errors.append(
                         "architecture_decisions.filename_pattern can render "
                         "a Windows-reserved or invalid filename component"
+                    )
+                elif compiled_id is not None and (
+                    filename_pattern_can_render_windows_device_name(
+                        filename_pattern, compiled_id
+                    )
+                ):
+                    errors.append(
+                        "architecture_decisions.filename_pattern can compose "
+                        "a Windows-reserved filename component from <ID>"
+                    )
+                if (
+                    compiled_id is not None
+                    and isinstance(adr_root, str)
+                    and isinstance(adr_index, str)
+                    and adr_index_can_collide_with_rendered_filename(
+                        adr_root,
+                        adr_index,
+                        filename_pattern,
+                        compiled_id,
+                    )
+                ):
+                    errors.append(
+                        "architecture_decisions.index can collide with a "
+                        "rendered ADR filename"
                     )
         statuses = adr.get("statuses")
         if not isinstance(statuses, dict):

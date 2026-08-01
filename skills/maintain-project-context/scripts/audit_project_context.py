@@ -228,6 +228,16 @@ def markdown_fence_closes(line: str, character: str, minimum_length: int) -> boo
     )
 
 
+def markdown_fence_opens(line: str) -> Optional[re.Match]:
+    """Return a valid CommonMark fence opener, excluding invalid info strings."""
+    match = MARKDOWN_FENCE_RE.match(line)
+    if not match:
+        return None
+    if match.group(1)[0] == "`" and "`" in line[match.end() :]:
+        return None
+    return match
+
+
 def markdown_visible_signal_text(line: str) -> str:
     """Keep rendered link labels while removing non-rendered destinations."""
     if MARKDOWN_REFERENCE_DEFINITION_RE.match(line):
@@ -337,7 +347,7 @@ def future_paragraph_has_backtick_run(
             quote_container_changed
             or not future_line.strip()
             or MARKDOWN_HEADING_RE.match(future_line)
-            or MARKDOWN_FENCE_RE.match(future_line)
+            or markdown_fence_opens(future_line)
             or MARKDOWN_SETEXT_RE.match(future_line)
             or MARKDOWN_THEMATIC_BREAK_RE.match(future_line)
             or markdown_html_block_start(
@@ -827,7 +837,7 @@ def inspect_text(
                 fence_line, fence_quote_depth, fence_item_indent = (
                     markdown_fence_container(line)
                 )
-                fence_match = MARKDOWN_FENCE_RE.match(fence_line)
+                fence_match = markdown_fence_opens(fence_line)
                 if fence_match:
                     fence_character = fence_match.group(1)[0]
                     fence_length = len(fence_match.group(1))
