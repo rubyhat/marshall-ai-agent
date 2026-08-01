@@ -88,10 +88,10 @@ MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(
     r"^[ ]{0,3}\[([^\]]+)\]:"
 )
 MARKDOWN_REFERENCE_DEFINITION_TARGET_RE = re.compile(
-    r"^[ ]{0,3}\[([^\]]+)\]:[ \t]*(?:<([^>\r\n]+)>|([^ \t\r\n]+))"
+    r"^[ ]{0,3}\[([^\]]+)\]:[ \t]*(?:<([^>\r\n]*)>|([^ \t\r\n]+))"
 )
 MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE = re.compile(
-    r"^[ ]{1,3}(?:<([^>\r\n]+)>|([^ \t\r\n]+))"
+    r"^[ ]{1,3}(?:<([^>\r\n]*)>|([^ \t\r\n]+))"
 )
 MARKDOWN_CHARACTER_REFERENCE_RE = re.compile(
     r"&(?:#[xX][0-9A-Fa-f]{1,8}|#[0-9]{1,8}|[A-Za-z][A-Za-z0-9]{1,31});"
@@ -1550,7 +1550,12 @@ def inspect_text(
             if reference_title_continues:
                 reference_definition = True
             elif continuation_match:
-                target = continuation_match.group(1) or continuation_match.group(2)
+                angle_target = continuation_match.group(1)
+                target = (
+                    angle_target
+                    if angle_target is not None
+                    else continuation_match.group(2)
+                )
                 reference_definitions.setdefault(
                     previous_pending_reference_label, target
                 )
@@ -1561,7 +1566,12 @@ def inspect_text(
                     )
             elif definition_match:
                 label = normalize_reference_label(definition_match.group(1))
-                target = definition_match.group(2) or definition_match.group(3)
+                angle_target = definition_match.group(2)
+                target = (
+                    angle_target
+                    if angle_target is not None
+                    else definition_match.group(3)
+                )
                 reference_definitions.setdefault(label, target)
                 if not reference_line[definition_match.end() :].strip():
                     pending_reference_title_container_tokens = container_tokens

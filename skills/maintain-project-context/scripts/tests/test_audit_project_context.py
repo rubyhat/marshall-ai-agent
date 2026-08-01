@@ -527,6 +527,50 @@ completed"
             self.assertEqual(largest["broken_targets"], [])
             self.assertEqual(largest["unresolved_markers"], 1)
 
+    def test_reference_definitions_accept_empty_angle_destinations(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "source.md"
+            source.write_text(
+                """# Source
+
+[Direct][direct]
+[Continued][continued]
+
+[direct]: <> "TODO completed"
+[continued]:
+  <> "TODO completed"
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory",
+                    "--include-content-signals",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["broken_targets"], [])
+            self.assertEqual(largest["unresolved_markers"], 0)
+            self.assertEqual(largest["completed_markers"], 0)
+
     def test_reference_definition_does_not_interrupt_paragraph(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
