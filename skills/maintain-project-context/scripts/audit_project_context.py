@@ -73,8 +73,6 @@ STATUS_RE = re.compile(
     r"\b(?:заверш[её]н\w*|выполнен\w*|закрыт\w*|отмен[её]н\w*|слит\w*)",
     re.I,
 )
-MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
-MARKDOWN_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\([^)]+\)")
 MARKDOWN_REFERENCE_LINK_RE = re.compile(
     r"(?<!!)!?\[([^\]]+)\]\[([^\]]*)\]"
 )
@@ -189,7 +187,7 @@ def configured_task_ids(
     # ``[TASK_123](https://tracker/123)`` and prevents an exact fullmatch.
     candidate_sources = [
         line,
-        *MARKDOWN_LINK_LABEL_RE.findall(line),
+        *(label for _, _, label, _ in markdown_inline_links(line)),
         *MARKDOWN_REFERENCE_LINK_LABEL_RE.findall(line),
     ]
     candidates = {
@@ -243,10 +241,147 @@ def markdown_visible_signal_text(line: str) -> str:
     """Keep rendered link labels while removing non-rendered destinations."""
     if MARKDOWN_REFERENCE_DEFINITION_RE.match(line):
         return ""
-    visible = MARKDOWN_LINK_LABEL_RE.sub(lambda match: match.group(1), line)
+    links = markdown_inline_links(line)
+    if links:
+        pieces: List[str] = []
+        cursor = 0
+        for start, end, label, _ in links:
+            pieces.extend((line[cursor:start], label))
+            cursor = end
+        pieces.append(line[cursor:])
+        visible = "".join(pieces)
+    else:
+        visible = line
     return MARKDOWN_REFERENCE_LINK_LABEL_RE.sub(
         lambda match: match.group(1), visible
     )
+
+
+def markdown_character_is_escaped(line: str, position: int) -> bool:
+    backslashes = 0
+    cursor = position - 1
+    while cursor >= 0 and line[cursor] == "\\":
+        backslashes += 1
+        cursor -= 1
+    return backslashes % 2 == 1
+
+
+def markdown_link_label_end(line: str, opening: int) -> Optional[int]:
+    depth = 1
+    cursor = opening + 1
+    while cursor < len(line):
+        character = line[cursor]
+        if character == "\\":
+            cursor += 2
+            continue
+        if character == "[":
+            depth += 1
+        elif character == "]":
+            depth -= 1
+            if depth == 0:
+                return cursor
+        cursor += 1
+    return None
+
+
+def markdown_link_title_close(line: str, cursor: int) -> Optional[int]:
+    while cursor < len(line) and line[cursor] in " \t":
+        cursor += 1
+    if cursor >= len(line):
+        return None
+    if line[cursor] == ")":
+        return cursor
+    opener = line[cursor]
+    closer = ")" if opener == "(" else opener
+    if opener not in "\"'(":
+        return None
+    cursor += 1
+    while cursor < len(line):
+        if line[cursor] == "\\":
+            cursor += 2
+            continue
+        if line[cursor] == closer:
+            cursor += 1
+            while cursor < len(line) and line[cursor] in " \t":
+                cursor += 1
+            return cursor if cursor < len(line) and line[cursor] == ")" else None
+        cursor += 1
+    return None
+
+
+def markdown_link_destination(
+    line: str, opening: int
+) -> Optional[Tuple[str, int]]:
+    cursor = opening + 1
+    while cursor < len(line) and line[cursor] in " \t":
+        cursor += 1
+    if cursor >= len(line):
+        return None
+    if line[cursor] == "<":
+        destination_start = cursor + 1
+        cursor += 1
+        while cursor < len(line):
+            if line[cursor] == "\\":
+                cursor += 2
+                continue
+            if line[cursor] == ">":
+                target = line[destination_start:cursor]
+                closing = markdown_link_title_close(line, cursor + 1)
+                return (target, closing + 1) if closing is not None else None
+            if line[cursor] in "\r\n<":
+                return None
+            cursor += 1
+        return None
+
+    destination_start = cursor
+    parenthesis_depth = 0
+    while cursor < len(line):
+        character = line[cursor]
+        if character == "\\":
+            cursor += 2
+            continue
+        if character == "(":
+            parenthesis_depth += 1
+        elif character == ")":
+            if parenthesis_depth == 0:
+                return line[destination_start:cursor], cursor + 1
+            parenthesis_depth -= 1
+        elif character in " \t" and parenthesis_depth == 0:
+            target = line[destination_start:cursor]
+            closing = markdown_link_title_close(line, cursor)
+            return (target, closing + 1) if closing is not None else None
+        elif character in "\r\n" or parenthesis_depth > 32:
+            return None
+        cursor += 1
+    return None
+
+
+def markdown_inline_links(line: str) -> List[Tuple[int, int, str, str]]:
+    """Parse same-line inline links with bounded balanced destinations."""
+    links: List[Tuple[int, int, str, str]] = []
+    cursor = 0
+    while cursor < len(line):
+        opening = line.find("[", cursor)
+        if opening < 0:
+            break
+        if markdown_character_is_escaped(line, opening):
+            cursor = opening + 1
+            continue
+        label_end = markdown_link_label_end(line, opening)
+        if label_end is None or label_end + 1 >= len(line):
+            break
+        if line[label_end + 1] != "(":
+            cursor = label_end + 1
+            continue
+        parsed = markdown_link_destination(line, label_end + 1)
+        if parsed is None:
+            cursor = label_end + 1
+            continue
+        target, end = parsed
+        start = opening - 1 if opening > 0 and line[opening - 1] == "!" else opening
+        links.append((start, end, line[opening + 1 : label_end], target))
+        cursor = end
+    return links
 
 
 def normalize_reference_label(raw: str) -> str:
@@ -633,6 +768,7 @@ def normalize_link_target(root: Path, source: Path, raw_target: str) -> Optional
     else:
         target = target.split(maxsplit=1)[0]
     target = unquote(target.split("#", 1)[0].strip())
+    target = re.sub(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])", r"\1", target)
     if (
         not target
         or target.startswith(("#", "//"))
@@ -804,13 +940,17 @@ def inspect_text(
                     if not line.strip():
                         previous_setext_candidate = None
                         continue
+                html_container_line = markdown_container_paragraph_content(line)
                 html_block_start = markdown_html_block_start(
-                    line,
+                    html_container_line,
                     allow_type_7=not paragraph_active,
                 )
                 if html_block_start is not None:
                     end_token, until_blank = html_block_start
-                    if end_token is not None and end_token not in line.lower():
+                    if (
+                        end_token is not None
+                        and end_token not in html_container_line.lower()
+                    ):
                         html_block_end_token = end_token
                     html_block_until_blank = until_blank
                     inline_code_span_length = 0
@@ -819,7 +959,9 @@ def inspect_text(
                     continue
                 if not inline_sanitized:
                     comment_block_starts = bool(
-                        MARKDOWN_HTML_COMMENT_BLOCK_START_RE.match(line)
+                        MARKDOWN_HTML_COMMENT_BLOCK_START_RE.match(
+                            html_container_line
+                        )
                     )
                     line, html_comment_open, inline_code_span_length = (
                         sanitize_markdown_inline(
@@ -930,7 +1072,7 @@ def inspect_text(
             else:
                 item.superseded_marker_count += len(SUPERSEDED_RE.findall(signal_line))
             item.completed_marker_count += len(STATUS_RE.findall(signal_line))
-            for raw_target in MARKDOWN_LINK_RE.findall(line):
+            for _, _, _, raw_target in markdown_inline_links(line):
                 normalized = normalize_link_target(root, item.absolute_path, raw_target)
                 if normalized is not None:
                     links.add(normalized)
