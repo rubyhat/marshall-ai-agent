@@ -497,6 +497,85 @@ completed"
             self.assertEqual(by_path["memory/valid.md"]["incoming_links"], 1)
             self.assertEqual(by_path["memory/invalid.md"]["incoming_links"], 0)
 
+    def test_linked_image_counts_outer_and_nested_image_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "page.md").write_text("# Page\n", encoding="utf-8")
+            (memory / "badge.md").write_text("# Badge\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                "# Source\n\n[![Badge](badge.md)](page.md)\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/page.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/badge.md"]["incoming_links"], 1)
+
+    def test_task_ids_inside_inline_link_titles_are_not_visible(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                '# Source\n\n## [Guide](target.md "TASK_123")\n',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/source.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/source.md"]["task_id_count"], 0)
+            self.assertEqual(by_path["memory/source.md"]["task_headings"], 0)
+
     def test_escaped_reference_links_do_not_use_definitions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

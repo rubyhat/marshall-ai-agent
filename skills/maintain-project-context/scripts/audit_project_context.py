@@ -194,14 +194,9 @@ def configured_task_ids(
 ) -> Set[str]:
     if task_id_pattern is None:
         return set()
-    # Inspect visible inline-link labels separately. Splitting the raw Markdown
-    # alone leaves the destination attached to identifiers such as
-    # ``[TASK_123](https://tracker/123)`` and prevents an exact fullmatch.
-    candidate_sources = [
-        line,
-        *(label for _, _, label, _ in markdown_inline_links(line)),
-        *MARKDOWN_REFERENCE_LINK_LABEL_RE.findall(line),
-    ]
+    # Inspect only rendered-visible text. Raw inline destinations and titles
+    # are metadata and must not create task chronology signals.
+    candidate_sources = [markdown_visible_signal_text(line)]
     candidates = {
         raw.strip(TASK_ID_TOKEN_WRAPPERS)
         for source in candidate_sources
@@ -446,6 +441,17 @@ def markdown_inline_links(line: str) -> List[Tuple[int, int, str, str]]:
         links.append((start, end, label, target))
         cursor = end
     return links
+
+
+def markdown_nested_image_links(label: str) -> List[Tuple[str, str]]:
+    """Return nested image labels and targets rendered inside a link label."""
+    nested_images: List[Tuple[str, str]] = []
+    for start, _, nested_label, raw_target in markdown_inline_links(label):
+        if label[start : start + 1] != "!":
+            continue
+        nested_images.append((nested_label, raw_target))
+        nested_images.extend(markdown_nested_image_links(nested_label))
+    return nested_images
 
 
 def markdown_multiline_inline_links(
@@ -1720,6 +1726,13 @@ def inspect_text(
                 item.superseded_marker_count += len(SUPERSEDED_RE.findall(signal_line))
             item.completed_marker_count += len(STATUS_RE.findall(signal_line))
             for _, _, label, raw_target in inline_links:
+                for nested_label, nested_target in markdown_nested_image_links(label):
+                    inline_link_candidates.append(
+                        (
+                            nested_target,
+                            markdown_reference_use_labels(nested_label),
+                        )
+                    )
                 inline_link_candidates.append(
                     (raw_target, markdown_reference_use_labels(label))
                 )
