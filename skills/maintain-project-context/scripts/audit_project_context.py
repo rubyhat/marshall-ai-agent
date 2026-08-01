@@ -376,6 +376,11 @@ def markdown_inline_links(line: str) -> List[Tuple[int, int, str, str]]:
         label_end = markdown_link_label_end(line, opening)
         if label_end is None or label_end + 1 >= len(line):
             break
+        label = line[opening + 1 : label_end]
+        nested_links = markdown_inline_links(label)
+        if any(label[start : start + 1] != "!" for start, _, _, _ in nested_links):
+            cursor = opening + 1
+            continue
         if line[label_end + 1] != "(":
             cursor = label_end + 1
             continue
@@ -385,7 +390,7 @@ def markdown_inline_links(line: str) -> List[Tuple[int, int, str, str]]:
             continue
         target, end = parsed
         start = opening - 1 if opening > 0 and line[opening - 1] == "!" else opening
-        links.append((start, end, line[opening + 1 : label_end], target))
+        links.append((start, end, label, target))
         cursor = end
     return links
 
@@ -1061,6 +1066,9 @@ def inspect_text(
                 line = multiline_link_line_overrides[line_index]
                 if not line.strip():
                     continue
+                # A visible suffix after a multiline link remains part of the
+                # opening paragraph even when it starts with block-like text.
+                line = "x" + line
             if markdown:
                 inline_sanitized = False
                 container_line, container_tokens = markdown_container_details(line)

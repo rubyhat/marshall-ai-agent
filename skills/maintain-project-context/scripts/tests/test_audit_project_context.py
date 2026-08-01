@@ -629,6 +629,53 @@ Canonical fact.
             )
             self.assertEqual(by_path["docs/a(b).md"]["incoming_links"], 1)
 
+    def test_nested_inline_link_prefers_rendered_inner_link(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "source.md"
+            target = memory / "target.md"
+            source.write_text(
+                """# Source
+
+[outer [inner](target.md)](missing.md)
+""",
+                encoding="utf-8",
+            )
+            target.write_text("# Target\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            by_path = {
+                item["path"]: item
+                for item in json.loads(result.stdout)["largest_files"]
+            }
+            self.assertEqual(by_path["memory/source.md"]["broken_targets"], [])
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+
     def test_raw_html_blocks_inside_markdown_containers_are_ignored(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -811,7 +858,7 @@ missing.md
 )
 
 > [Quoted missing](
-> quoted-missing.md) TODO completed
+> quoted-missing.md) ## TASK_123 TODO completed
 """,
                 encoding="utf-8",
             )
@@ -853,6 +900,7 @@ missing.md
             )
             self.assertEqual(by_path["memory/TODO.md"]["incoming_links"], 1)
             self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/source.md"]["markdown_headings"], 1)
             self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 1)
             self.assertEqual(by_path["memory/source.md"]["completed_markers"], 1)
             candidate_by_path = {

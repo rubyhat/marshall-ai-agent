@@ -380,6 +380,12 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                 "INDEX",
                 "<ID>.md",
             ),
+            (
+                "docs/adr",
+                "docs/adr/x-ADR-1.md",
+                "ADR-[0-9]+",
+                "<slug>-<ID>.md",
+            ),
         ):
             with self.subTest(index=index, filename_pattern=filename_pattern):
                 config = rendered_config()

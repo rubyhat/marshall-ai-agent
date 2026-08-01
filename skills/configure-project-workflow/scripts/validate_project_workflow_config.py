@@ -9,7 +9,7 @@ import re
 import sre_parse
 import sys
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set
 
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
@@ -226,32 +226,39 @@ def rendered_adr_filename_is_portable(pattern: str, identifier: str) -> bool:
     )
 
 
-def template_identifier_match(
+def template_identifier_matches(
     template: str, target: str, *, ignore_case: bool = False
-) -> tuple[bool, Optional[str]]:
-    """Report whether a portable target can be rendered and return its ID."""
-    pieces: List[str] = []
-    cursor = 0
-    identifier_seen = False
-    for placeholder in ADR_FILENAME_PLACEHOLDER_RE.finditer(template):
-        pieces.append(re.escape(template[cursor : placeholder.start()]))
-        if placeholder.group(0) == "<ID>":
-            if identifier_seen:
-                pieces.append(r"(?P=identifier)")
-            else:
-                pieces.append(
-                    rf"(?P<identifier>{ADR_TEMPLATE_VALUE_PATTERN})"
-                )
-                identifier_seen = True
-        else:
-            pieces.append(ADR_TEMPLATE_VALUE_PATTERN)
-        cursor = placeholder.end()
-    pieces.append(re.escape(template[cursor:]))
+) -> tuple[bool, Set[str]]:
+    """Report every ID allocation that can render a portable target."""
     flags = re.IGNORECASE if ignore_case else 0
-    match = re.fullmatch("".join(pieces), target, flags)
-    if not match:
-        return False, None
-    return True, match.group("identifier") if identifier_seen else None
+    placeholders = list(ADR_FILENAME_PLACEHOLDER_RE.finditer(template))
+    identifier_seen = any(match.group(0) == "<ID>" for match in placeholders)
+
+    def rendered_pattern(identifier: Optional[str]) -> str:
+        pieces: List[str] = []
+        cursor = 0
+        for placeholder in placeholders:
+            pieces.append(re.escape(template[cursor : placeholder.start()]))
+            if placeholder.group(0) == "<ID>" and identifier is not None:
+                pieces.append(re.escape(identifier))
+            else:
+                pieces.append(ADR_TEMPLATE_VALUE_PATTERN)
+            cursor = placeholder.end()
+        pieces.append(re.escape(template[cursor:]))
+        return "".join(pieces)
+
+    if not identifier_seen:
+        return re.fullmatch(rendered_pattern(None), target, flags) is not None, set()
+
+    identifiers: Set[str] = set()
+    for start in range(len(target)):
+        for end in range(start + 1, len(target) + 1):
+            candidate = target[start:end]
+            if re.fullmatch(ADR_TEMPLATE_VALUE_PATTERN, candidate) is None:
+                continue
+            if re.fullmatch(rendered_pattern(candidate), target, flags) is not None:
+                identifiers.add(candidate)
+    return bool(identifiers), identifiers
 
 
 def adr_id_pattern_accepts(
@@ -270,11 +277,12 @@ def filename_pattern_can_render_windows_device_name(
         if "<ID>" not in basename_template:
             continue
         for reserved in WINDOWS_RESERVED_BASENAMES:
-            matches, identifier = template_identifier_match(
+            matches, identifiers = template_identifier_matches(
                 basename_template, reserved, ignore_case=True
             )
-            if matches and identifier is not None and adr_id_pattern_accepts(
-                compiled_id, identifier, ignore_case=True
+            if matches and any(
+                adr_id_pattern_accepts(compiled_id, identifier, ignore_case=True)
+                for identifier in identifiers
             ):
                 return True
     return False
@@ -297,12 +305,15 @@ def adr_index_conflicts_with_rendered_filename(
     shared_length = min(len(index_parts), len(pattern_parts))
     prefix_pattern = "/".join(pattern_parts[:shared_length])
     normalized_index = "/".join(index_parts[:shared_length])
-    matches, identifier = template_identifier_match(
+    matches, identifiers = template_identifier_matches(
         prefix_pattern, normalized_index, ignore_case=True
     )
     return matches and (
-        identifier is None
-        or adr_id_pattern_accepts(compiled_id, identifier, ignore_case=True)
+        not identifiers
+        or any(
+            adr_id_pattern_accepts(compiled_id, identifier, ignore_case=True)
+            for identifier in identifiers
+        )
     )
 
 
