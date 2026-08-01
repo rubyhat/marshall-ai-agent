@@ -8,9 +8,11 @@
 
 {{PROJECT_MODEL}}
 
-## Repositories and deployable units
+## Project topology
 
-{{REPOSITORY_MODEL}}
+{{PROJECT_TOPOLOGY_SUMMARY}}
+
+Canonical component and repository index: `{{PROJECT_TOPOLOGY_PATH}}`
 
 ## Actors and roles
 

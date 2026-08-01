@@ -43,6 +43,8 @@ Include only selected modules. Record:
 
 - workflow-kit source, revision, and installation mode;
 - project identity and repositories;
+- canonical project-topology path and its relationship to the machine-readable
+  repository registry;
 - language and interaction policy;
 - paths and source-of-truth ownership;
 - protection additions;
@@ -62,13 +64,50 @@ excluded from the approved enabled set or an ineligible conditional alias in
 configuration, `AGENTS.md`, or the project command catalog.
 Add alias-specific interaction settings such as the bounded
 `--accept-recommended` scope only when the owning module and alias are enabled.
+For a next-specification continuation alias, generate:
+
+- current-conversation continuity first and an optional exact anchor fallback;
+- read-only verification of the prior task through the configured task
+  workflow, without automatic status repair;
+- next-task selection from the canonical dependency graph rather than Task ID
+  ordering;
+- automatic continuation only for one uniquely eligible task;
+- explicit user choice after a recommendation when parallel candidates are
+  materially equivalent;
+- the same explicit specification authority and implementation exclusion as
+  the ordinary specification-preparation alias.
 
 Do not copy project-specific values from an example project.
 
 ## Create project docs conditionally
 
+Establish exactly one canonical project topology. Reuse an existing document
+only when it already provides a compact, current index with the required
+ownership and routing fields. Otherwise create `project-topology.md` from the
+bundled template at the approved project-memory or documentation destination.
+New projects should use a standalone topology file even for a single
+repository so future components can be added without growing the general
+project context.
+
+The topology must remain an index, not an architecture document or task log.
+Include:
+
+- a stable component key, purpose, type, lifecycle, local path, remote
+  repository, stack/package manager, compact entry point, task scope, owner,
+  and deploy boundary for each component;
+- direct paths to applicable instructions, architecture, context or memory,
+  and operational runbooks;
+- compact directional dependency or shared-contract edges;
+- explicit `unknown` or `not_applicable` values instead of invented facts.
+
+Keep detailed architecture, operational commands, task state, and historical
+events in their owning sources and link to them. Keep the machine-readable
+repository registry and topology map consistent, but do not duplicate the
+whole topology into configuration.
+
 Use bundled templates only when the project lacks an existing owner:
 
+- `project-topology.md`;
 - `project-context.md`;
 - `engineering-rules.md`;
 - `local-memory-map.md`;

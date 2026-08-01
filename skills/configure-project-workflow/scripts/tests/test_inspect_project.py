@@ -35,6 +35,16 @@ class InspectProjectTest(unittest.TestCase):
             self.assertEqual(result["files"]["instructions"], ["AGENTS.md"])
             self.assertEqual(result["files"]["manifests"], ["package.json"])
             self.assertEqual(result["technology"]["frameworks"], ["nextjs", "react"])
+            self.assertEqual(
+                result["topology_candidates"],
+                [
+                    {
+                        "path": ".",
+                        "evidence_kinds": ["instruction_root", "manifest_root"],
+                        "evidence_paths": ["AGENTS.md", "package.json"],
+                    }
+                ],
+            )
             self.assertGreaterEqual(result["skipped"]["sensitive_entries"], 1)
             flattened = json.dumps(result)
             self.assertNotIn("SECRET=do-not-read", flattened)
@@ -62,6 +72,36 @@ class InspectProjectTest(unittest.TestCase):
 
             self.assertEqual(result["git"], [])
             self.assertEqual(result["skipped"]["external_git_links"], 1)
+
+    def test_topology_candidates_group_nested_structural_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service = root / "apps" / "api"
+            service.mkdir(parents=True)
+            (service / "package.json").write_text("{}")
+            (service / "AGENTS.md").write_text("# API instructions\n")
+            (service / "ARCHITECTURE.md").write_text("# API architecture\n")
+
+            result = self.run_inspector(root)
+
+            self.assertEqual(
+                result["topology_candidates"],
+                [
+                    {
+                        "path": "apps/api",
+                        "evidence_kinds": [
+                            "architecture_root",
+                            "instruction_root",
+                            "manifest_root",
+                        ],
+                        "evidence_paths": [
+                            "apps/api/AGENTS.md",
+                            "apps/api/ARCHITECTURE.md",
+                            "apps/api/package.json",
+                        ],
+                    }
+                ],
+            )
 
 if __name__ == "__main__":
     unittest.main()

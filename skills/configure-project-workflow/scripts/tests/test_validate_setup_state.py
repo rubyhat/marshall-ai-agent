@@ -117,6 +117,22 @@ class ValidateSetupStateTest(unittest.TestCase):
         errors, _ = self.module.validate(state, self.catalog)
         self.assertIn("Alias --prepare-spec requires module write-task-spec", errors)
 
+    def test_next_spec_requires_task_manager_and_spec_writer(self):
+        state = self.valid_state()
+        state["modules"]["selected"] = [
+            "configure-project-workflow",
+            "record-project-context",
+            "shape-project-work",
+        ]
+        state["modules"]["enabled_aliases"] = ["--next-spec"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn(
+            "Alias --next-spec requires module manage-project-work", errors
+        )
+        self.assertIn(
+            "Alias --next-spec requires module write-task-spec", errors
+        )
+
     def test_enabled_alias_requires_selected_owner(self):
         state = self.valid_state()
         state["modules"]["enabled_aliases"] = ["--shape-work"]

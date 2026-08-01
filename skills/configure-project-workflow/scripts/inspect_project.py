@@ -246,6 +246,50 @@ def detect_technology(manifest_paths: Iterable[Path]) -> Dict[str, Any]:
     }
 
 
+def detect_topology_candidates(
+    root: Path,
+    manifest_paths: Iterable[Path],
+    git_roots: Iterable[Path],
+    categories: Dict[str, List[str]],
+) -> List[Dict[str, Any]]:
+    """Group safe structural evidence without declaring service ownership."""
+
+    candidates: Dict[str, Dict[str, Set[str]]] = {}
+
+    def add(candidate_path: Path, evidence_kind: str, evidence_path: Path) -> None:
+        key = relative(root, candidate_path)
+        entry = candidates.setdefault(
+            key,
+            {"evidence_kinds": set(), "evidence_paths": set()},
+        )
+        entry["evidence_kinds"].add(evidence_kind)
+        entry["evidence_paths"].add(relative(root, evidence_path))
+
+    for git_root in git_roots:
+        add(git_root, "git_root", git_root / ".git")
+
+    for manifest in manifest_paths:
+        add(manifest.parent, "manifest_root", manifest)
+
+    for instruction in categories.get("instructions", []):
+        path = root / instruction
+        add(path.parent, "instruction_root", path)
+
+    for document in categories.get("documentation", []):
+        path = root / document
+        if path.name == "ARCHITECTURE.md":
+            add(path.parent, "architecture_root", path)
+
+    return [
+        {
+            "path": path,
+            "evidence_kinds": sorted(evidence["evidence_kinds"]),
+            "evidence_paths": sorted(evidence["evidence_paths"]),
+        }
+        for path, evidence in sorted(candidates.items())
+    ]
+
+
 def inspect(root: Path, max_depth: int, max_files: int) -> Dict[str, Any]:
     root = root.expanduser().resolve()
     if not root.is_dir():
@@ -325,6 +369,9 @@ def inspect(root: Path, max_depth: int, max_files: int) -> Dict[str, Any]:
             break
 
     git_entries = [git_metadata(path) for path in sorted(git_roots)]
+    topology_candidates = detect_topology_candidates(
+        root, manifest_paths, git_roots, categories
+    )
 
     return {
         "schema_version": 1,
@@ -334,6 +381,7 @@ def inspect(root: Path, max_depth: int, max_files: int) -> Dict[str, Any]:
         "limits": {"max_depth": max_depth, "max_files": max_files, "limit_reached": limit_reached},
         "git": git_entries,
         "technology": detect_technology(manifest_paths),
+        "topology_candidates": topology_candidates,
         "files": {key: sorted(set(value)) for key, value in categories.items()},
         "layout": {
             "has_codex_directory": (root / ".codex").is_dir(),
@@ -352,6 +400,7 @@ def render_text(result: Dict[str, Any]) -> str:
         f"Root: {result['root']}",
         "Read-only: yes",
         f"Git roots: {len(result['git'])}",
+        f"Topology candidates: {len(result['topology_candidates'])}",
         f"Languages: {', '.join(result['technology']['languages']) or 'unknown'}",
         f"Frameworks: {', '.join(result['technology']['frameworks']) or 'unknown'}",
     ]

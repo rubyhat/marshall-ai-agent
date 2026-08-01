@@ -56,13 +56,15 @@ Ask 7–10 prompts covering:
 1. project name and concise purpose;
 2. product, library, service, internal tool, content project, or another type;
 3. single-repo, monorepo, multi-repo, or hybrid structure;
-4. deployable units and owning repositories;
-5. supported versus legacy or frozen components;
-6. languages, frameworks, and package managers;
-7. production status and environments;
-8. actors, roles, tenant or account model;
-9. market, locale, regulatory, billing, or legal scope;
-10. repository or domain ownership not safely inferable.
+4. stable component keys, purposes, types, local paths, remote repositories,
+   and deployable units;
+5. supported versus legacy or frozen components and their ownership;
+6. languages, frameworks, package managers, and compact entry points;
+7. production status, environments, and independent deploy boundaries;
+8. upstream, downstream, shared-contract, and cross-repository dependencies;
+9. actors, roles, tenant or account model plus market, locale, regulatory,
+   billing, or legal scope;
+10. task-scope prefixes and component ownership not safely inferable.
 
 ## Stage 3 — instructions and source-of-truth boundaries
 
@@ -89,8 +91,9 @@ Ask 7–10 prompts covering:
 
 1. existing or default project-doc root;
 2. existing or default internal-memory root;
-3. project context and engineering-rules destinations;
-4. context map and progressive-disclosure routing;
+3. project context, project-topology, and engineering-rules destinations;
+4. context map and progressive-disclosure routing from topology to the owning
+   component's instructions, architecture, memory, and runbooks;
 5. active task note policy;
 6. session-note and historical-context policy;
 7. recording language and provenance requirements;
@@ -110,7 +113,8 @@ Ask 7–10 prompts covering:
 3. conflict and risk gate;
 4. conceptual hierarchy and decomposition expectations;
 5. when full versus lightweight specifications apply;
-6. explicit and configured specification handoffs;
+6. explicit and configured specification handoffs, including whether a
+   continuation command may resolve the next task from the active work graph;
 7. project-local templates and bundled fallback policy;
 8. required impact gates such as migration, localization, security, privacy, rollout, or accessibility;
 9. specification readiness verdicts;
@@ -130,7 +134,8 @@ Ask 7–10 prompts covering:
 6. fields, labels, milestones, or components;
 7. lifecycle statuses and transitions;
 8. Issue body and spec/PR linking;
-9. mutation checkpoints owned by runtime workflows;
+9. mutation checkpoints owned by runtime workflows and authoritative
+   read-only completion evidence used for task-sequence continuation;
 10. operations requiring separate confirmation, including broad sync and schema changes.
 
 ## Stage 7 — implementation

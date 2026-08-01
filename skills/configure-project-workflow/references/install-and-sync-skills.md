@@ -12,6 +12,11 @@ workflow-kit repository -> canonical reusable source
 target project           -> project config, instructions, docs, and templates
 ```
 
+For ordinary consumers, install released skills directly from the workflow-kit
+GitHub repository with the system `skill-installer`. Keep any maintainer clone
+outside product repositories. Do not clone or vendor the entire workflow-kit
+inside a target project merely to bootstrap setup.
+
 Record source repository, exact revision, installation mode, and selected modules
 in project configuration.
 
@@ -27,6 +32,12 @@ Support alternatives only when selected:
 
 - `vendored`: keep a project-local reviewed source copy and install its active copy;
 - `symlink`: local development mode with an explicit portability warning.
+
+The bootstrap installation itself should normally install only
+`configure-project-workflow`. After its interview and approved manifest, use
+the same exact revision to install the selected runtime skills. If a
+destination already exists, the system installer will not overwrite it;
+classify and reconcile that copy before any replacement.
 
 ## Reconcile before writing
 

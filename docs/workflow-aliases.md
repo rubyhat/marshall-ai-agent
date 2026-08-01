@@ -62,10 +62,15 @@ Natural-language запрос проходит тот же capability gate, чт
   → отдельное подтверждение точного roadmap mutation preview
   → --prepare-spec <Task ID>
 
-=== НОВАЯ СЕССИЯ CODEX ОБЯЗАТЕЛЬНА ===
+=== ДЛЯ РЕАЛИЗАЦИИ КАЖДОЙ SPEC НУЖНА НОВАЯ СЕССИЯ CODEX ===
 
 --execute-task <Task ID>
   → --deliver-task <Task ID>
+
+=== ВОЗВРАТ В ИСХОДНУЮ PLANNING-СЕССИЮ ===
+
+--next-spec [Epic, previous Task или plan anchor]
+  ↺ следующая implementation снова выполняется в отдельной сессии
 ```
 
 `--accept-recommended` можно использовать внутри текущего clarification round.
@@ -132,6 +137,38 @@ Issues, Project items или coordination artifact начинается толь
 Alias является явным запросом на specification, поэтому после разрешения
 вопросов повторное подтверждение «создавать ли spec» не требуется. Alias не
 разрешает implementation или delivery.
+
+### `--next-spec [Epic, предыдущая Task или exact plan anchor]`
+
+Продолжает активную последовательность подготовки specifications без
+обязательного повторения Task ID завершённой задачи.
+
+Агент:
+
+1. определяет последнюю задачу, для которой в текущем разговоре была
+   подготовлена specification, и её канонический Epic/work graph;
+2. использует optional anchor только для безопасного разрешения
+   неоднозначности;
+3. через `manage-project-work` read-only проверяет completion state, Issue,
+   Project и связанные PR предыдущей задачи, но ничего в них не исправляет;
+4. выбирает следующую незавершённую и разблокированную задачу по dependency
+   graph, а не по Task ID;
+5. при одном кандидате объясняет предлагаемое направление и задаёт
+   decision-changing вопросы;
+6. при нескольких равноправных parallel candidates показывает варианты,
+   рекомендует один и ждёт выбор;
+7. после ответов выполняет тот же specification handoff, что и
+   `--prepare-spec`.
+
+Если active Epic или предыдущая задача не определяются однозначно, агент не
+ищет просто «последнюю» задачу во всём проекте, а запрашивает exact anchor.
+Незавершённая предыдущая задача блокирует продолжение только когда следующий
+outcome, contract, scope, ownership или acceptance behavior остаются
+существенно нестабильными.
+
+Alias является явным разрешением создать следующую specification после
+уточняющих вопросов. Он не разрешает implementation, delivery, изменение
+статуса предыдущей задачи или автоматическое исправление completion evidence.
 
 ### `--accept-recommended`
 
@@ -240,9 +277,22 @@ approval точного manifest.
 
 После roadmap preview пользователь отдельно подтверждает создание configured
 tracker artifacts. Затем каждая implementation task обсуждается через
-`--prepare-spec`.
+`--prepare-spec`, а продолжение уже активной последовательности — через
+`--next-spec`.
 
 ### Подготовка следующей task-spec
+
+```text
+--next-spec
+```
+
+Если текущая planning continuity неоднозначна:
+
+```text
+--next-spec <Epic, previous Task или plan anchor>
+```
+
+Для первой или заранее выбранной точной задачи по-прежнему используется:
 
 ```text
 --prepare-spec <Task ID>

@@ -18,9 +18,24 @@ Validate the configured workflow without executing ordinary project work.
 - Verify every enabled conditional alias has all modules declared by its
   catalog `requires` list, and that ineligible conditional aliases are absent
   from configuration, routing, and the project command catalog.
+- For a next-specification continuation alias, verify unambiguous continuity
+  resolution, read-only prior-completion checks, dependency-graph selection,
+  parallel-candidate handling, explicit specification authority, and no
+  previous-task status mutation.
 - Verify no unresolved template placeholders.
 - Verify every generated relative link.
 - Verify no configured path escapes its intended root.
+- Verify `paths.project_topology` resolves to exactly one canonical topology
+  artifact.
+- Verify every configured repository or deployable unit has one topology entry
+  with a stable key, purpose, type, lifecycle, local or explicitly external
+  path, remote repository or explicit `not_applicable`, task scope, owner, and
+  deploy boundary.
+- Verify topology routing resolves applicable instructions, architecture,
+  context or memory, and runbooks without embedding their detailed content.
+- Verify directional dependency edges use known component keys or explicitly
+  named external systems and that the map does not compete with architecture,
+  task, or operational sources of truth.
 - Verify persistent report types have a configured destination and that
   file/link/path-only output rules do not conflict.
 
@@ -62,6 +77,11 @@ Evaluate representative prompts without performing their mutations:
 - discuss a new idea -> shaping;
 - request roadmap decomposition -> read-only preview before tracker mutations;
 - request a full spec -> configured task/spec handoff;
+- request the next spec with one active work graph -> verify the previous task
+  read-only, select the unique next eligible task by dependencies, and enter
+  the configured specification workflow;
+- request the next spec with ambiguous continuity or equivalent parallel
+  candidates -> stop before mutations and ask for the exact anchor or choice;
 - accept current recommendations -> only the latest recommended question set;
 - request implementation -> readiness and explicit authority gate;
 - request delivery -> exact endpoint gate;
@@ -76,9 +96,20 @@ Evaluate representative prompts without performing their mutations:
 - request a transferable handoff report -> use the configured persistent
   destination;
 - request a path-only report response -> return only the verified path;
+- start a task naming one component -> resolve its topology entry before its
+  nested instructions and context route;
+- start a cross-component task -> load only the named dependency edges and the
+  owning sources for affected components;
 - report a frontend defect when QA is selected;
 - request external reference analysis when selected;
 - run `--workflow-check` -> read-only audit.
+
+For `--workflow-check`, compare the bounded inspector's component candidates
+with configuration and the topology map. Report an unclassified active
+component, a missing configured component, an unresolved route, or a
+repository/topology mismatch as drift. Do not repair it in audit mode. A
+candidate alone is not proof of a deployable service; preserve it as an
+explicit question when classification is uncertain.
 
 ## Verdict
 

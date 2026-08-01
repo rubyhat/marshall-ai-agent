@@ -1,6 +1,6 @@
 ---
 name: load-project-context
-description: Load the minimum repository-specific context needed to start or resume a substantive project task. Use when beginning implementation, diagnosis, planning, review, QA, architecture, issue/spec work, or another project task; when resuming previous work; when the task, repository, or domain changes; or when resolving a referenced task ID, issue, PR, spec, or prior decision. Reuse an already sufficient orientation for follow-up messages in the same scope. Do not use for writing memory, creating project artifacts, auditing context health, cleanup, or generic self-contained questions.
+description: Load the minimum repository-specific context needed to start or resume a substantive project task. Use when beginning implementation, diagnosis, planning, review, QA, architecture, issue/spec work, or another project task; when resuming previous work; when the task, repository, service, component, or domain changes; or when resolving a referenced task ID, issue, PR, spec, or prior decision. Reuse an already sufficient orientation for follow-up messages in the same scope. Do not use for writing memory, creating project artifacts, auditing context health, cleanup, or generic self-contained questions.
 ---
 
 # Load Project Context
@@ -35,12 +35,25 @@ Reuse the current orientation when the conversation remains in the same scope. R
 Respect already loaded instructions and do not reread them without a concrete need.
 
 1. Locate the project workflow configuration named by project instructions.
-2. Locate the context map referenced by that configuration.
-3. Inspect the map's headings or index before reading a matching section.
-4. Resolve the owning repository and then read any applicable nested instruction file.
-5. Keep project-specific paths, domains, and required workflows in project configuration or the context map, not in this reusable skill.
+2. Locate the canonical project-topology map referenced by that configuration.
+3. Inspect only its component index, matching row, context route, and directly
+   relevant dependency edges.
+4. Resolve the owning component and repository, then read its applicable nested
+   instruction file.
+5. Locate the context map and follow only the routes selected for that
+   component and task.
+6. Keep project-specific paths, domains, component keys, and required workflows
+   in project configuration, the topology map, or the context map, not in this
+   reusable skill.
 
-If configuration or a context map is absent, use explicit task anchors and a shallow filesystem inspection. Do not compensate with a broad repository or documentation scan. Report the missing routing source only when it creates material uncertainty.
+Treat the topology map as an index, not as proof that all listed components are
+affected. For a cross-component task, follow only named dependency edges and
+open owning sources for components that can change the next action.
+
+If configuration, project topology, or a context map is absent, use explicit
+task anchors and a shallow filesystem inspection. Do not compensate with a
+broad repository or documentation scan. Report the missing routing source only
+when it creates material uncertainty.
 
 Read [context-loading-model.md](references/context-loading-model.md) when source ownership, priority, or freshness is ambiguous.
 
@@ -82,6 +95,7 @@ Stop loading when all of the following are known well enough for the next action
 
 - the task anchor and expected outcome;
 - the owning repository and affected domain;
+- the owning component and relevant dependency boundary;
 - the current source of truth;
 - the applicable hard constraints and safety gates;
 - the next action;

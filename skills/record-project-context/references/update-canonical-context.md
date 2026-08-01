@@ -66,6 +66,15 @@ Update only when the owning workflow explicitly changes a project-specific setti
 
 Update only when a canonical route is added, removed, renamed, or materially reclassified. Do not add ordinary task specs, reports, or rolling notes individually.
 
+### Project topology map
+
+Update only when a component or repository is added, removed, renamed, changes
+lifecycle or ownership, moves locally, changes its canonical context route,
+changes a material dependency edge, or crosses a deploy boundary. Keep stable
+keys when display names change. Reconcile the configured repository registry
+in the same bounded change when it owns machine-readable routing. Do not record
+routine releases, dependency upgrades, task status, or deployment history.
+
 ## Verify the result
 
 - Ensure that the edited section does not contain both old and new truth.
