@@ -631,7 +631,6 @@ def markdown_line_interrupts_paragraph(line: str) -> bool:
         or MARKDOWN_THEMATIC_BREAK_RE.match(line)
         or markdown_html_block_start(line, allow_type_7=False) is not None
         or MARKDOWN_HTML_COMMENT_BLOCK_START_RE.match(line)
-        or MARKDOWN_REFERENCE_DEFINITION_RE.match(line)
         or markdown_one_block_quote_content(line) is not None
         or markdown_list_interrupts_paragraph(line)
     )
@@ -725,7 +724,6 @@ def future_paragraph_has_backtick_run(
                 future_line, allow_type_7=False
             ) is not None
             or MARKDOWN_HTML_COMMENT_BLOCK_START_RE.match(future_line)
-            or MARKDOWN_REFERENCE_DEFINITION_RE.match(future_line)
             or markdown_line_interrupts_paragraph(future_line)
             or markdown_indentation_columns(future_line) >= 4
         ):
@@ -750,10 +748,10 @@ def markdown_html_block_start(
     lowered = candidate.lower()
     if lowered.startswith("<?"):
         return "?>", False
-    if re.match(r"<![A-Z]", candidate):
-        return ">", False
     if candidate.startswith("<![CDATA["):
         return "]]>", False
+    if re.match(r"<![A-Z]", candidate):
+        return ">", False
     if MARKDOWN_HTML_BLOCK_TAG_RE.match(line):
         return None, True
     if allow_type_7 and (
@@ -1356,12 +1354,12 @@ def inspect_text(
             reference_line = container_line if markdown else line
             definition_prefix_match = (
                 MARKDOWN_REFERENCE_DEFINITION_RE.match(reference_line)
-                if markdown
+                if markdown and paragraph_continuation_line is None
                 else None
             )
             definition_match = (
                 MARKDOWN_REFERENCE_DEFINITION_TARGET_RE.match(reference_line)
-                if markdown
+                if markdown and paragraph_continuation_line is None
                 else None
             )
             if definition_match and (
