@@ -396,6 +396,18 @@ def markdown_multiline_inline_links(
     if "](" not in first_line:
         return [], {}
     first_content, container_tokens = markdown_container_details(first_line)
+    initial_links = markdown_inline_links(first_content)
+    uncovered_markers: List[int] = []
+    marker_cursor = 0
+    while True:
+        marker = first_content.find("](", marker_cursor)
+        if marker < 0:
+            break
+        if not any(start <= marker < end for start, end, _, _ in initial_links):
+            uncovered_markers.append(marker)
+        marker_cursor = marker + 2
+    if not uncovered_markers:
+        return [], {}
     combined = first_content
     continuation_segments: List[Tuple[int, int, str]] = []
     for offset in range(1, 8):
@@ -413,7 +425,11 @@ def markdown_multiline_inline_links(
         if len(combined) > 4096:
             break
         links = markdown_inline_links(combined)
-        if links:
+        if any(
+            start <= marker < end
+            for marker in uncovered_markers
+            for start, end, _, _ in links
+        ):
             hidden_spans: List[Tuple[int, int]] = []
             for link_start, link_end, _, _ in links:
                 label_start = (
@@ -580,7 +596,17 @@ def markdown_paragraph_continuation(
         )
         return current_content if lazy_container_continuation else None
     _, nested_tokens = markdown_container_details(content)
-    return None if nested_tokens else content
+    if not nested_tokens:
+        return content
+    list_match = MARKDOWN_LIST_ITEM_RE.match(content)
+    if list_match:
+        marker = list_match.group("marker")
+        list_item = markdown_list_item_prefix(content)
+        item_content = content[list_item[0] :] if list_item is not None else ""
+        ordered_starts_at_one = not marker[0].isdigit() or int(marker[:-1]) == 1
+        if not ordered_starts_at_one or not item_content.strip():
+            return content
+    return None
 
 
 def matching_backtick_run_end(
@@ -1272,6 +1298,7 @@ def inspect_text(
             )
             if markdown and paragraph_continuation_line is not None:
                 structure_line = paragraph_continuation_line
+                structure_tokens = paragraph_container_tokens
             previous_container_continues = False
             if previous_setext_candidate is not None:
                 previous_tokens = previous_setext_candidate[3]
@@ -1330,11 +1357,13 @@ def inspect_text(
                 item.superseded_marker_count += len(SUPERSEDED_RE.findall(signal_line))
             item.completed_marker_count += len(STATUS_RE.findall(signal_line))
             inline_links = markdown_inline_links(line)
-            if not inline_links and markdown:
-                inline_links, line_overrides = markdown_multiline_inline_links(
+            if markdown:
+                multiline_links, line_overrides = markdown_multiline_inline_links(
                     lines, line_index, line
                 )
-                multiline_link_line_overrides.update(line_overrides)
+                if multiline_links:
+                    inline_links = multiline_links
+                    multiline_link_line_overrides.update(line_overrides)
             for _, _, _, raw_target in inline_links:
                 normalized = normalize_link_target(root, item.absolute_path, raw_target)
                 if normalized is not None:

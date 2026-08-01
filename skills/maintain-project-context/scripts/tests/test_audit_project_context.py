@@ -794,10 +794,11 @@ TODO blocked
             memory.mkdir()
             source = memory / "source.md"
             target = memory / "TODO.md"
+            same_line_target = memory / "target.md"
             source.write_text(
                 """# Source
 
-[Existing guide](
+[Same-line guide](target.md) [Existing guide](
 TODO.md
 )
 
@@ -811,6 +812,7 @@ missing.md
                 encoding="utf-8",
             )
             target.write_text("# Target\n", encoding="utf-8")
+            same_line_target.write_text("# Same-line target\n", encoding="utf-8")
 
             result = subprocess.run(
                 [
@@ -846,6 +848,7 @@ missing.md
                 ["memory/missing.md", "memory/quoted-missing.md"],
             )
             self.assertEqual(by_path["memory/TODO.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
             self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 1)
             self.assertEqual(by_path["memory/source.md"]["completed_markers"], 1)
             candidate_by_path = {
@@ -908,6 +911,9 @@ missing.md
 
 Active paragraph.
 - ## TASK_123 completed
+
+Another paragraph.
+1. ## TASK_456 completed
 """,
                 encoding="utf-8",
             )
@@ -938,14 +944,62 @@ Active paragraph.
             self.assertEqual(result.returncode, 0, result.stderr)
             report = json.loads(result.stdout)
             largest = report["largest_files"][0]
-            self.assertEqual(largest["markdown_headings"], 2)
-            self.assertEqual(largest["task_headings"], 1)
-            self.assertEqual(largest["task_id_count"], 1)
-            self.assertEqual(largest["completed_markers"], 1)
+            self.assertEqual(largest["markdown_headings"], 3)
+            self.assertEqual(largest["task_headings"], 2)
+            self.assertEqual(largest["task_id_count"], 2)
+            self.assertEqual(largest["completed_markers"], 2)
             self.assertIn(
                 "task_chronology_signal",
                 report["candidates"][0]["review_hints"],
             )
+
+    def test_non_one_ordered_marker_does_not_interrupt_paragraph(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+Active paragraph.
+2. ## TASK_123 completed
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 1)
+            self.assertEqual(largest["task_headings"], 0)
+            self.assertEqual(largest["task_id_count"], 1)
+            self.assertEqual(largest["completed_markers"], 1)
+            hints = report["candidates"][0]["review_hints"]
+            self.assertNotIn("task_chronology_signal", hints)
 
     def test_loose_ordered_list_paragraph_keeps_lifecycle_signals(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
