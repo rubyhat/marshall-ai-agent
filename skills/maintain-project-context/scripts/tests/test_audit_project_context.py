@@ -16,6 +16,114 @@ SCRIPT = Path(__file__).resolve().parents[1] / "audit_project_context.py"
 
 
 class AuditProjectContextTest(unittest.TestCase):
+    def test_configured_task_id_inside_markdown_link_counts_as_task_heading(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+## [TASK_123](https://tracker.example/tasks/123) completed
+
+Historical implementation entry.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["task_ids"], ["TASK_123"])
+            self.assertEqual(largest["task_headings"], 1)
+            self.assertIn(
+                "task_chronology_signal",
+                report["candidates"][0]["review_hints"],
+            )
+
+    def test_setext_headings_contribute_to_structure_and_task_chronology(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """Service memory
+==============
+
+TASK_123 completed 2026-01-01
+-----------------------------
+
+Historical implementation entry.
+
+Current behavior
+----------------
+
+Canonical fact.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 3)
+            self.assertEqual(largest["task_headings"], 1)
+            self.assertEqual(largest["dated_headings"], 1)
+            self.assertEqual(largest["task_ids"], ["TASK_123"])
+            self.assertLess(largest["max_section_lines"], largest["lines"])
+            self.assertIn(
+                "task_chronology_signal",
+                report["candidates"][0]["review_hints"],
+            )
+
     def test_configured_task_id_regex_accepts_underscore_syntax(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

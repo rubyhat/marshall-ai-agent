@@ -45,6 +45,7 @@ TEXT_EXTENSIONS = {
 TASK_ID_TOKEN_WRAPPERS = "`*_[](){}<>.,:;!?\"'"
 DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
 MARKDOWN_HEADING_RE = re.compile(r"^\s*(#{1,6})\s+\S")
+MARKDOWN_SETEXT_RE = re.compile(r"^[ ]{0,3}(=+|-+)[ \t]*$")
 MARKDOWN_FENCE_RE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})")
 UNRESOLVED_RE = re.compile(
     r"\b(?:TODO|FIXME|BLOCKED|UNRESOLVED|OPEN QUESTION|PENDING)\b|"
@@ -62,6 +63,7 @@ STATUS_RE = re.compile(
     re.I,
 )
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+MARKDOWN_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\([^)]+\)")
 SUPERSESSION_FIELD_RE = re.compile(
     r"^\s*(?:[-*]\s*)?superseded by\s*:\s*(.*?)\s*$",
     re.I,
@@ -136,9 +138,14 @@ def configured_task_ids(
 ) -> Set[str]:
     if task_id_pattern is None:
         return set()
+    # Inspect visible inline-link labels separately. Splitting the raw Markdown
+    # alone leaves the destination attached to identifiers such as
+    # ``[TASK_123](https://tracker/123)`` and prevents an exact fullmatch.
+    candidate_sources = [line, *MARKDOWN_LINK_LABEL_RE.findall(line)]
     candidates = {
         raw.strip(TASK_ID_TOKEN_WRAPPERS)
-        for raw in line.split()
+        for source in candidate_sources
+        for raw in source.split()
     }
     return {
         candidate
@@ -337,6 +344,41 @@ def inspect_text(
     root_block_start: Optional[int] = 1 if markdown else None
     fence_character: Optional[str] = None
     fence_length = 0
+    previous_setext_candidate: Optional[Tuple[int, str, Set[str]]] = None
+
+    def register_heading(
+        heading_level: int,
+        heading_start: int,
+        heading_task_ids: Set[str],
+    ) -> None:
+        nonlocal root_block_start
+        while open_sections and open_sections[-1][0] >= heading_level:
+            _, section_start = open_sections.pop()
+            item.max_section_lines = max(
+                item.max_section_lines, heading_start - section_start
+            )
+        # Treat content before H2+ and after every H1 as bounded root blocks.
+        # H2+ sections include nested descendants without degenerating the
+        # metric into the whole document length.
+        if heading_level == 1:
+            if root_block_start is not None:
+                item.max_section_lines = max(
+                    item.max_section_lines, heading_start - root_block_start
+                )
+            root_block_start = heading_start
+        else:
+            if root_block_start is not None:
+                item.max_section_lines = max(
+                    item.max_section_lines, heading_start - root_block_start
+                )
+                root_block_start = None
+            open_sections.append((heading_level, heading_start))
+        item.markdown_heading_count += 1
+        # Only a project-validated identifier can prove that a heading belongs
+        # to task chronology.
+        if task_id_pattern is not None and heading_task_ids:
+            item.task_heading_count += 1
+
     with item.absolute_path.open("r", encoding="utf-8", errors="replace") as handle:
         for line in handle:
             line_count += 1
@@ -352,47 +394,31 @@ def inspect_text(
                     ):
                         fence_character = None
                         fence_length = 0
+                    previous_setext_candidate = None
                     continue
                 if fence_match:
                     fence_character = fence_match.group(1)[0]
                     fence_length = len(fence_match.group(1))
+                    previous_setext_candidate = None
                     continue
                 if line.startswith("\t") or line.startswith("    "):
+                    previous_setext_candidate = None
                     continue
 
             line_task_ids = configured_task_ids(line, task_id_pattern)
             task_ids.update(line_task_ids)
             heading_match = MARKDOWN_HEADING_RE.search(line) if markdown else None
+            setext_match = MARKDOWN_SETEXT_RE.match(line) if markdown else None
             if heading_match:
                 heading_level = len(heading_match.group(1))
-                while open_sections and open_sections[-1][0] >= heading_level:
-                    _, section_start = open_sections.pop()
-                    item.max_section_lines = max(
-                        item.max_section_lines, line_count - section_start
-                    )
-                # Treat content before H2+ and after every H1 as bounded root
-                # blocks. H2+ sections include nested descendants without
-                # degenerating the metric into the whole document length.
-                if heading_level == 1:
-                    if root_block_start is not None:
-                        item.max_section_lines = max(
-                            item.max_section_lines, line_count - root_block_start
-                        )
-                    root_block_start = line_count
-                else:
-                    if root_block_start is not None:
-                        item.max_section_lines = max(
-                            item.max_section_lines, line_count - root_block_start
-                        )
-                        root_block_start = None
-                    open_sections.append((heading_level, line_count))
-                item.markdown_heading_count += 1
-                # A generic hyphenated token is useful for bounded discovery,
-                # but only a project-validated identifier can prove that a
-                # heading belongs to task chronology.
-                if task_id_pattern is not None and line_task_ids:
-                    item.task_heading_count += 1
-            if DATED_HEADING_RE.search(line):
+                register_heading(heading_level, line_count, line_task_ids)
+            elif setext_match and previous_setext_candidate is not None:
+                heading_start, heading_text, heading_task_ids = previous_setext_candidate
+                heading_level = 1 if setext_match.group(1).startswith("=") else 2
+                register_heading(heading_level, heading_start, heading_task_ids)
+                if re.search(r"\b20\d{2}-\d{2}-\d{2}\b", heading_text):
+                    item.dated_heading_count += 1
+            if heading_match and DATED_HEADING_RE.search(line):
                 item.dated_heading_count += 1
             item.unresolved_marker_count += len(UNRESOLVED_RE.findall(line))
             supersession_field = SUPERSESSION_FIELD_RE.match(line)
@@ -407,6 +433,17 @@ def inspect_text(
                 normalized = normalize_link_target(root, item.absolute_path, raw_target)
                 if normalized is not None:
                     links.add(normalized)
+            if markdown:
+                is_candidate = bool(
+                    line.strip()
+                    and heading_match is None
+                    and setext_match is None
+                )
+                previous_setext_candidate = (
+                    (line_count, line.rstrip("\r\n"), line_task_ids)
+                    if is_candidate
+                    else None
+                )
     for _, section_start in open_sections:
         item.max_section_lines = max(
             item.max_section_lines, line_count - section_start + 1
