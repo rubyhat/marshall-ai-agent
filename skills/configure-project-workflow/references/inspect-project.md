@@ -21,8 +21,8 @@ If Python 3.9+ is unavailable, inspect the same categories manually under the se
 1. Exact project root and Git topology.
 2. Root and nested `AGENTS.md`.
 3. Existing `.codex` workflow files and active setup tracker.
-4. Safe package and workspace manifests.
-5. README, architecture, documentation, and memory maps.
+4. Safe package and workspace manifests and their parent component candidates.
+5. README, architecture, documentation, existing topology, and memory maps.
 6. CI definitions, CODEOWNERS, and Issue templates.
 7. Existing task, reference, template, and workflow directories.
 8. Active skill installation only when installation reconciliation is in scope.
@@ -43,6 +43,8 @@ For each material fact record:
 Examples:
 
 - repository roots and ownership;
+- component candidates derived from Git roots, workspace manifests, nested
+  instructions, and architecture sources;
 - detected language and framework;
 - existing docs and memory conventions;
 - CI provider and configured quality-gate names;
@@ -51,6 +53,12 @@ Examples:
 
 Do not infer product roles, production safety, merge authority, tracker policy, or legal constraints from framework files alone.
 
+Treat component candidates as interview evidence, not as a finished topology.
+Confirm or obtain a stable key, purpose, type, lifecycle, local path, remote
+repository, deploy boundary, ownership, dependencies, and context route for
+each active component. Do not read remote URLs, execute a component, or inspect
+deployment credentials to fill an unknown field.
+
 ## Bound output
 
 - Prefer grouped paths and counts over full directory listings.
@@ -58,3 +66,5 @@ Do not infer product roles, production safety, merge authority, tracker policy, 
 - Stop at configured depth and file count.
 - Treat an incomplete inventory as a limitation, not a reason for a broader scan.
 - Store normalized facts in the setup tracker, not raw tool output.
+- Store only a compact provisional topology and provenance in the tracker; do
+  not copy full manifests, directory trees, or architecture documents into it.

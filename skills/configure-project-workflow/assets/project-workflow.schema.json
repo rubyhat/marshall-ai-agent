@@ -62,6 +62,12 @@
     "paths": {
       "type": "object",
       "required": ["root_instructions", "project_docs", "internal_memory"],
+      "properties": {
+        "root_instructions": {"type": "string", "minLength": 1},
+        "project_docs": {"type": "string", "minLength": 1},
+        "internal_memory": {"type": "string", "minLength": 1},
+        "project_topology": {"type": "string", "minLength": 1}
+      },
       "additionalProperties": {"type": "string"}
     },
     "protection": {

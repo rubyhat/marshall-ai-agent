@@ -1,6 +1,6 @@
 ---
 name: shape-project-work
-description: Shape a project idea, feature, problem, research initiative, epic, or oversized task into an agreed outcome, bounded scope, explicit decisions, and a risk-checked conceptual work breakdown. Use when the user wants to discuss or formalize new work, compare solution options, answer decision-changing questions, define an epic or feature, split work into implementation tasks, resolve cross-repository ownership and ordering, check shaping readiness, invokes `--planning-session`, `--shape-work`, `--shape-roadmap`, or `--prepare-spec`, or answers the current shaping questions with `--accept-recommended`. Challenge material conflicts with established rules, architecture, decisions, workflow order, or safety constraints before continuing. Do not itself write a full task specification, allocate Task IDs, mutate Issues or Projects, implement code, perform QA intake, or own broad external reference research.
+description: Shape a project idea, feature, problem, research initiative, epic, or oversized task into an agreed outcome, bounded scope, explicit decisions, and a risk-checked conceptual work breakdown. Use when the user wants to discuss or formalize new work, compare solution options, answer decision-changing questions, define an epic or feature, split work into implementation tasks, resolve cross-repository ownership and ordering, check shaping readiness, continue to the next planned specification, invokes `--planning-session`, `--shape-work`, `--shape-roadmap`, `--prepare-spec`, or `--next-spec`, or answers the current shaping questions with `--accept-recommended`. Challenge material conflicts with established rules, architecture, decisions, workflow order, or safety constraints before continuing. Do not itself write a full task specification, allocate Task IDs, mutate Issues or Projects, implement code, perform QA intake, or own broad external reference research.
 ---
 
 # Shape Project Work
@@ -25,6 +25,9 @@ Classify the request before shaping:
 - `discussion`: explore an idea and return a synthesis without writing files or creating tasks;
 - `roadmap shaping`: define durable Epic, Feature/Story, or Implementation Task candidates and hand authorized operational work to `manage-project-work`;
 - `specification requested`: finish shaping, then hand the agreed task to `write-task-spec`;
+- `next specification requested`: verify the prior planning handoff, resolve the
+  next eligible task from the same canonical work graph, and then run the
+  specification-requested workflow;
 - `shaping review`: inspect an existing proposal or work breakdown and report gaps without silently rewriting it.
 
 A planning-session profile is a sticky conversation constraint, not a host
@@ -200,6 +203,25 @@ Keep the result usable as input to task management without pretending it is a fu
   project-required task anchors through `manage-project-work` and hand the task
   to `write-task-spec` without asking again whether to create the specification.
   The alias does not authorize implementation or delivery.
+- `--next-spec [Epic, previous Task, or exact plan anchor]`: treat this as an
+  explicit request to select, discuss, and create the next complete
+  specification in the active planning sequence. Resolve the last task prepared
+  in the current conversation and its canonical work graph; use the optional
+  anchor only to disambiguate that continuity. Do not scan the project for a
+  merely recent task or guess when the active Epic or prior task is ambiguous.
+  Ask `manage-project-work` to verify prior completion and linkage read-only;
+  never repair the previous task's status through this alias. Select the next
+  unfinished and unblocked task from dependency edges, not Task ID ordering.
+  Automatically continue when one candidate is uniquely eligible; when
+  multiple materially equivalent parallel candidates remain, present them,
+  recommend one, and wait for the user's choice. An unfinished predecessor
+  blocks continuation only when it leaves the next outcome, contract, scope,
+  ownership, or acceptance behavior materially unstable. Once the exact next
+  task is resolved, follow the same shaping, clarification, task-anchor, and
+  `write-task-spec` handoff as `--prepare-spec` without asking again whether to
+  create the specification. The alias does not authorize implementation,
+  delivery, or mutation of completion evidence.
 
-Ask for a missing required argument. Treat trailing text as bounded input, not
-broader authority.
+Ask for a missing required argument. An absent optional `--next-spec` anchor is
+valid only when the current planning continuity is unambiguous. Treat trailing
+text as bounded input, not broader authority.

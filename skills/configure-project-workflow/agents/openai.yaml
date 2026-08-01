@@ -1,4 +1,4 @@
 interface:
   display_name: "Configure Project Workflow"
   short_description: "Настраивает reusable workflow в проекте"
-  default_prompt: "Use $configure-project-workflow to inspect this project safely and guide me through a resumable workflow setup."
+  default_prompt: "Use $configure-project-workflow to inspect this project safely and guide me through a resumable workflow setup with a compact project topology map."

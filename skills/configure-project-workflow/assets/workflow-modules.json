@@ -97,6 +97,10 @@
         {
           "command": "--prepare-spec",
           "requires": ["write-task-spec"]
+        },
+        {
+          "command": "--next-spec",
+          "requires": ["manage-project-work", "write-task-spec"]
         }
       ],
       "question_stages": ["shaping_and_specs"]

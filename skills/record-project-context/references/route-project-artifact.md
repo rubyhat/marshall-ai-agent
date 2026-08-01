@@ -63,6 +63,8 @@ Do not create a document merely to prove that work occurred.
 
 - Active objective, blocker, open question, next action: rolling active task note.
 - Stable product fact: project context.
+- Stable component, repository, lifecycle, ownership, dependency, routing, or
+  deploy-boundary fact: project topology map.
 - Stable engineering convention: engineering rules.
 - Repository-specific fact: repository memory.
 - Verified repeatable procedure: runbook.
@@ -76,7 +78,8 @@ Do not create a document merely to prove that work occurred.
 - Project workflow value: project workflow configuration.
 - Status, priority, roadmap, or pull-request lifecycle: external task system.
 
-Use project configuration and the context map to translate these roles into paths.
+Use project configuration, the project topology, and the context map to
+translate these roles into paths.
 An existing directory is evidence, not authority. Do not call it canonical
 unless configuration, project instructions, or the context map assigns that
 role.
@@ -99,3 +102,8 @@ role.
 Let the owning domain workflow decide what a spec, ADR, report, or plan should say. Apply this skill to routing, duplication control, persistence, and consistency.
 
 Ask only when two plausible destinations would create competing sources of truth. Otherwise choose the configured owner and proceed.
+
+The project topology map is a compact routing index. Link architecture,
+runbooks, task state, and implementation detail rather than copying them into
+the map. If project configuration owns the repository registry, keep its
+machine-readable values consistent with the human-readable topology entry.

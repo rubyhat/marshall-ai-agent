@@ -1,6 +1,6 @@
 ---
 name: configure-project-workflow
-description: Safely initialize, resume, audit, or reconfigure a project to use a selected set of reusable Codex workflow skills. Use when the user asks to set up the workflow kit in a new or existing repository, invokes `--workflow-setup` or `--workflow-check`, wants to add or remove workflow modules, needs a resumable configuration interview, or wants project-specific `AGENTS.md`, `.codex/project-workflow.yaml`, memory, documentation, templates, aliases, and active skill installation generated and validated. Inspect read-only first, ask staged questions, track current setup state, preview an exact mutation manifest, and require approval before applying it. Do not use for ordinary project work, implementation, broad repository execution, production access, or directly editing the reusable skill library.
+description: Safely initialize, resume, audit, or reconfigure a project to use a selected set of reusable Codex workflow skills. Use when the user asks to set up the workflow kit in a new or existing repository, invokes `--workflow-setup` or `--workflow-check`, wants to add or remove workflow modules, needs a resumable configuration interview, or wants project-specific `AGENTS.md`, `.codex/project-workflow.yaml`, project topology, memory, documentation, templates, aliases, and active skill installation generated and validated. Inspect read-only first, ask staged questions, track current setup state, preview an exact mutation manifest, and require approval before applying it. Do not use for ordinary project work, implementation, broad repository execution, production access, or directly editing the reusable skill library.
 ---
 
 # Configure Project Workflow
@@ -50,7 +50,7 @@ Stop when safe inspection would require a forbidden read, execution, network act
 
 Read [inspect-project.md](references/inspect-project.md). Use `scripts/inspect_project.py` when Python 3.9+ is available.
 
-Determine existing repositories, manifests, frameworks, instructions, documentation, CI metadata, workflow artifacts, and conflicts. Record each fact as `detected`, `conflict`, `unknown`, or `not_applicable` with provenance and confidence. Do not infer sensitive or production state from filenames alone.
+Determine existing repositories, candidate components, manifests, frameworks, instructions, architecture sources, documentation, CI metadata, workflow artifacts, and conflicts. Use this evidence to prepare a provisional project-topology model without inventing ownership or deployment boundaries. Record each fact as `detected`, `conflict`, `unknown`, or `not_applicable` with provenance and confidence. Do not infer sensitive or production state from filenames alone.
 
 ### 2. Create or resume one tracker
 
@@ -94,7 +94,7 @@ Present:
 - installation source, revision, and mode;
 - exact create, update, install, and cleanup operations;
 - managed `AGENTS.md` section;
-- configuration and project-document destinations;
+- configuration, project-topology, and project-document destinations;
 - preserved existing files and instructions;
 - skipped modules and reasons;
 - unresolved assumptions and blockers;
@@ -119,7 +119,7 @@ Apply operations idempotently:
 
 Read [validate-project-setup.md](references/validate-project-setup.md).
 
-Validate configuration structure, module dependencies, skill paths, active-copy identity, managed instruction routing, aliases, sticky session constraints, capability gates, artifact output contracts, links, placeholders, safety policy, preservation of user content, and representative dry-run routes. Do not run project builds, tests, migrations, services, or network workflows as setup validation unless separately requested and authorized.
+Validate configuration structure, module dependencies, skill paths, active-copy identity, managed instruction routing, project-topology coverage and routing, aliases, sticky session constraints, capability gates, artifact output contracts, links, placeholders, safety policy, preservation of user content, and representative dry-run routes. Do not run project builds, tests, migrations, services, or network workflows as setup validation unless separately requested and authorized.
 
 ### 8. Close or preserve setup state
 

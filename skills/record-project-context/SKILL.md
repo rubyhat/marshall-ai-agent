@@ -26,6 +26,8 @@ Record only at one of these checkpoints:
 - an explicit request to save or document information;
 - a write to project memory or project documentation;
 - a durable decision, risk, gotcha, or verified repeatable procedure;
+- a verified structural change to a component, repository, ownership,
+  lifecycle, dependency, context route, or deploy boundary;
 - a blocker, open question, or next action that would be expensive to reconstruct;
 - a handoff, pause, scope transition, or task completion.
 
@@ -39,6 +41,7 @@ Read the project workflow configuration for:
 - active task note location;
 - documentation and memory languages;
 - source-of-truth ownership;
+- project-topology location and repository-registry ownership;
 - context map location;
 - exceptional recording requirements.
 
@@ -105,6 +108,12 @@ Search the likely canonical destination before creating a file or section. Do no
 
 Read [update-canonical-context.md](references/update-canonical-context.md) when changing stable memory, runbooks, configuration, architecture, known issues, or a context map.
 
+For a verified structural topology change, update the canonical topology map
+instead of appending the fact to general memory. When project configuration
+owns a machine-readable repository registry, update both owners in one bounded
+mutation and verify they agree. Do not rewrite topology for ordinary code,
+dependency-version, task-status, or deployment-event changes.
+
 ### 7. Manage active task state
 
 Use one rolling note per stable active Task ID. Use a stable slug only when a multi-session initiative has no Task ID.
@@ -126,9 +135,11 @@ After writing:
 2. Confirm that obsolete wording in the edited scope was replaced or clearly superseded.
 3. Confirm that links and paths resolve.
 4. Update the context map only when a canonical route was added or changed.
-5. Confirm that the active note does not duplicate its linked spec, issue, or pull request.
-6. Confirm that the final response matches the resolved output contract.
-7. Report only material recording choices, conflicts, or assumptions.
+5. Update the project topology only when a structural component or route fact
+   changed, and reconcile it with the configured repository registry.
+6. Confirm that the active note does not duplicate its linked spec, issue, or pull request.
+7. Confirm that the final response matches the resolved output contract.
+8. Report only material recording choices, conflicts, or assumptions.
 
 ## Close a task recording cycle
 

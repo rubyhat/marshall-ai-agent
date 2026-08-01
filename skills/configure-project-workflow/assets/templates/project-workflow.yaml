@@ -27,6 +27,7 @@ paths:
   root_instructions: "AGENTS.md"
   project_docs: "{{PROJECT_DOCS_ROOT}}"
   internal_memory: "{{INTERNAL_MEMORY_ROOT}}"
+  project_topology: "{{PROJECT_TOPOLOGY_PATH}}"
 
 protection:
   default_setup_boundary: enforced

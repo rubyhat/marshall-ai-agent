@@ -14,33 +14,37 @@
 
 Skills не должны содержать жёсткую привязку к одному проекту. Полный workflow предполагает, что подключающий проект создаст собственные `AGENTS.md` и `.codex/project-workflow.yaml`.
 
-## Первая настройка проекта
+## Первая настройка нового проекта
 
-Для стабильной установки используйте exact release tag. Версия, выпускаемая
-этим изменением, — [`v0.2.1`](https://github.com/rubyhat/marshall-ai-agent/releases/tag/v0.2.1):
+Этот раздел — рекомендуемый путь для разработчика, который использует готовый
+workflow kit, но не разрабатывает сам `marshall-ai-agent`.
 
-```bash
-git clone --branch v0.2.1 --depth 1 git@github.com:rubyhat/marshall-ai-agent.git
-cd marshall-ai-agent
-```
-
-Ветка `main` может содержать ещё не выпущенные изменения и считается
-development source, а не стабильной revision.
-
-Затем установите bootstrap skill:
+Не клонируйте этот репозиторий внутрь продуктового проекта. Установите только
+bootstrap skill через системный `skill-installer` по exact release tag. Для
+версии, выпускаемой этим изменением:
 
 ```bash
-mkdir -p ~/.codex/skills
-cp -R skills/configure-project-workflow ~/.codex/skills/
+python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/install-skill-from-github.py" \
+  --repo rubyhat/marshall-ai-agent \
+  --ref v0.3.0 \
+  --path skills/configure-project-workflow
 ```
 
-Затем откройте Codex в корне настраиваемого проекта и запустите:
+Для private repository installer использует существующие Git credentials либо
+`GITHUB_TOKEN`/`GH_TOKEN`. Он устанавливает skill в
+`${CODEX_HOME:-$HOME/.codex}/skills` и останавливается, если одноимённая папка
+уже существует, поэтому не перезаписывает локальные изменения молча.
+
+После установки откройте новую Codex-задачу именно в корне настраиваемого
+проекта и отправьте:
 
 ```text
 $configure-project-workflow
 ```
 
-После появления project routing повторную настройку можно вызывать командой:
+Если bootstrap skill уже установлен на этой машине, первый шаг можно
+пропустить. После появления project routing повторную настройку можно вызывать
+командой:
 
 ```text
 --workflow-setup
@@ -54,11 +58,18 @@ $configure-project-workflow
 4. Рекомендует workflow profile и применимые skills.
 5. Проводит staged interview: по 7–10 вопросов на активный этап, сохраняя ответы и возвращаясь к незавершённым вопросам после любых detours.
 6. Показывает точный mutation manifest: устанавливаемые skills, создаваемые и изменяемые файлы, aliases, templates и validation plan.
-7. Только после подтверждения manifest устанавливает skills и создаёт project-specific configuration, instructions и docs.
-8. Проверяет module dependencies, paths, aliases, managed instructions, active copies и representative dry-run routes.
+7. Только после подтверждения manifest устанавливает выбранные skills и создаёт project-specific configuration, instructions, компактную карту топологии и нужные docs.
+8. Проверяет module dependencies, paths, topology coverage, aliases, managed instructions, active copies и representative dry-run routes.
 9. При успешной настройке удаляет временный tracker и останавливается, не начиная обычную project task.
 
 До подтверждения manifest skill не запускает project code, tests, builds, migrations, services или containers; не читает secrets и `.env`; не обращается к GitHub, production или другим внешним сервисам; не создаёт полную структуру `docs_ai` или `local_memory_ai`.
+
+В продуктовый repository попадают только его собственные артефакты: managed
+section в `AGENTS.md`, `.codex/project-workflow.yaml`, project topology map,
+выбранные docs/memory routes, templates и каталог aliases. Канонический
+workflow-kit остаётся внешним source, а active skills устанавливаются в Codex
+skill directory. Другим разработчикам не нужно поддерживать или изменять этот
+репозиторий.
 
 Если настройка была прервана, повторный `$configure-project-workflow` или `--workflow-setup` продолжает её с первой незавершённой стадии. Read-only проверка уже настроенного проекта запускается через:
 
@@ -137,7 +148,7 @@ analyze-product-reference
 
 | Skill | Назначение |
 | --- | --- |
-| `configure-project-workflow` | Безопасно исследует проект, проводит resumable interview, устанавливает выбранные modules и создаёт project workflow. |
+| `configure-project-workflow` | Безопасно исследует проект, проводит resumable interview, создаёт project topology, устанавливает выбранные modules и формирует project workflow. |
 | `load-project-context` | Загружает только контекст, необходимый для текущей содержательной задачи. |
 | `record-project-context` | Сохраняет durable project knowledge без дублирования источников истины. |
 | `maintain-project-context` | Аудирует, консолидирует и безопасно очищает project memory/documentation через двухфазный процесс. |
@@ -167,6 +178,7 @@ analyze-product-reference
 | `--shape-work <идея или task anchor>` | Запустить guided shaping без автоматических mutations. |
 | `--shape-roadmap <идея или task anchor>` | Подготовить roadmap decomposition и mutation preview без full specs. |
 | `--prepare-spec <Task ID или task anchor>` | Обсудить точную задачу и после ответов создать task-spec. |
+| `--next-spec [Epic, предыдущая задача или plan anchor]` | Проверить прошлую задачу и подготовить следующую spec из активного work graph. |
 | `--accept-recommended` | Принять рекомендации только в текущем наборе вопросов. |
 | `--design-flow <идея или task anchor>` | Обсудить frontend-flow без создания кода или артефакта. |
 | `--qa-triage <report, URL или task anchor>` | Провести bounded triage конкретного frontend-дефекта. |
@@ -186,32 +198,28 @@ implementation и delivery требуют новой Codex-сессии. Поз�
 последовательности собраны в
 [`docs/workflow-aliases.md`](docs/workflow-aliases.md).
 
-## Установка
+## Обновление и альтернативные режимы установки
 
-Для первой настройки достаточно вручную установить `configure-project-workflow`; после manifest approval он поможет установить выбранные modules. При необходимости skills можно установить вручную.
+Для первой настройки используйте описанный выше system `skill-installer` и
+устанавливайте только `configure-project-workflow`. После manifest approval он
+поможет установить выбранные modules из той же revision.
 
 Стабильная project configuration должна сохранять exact release tag в
 `workflow_kit.revision`. Для проверки ещё не выпущенного изменения допустим
 полный commit SHA. Floating branch вроде `main` не считается воспроизводимой
 revision.
 
-Установка одного skill:
+Основной режим — `centralized`: released skills находятся в Codex skill
+directory, а проект хранит только configuration и свои документы. `vendored`
+подходит для осознанно изолированной project-local копии, `symlink` — только
+для разработки самого workflow kit с явным portability warning.
 
-```bash
-mkdir -p ~/.codex/skills
-cp -R skills/load-project-context ~/.codex/skills/
-```
-
-Установка всего набора:
-
-```bash
-mkdir -p ~/.codex/skills
-for skill in skills/*; do
-  cp -R "$skill" ~/.codex/skills/
-done
-```
-
-Перед обновлением уже установленной копии нужно проверить локальные изменения. Простое копирование не создаёт project configuration, `AGENTS.md`, Task ID policy, templates или GitHub integration.
+Перед обновлением существующих copies запустите `--workflow-check`, выберите
+exact target release и подтвердите предложенный reconciliation manifest.
+Не удаляйте и не перезаписывайте установленную папку вслепую: system installer
+намеренно отказывается писать поверх неё. Простая установка skill не создаёт
+project configuration, `AGENTS.md`, topology, Task ID policy, templates или
+GitHub integration.
 
 ## Версионирование и релизы
 
@@ -233,7 +241,7 @@ Release Please поддерживает один Release PR:
 
 - [правила участия](CONTRIBUTING.md);
 - [release runbook](docs/releasing.md);
-- [релиз `v0.2.1`](https://github.com/rubyhat/marshall-ai-agent/releases/tag/v0.2.1);
+- [релиз `v0.3.0`](https://github.com/rubyhat/marshall-ai-agent/releases/tag/v0.3.0);
 - текущая development version — [version.txt](version.txt);
 - история изменений — [CHANGELOG.md](CHANGELOG.md).
 
@@ -242,7 +250,8 @@ Release Please поддерживает один Release PR:
 Как минимум:
 
 - тип и назначение проекта;
-- один или несколько repositories и их ownership;
+- один или несколько repositories, components, их ownership, lifecycle,
+  dependencies и deploy boundaries;
 - project instructions и critical safety invariants;
 - расположение memory, docs, task specs и templates;
 - Task ID, hierarchy, Issue и Project policy;
@@ -271,7 +280,8 @@ marshall-ai-agent/
 │   ├── release-please.yml
 │   └── validate.yml
 ├── docs/
-│   └── releasing.md
+│   ├── releasing.md
+│   └── workflow-aliases.md
 ├── scripts/
 │   └── validate_repository.py
 ├── skills/
