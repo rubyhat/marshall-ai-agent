@@ -183,11 +183,14 @@ Canonical fact.
 
 [Existing guide][guide]
 [Missing guide][missing]
+[Titled guide][titled]
 
 [guide]:
   target.md
 [missing]:
   missing.md
+[titled]: target.md
+  "TODO completed"
 """,
                 encoding="utf-8",
             )
@@ -224,6 +227,8 @@ Canonical fact.
                 ["memory/missing.md"],
             )
             self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 0)
+            self.assertEqual(by_path["memory/source.md"]["completed_markers"], 0)
 
     def test_multiline_reference_definition_does_not_cross_container(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -581,15 +586,18 @@ Canonical fact.
             docs.mkdir()
             source = memory / "source.md"
             target = docs / "a(b).md"
+            spaced_target = docs / "user guide.md"
             source.write_text(
                 """# Source
 
 [Existing guide](../docs/a(b).md?view=full#current)
+[Spaced guide](<../docs/user guide.md>)
 [Missing guide](../docs/missing(c).md)
 """,
                 encoding="utf-8",
             )
             target.write_text("# Target\n", encoding="utf-8")
+            spaced_target.write_text("# Spaced target\n", encoding="utf-8")
 
             result = subprocess.run(
                 [
@@ -628,6 +636,7 @@ Canonical fact.
                 ["docs/missing(c).md"],
             )
             self.assertEqual(by_path["docs/a(b).md"]["incoming_links"], 1)
+            self.assertEqual(by_path["docs/user guide.md"]["incoming_links"], 1)
 
     def test_nested_inline_link_prefers_rendered_inner_link(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

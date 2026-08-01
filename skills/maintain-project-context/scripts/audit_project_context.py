@@ -91,6 +91,10 @@ MARKDOWN_REFERENCE_DEFINITION_TARGET_RE = re.compile(
 MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE = re.compile(
     r"^[ ]{1,3}(?:<([^>\r\n]+)>|([^ \t\r\n]+))"
 )
+MARKDOWN_REFERENCE_TITLE_RE = re.compile(
+    r'''^[ ]{0,3}(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|'''
+    r"\((?:\\.|[^)\\])*\))[ \t]*$"
+)
 MARKDOWN_HTML_COMMENT_BLOCK_START_RE = re.compile(r"^[ ]{0,3}<!--")
 MARKDOWN_RAW_HTML_TAG_RE = re.compile(
     r"^[ ]{0,3}<(?P<tag>script|pre|style|textarea)(?:[ \t>]|$)", re.I
@@ -955,8 +959,6 @@ def normalize_link_target(root: Path, source: Path, raw_target: str) -> Optional
     target = raw_target.strip()
     if target.startswith("<") and ">" in target:
         target = target[1 : target.index(">")]
-    else:
-        target = target.split(maxsplit=1)[0]
     target = unquote(target.split("#", 1)[0].split("?", 1)[0].strip())
     target = re.sub(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])", r"\1", target)
     if (
@@ -1015,6 +1017,9 @@ def inspect_text(
     used_reference_labels: Set[str] = set()
     pending_reference_label: Optional[str] = None
     pending_reference_container_tokens: Tuple[Tuple[str, int], ...] = ()
+    pending_reference_title_container_tokens: Optional[
+        Tuple[Tuple[str, int], ...]
+    ] = None
 
     def register_heading(
         heading_level: int,
@@ -1057,8 +1062,12 @@ def inspect_text(
             previous_pending_reference_container_tokens = (
                 pending_reference_container_tokens
             )
+            previous_pending_reference_title_container_tokens = (
+                pending_reference_title_container_tokens
+            )
             pending_reference_label = None
             pending_reference_container_tokens = ()
+            pending_reference_title_container_tokens = None
             line_count += 1
             if line.strip():
                 nonblank += 1
@@ -1313,21 +1322,42 @@ def inspect_text(
                     reference_continuation is not None
                     and not markdown_container_details(reference_continuation)[1]
                 )
+            reference_title_continues = False
+            if (
+                markdown
+                and previous_pending_reference_title_container_tokens is not None
+            ):
+                title_continuation = markdown_container_continuation(
+                    line, previous_pending_reference_title_container_tokens
+                )
+                reference_title_continues = bool(
+                    title_continuation is not None
+                    and not markdown_container_details(title_continuation)[1]
+                    and MARKDOWN_REFERENCE_TITLE_RE.match(reference_line)
+                )
             continuation_match = (
                 MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE.match(reference_line)
                 if reference_container_continues
                 else None
             )
-            if continuation_match:
+            if reference_title_continues:
+                reference_definition = True
+            elif continuation_match:
                 target = continuation_match.group(1) or continuation_match.group(2)
                 reference_definitions.setdefault(
                     previous_pending_reference_label, target
                 )
                 reference_definition = True
+                if not reference_line[continuation_match.end() :].strip():
+                    pending_reference_title_container_tokens = (
+                        previous_pending_reference_container_tokens
+                    )
             elif definition_match:
                 label = normalize_reference_label(definition_match.group(1))
                 target = definition_match.group(2) or definition_match.group(3)
                 reference_definitions.setdefault(label, target)
+                if not reference_line[definition_match.end() :].strip():
+                    pending_reference_title_container_tokens = container_tokens
             elif reference_definition:
                 label_match = MARKDOWN_REFERENCE_DEFINITION_RE.match(reference_line)
                 if label_match:
