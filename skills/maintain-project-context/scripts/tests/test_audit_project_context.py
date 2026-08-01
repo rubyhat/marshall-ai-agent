@@ -317,6 +317,58 @@ completed"
                 1,
             )
 
+    def test_reference_root_symlink_marks_link_coverage_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            history = root / "history"
+            references = root / "references"
+            external = root / "external"
+            history.mkdir()
+            references.mkdir()
+            external.mkdir()
+            (history / "target.md").write_text("# Target\n", encoding="utf-8")
+            source = external / "source.md"
+            source.write_text(
+                "[Target](../history/target.md)\n",
+                encoding="utf-8",
+            )
+            try:
+                (references / "source.md").symlink_to(source)
+            except OSError as error:
+                self.skipTest(f"symlinks unavailable: {error}")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "history",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 0)
+            self.assertEqual(
+                target["incoming_links_coverage"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertFalse(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+            self.assertEqual(report["summary"]["skipped"]["reference_symlink"], 1)
+
     def test_reference_labels_decode_entities_and_backslash_escapes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -545,6 +597,45 @@ completed"
             (memory / "inner.md").write_text("# Inner\n", encoding="utf-8")
             (memory / "source.md").write_text(
                 "# Source\n\n![outer ![inner](inner.md)](outer.md)\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/outer.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/inner.md"]["incoming_links"], 0)
+
+    def test_link_inside_image_alt_preserves_only_outer_image_target(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "outer.md").write_text("# Outer\n", encoding="utf-8")
+            (memory / "inner.md").write_text("# Inner\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                "# Source\n\n![outer [inner](inner.md)](outer.md)\n",
                 encoding="utf-8",
             )
 

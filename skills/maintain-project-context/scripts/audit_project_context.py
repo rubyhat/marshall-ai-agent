@@ -427,8 +427,15 @@ def markdown_inline_links(line: str) -> List[Tuple[int, int, str, str]]:
         if label_end is None or label_end + 1 >= len(line):
             break
         label = line[opening + 1 : label_end]
+        is_image = bool(
+            opening > 0
+            and line[opening - 1] == "!"
+            and not markdown_character_is_escaped(line, opening - 1)
+        )
         nested_links = markdown_inline_links(label)
-        if any(label[start : start + 1] != "!" for start, _, _, _ in nested_links):
+        if not is_image and any(
+            label[start : start + 1] != "!" for start, _, _, _ in nested_links
+        ):
             cursor = opening + 1
             continue
         if line[label_end + 1] != "(":
@@ -439,7 +446,7 @@ def markdown_inline_links(line: str) -> List[Tuple[int, int, str, str]]:
             cursor = label_end + 1
             continue
         target, end = parsed
-        start = opening - 1 if opening > 0 and line[opening - 1] == "!" else opening
+        start = opening - 1 if is_image else opening
         links.append((start, end, label, target))
         cursor = end
     return links
@@ -1033,23 +1040,38 @@ def hash_file(path: Path) -> str:
 
 
 def iter_scope_files(
-    scope: Path, excluded_dirs: Set[str]
+    scope: Path,
+    excluded_dirs: Set[str],
+    skipped: Optional[Counter] = None,
+    symlink_skip_key: str = "symlink",
 ) -> Iterable[Path]:
     if scope.is_symlink():
+        if skipped is not None:
+            skipped[symlink_skip_key] += 1
         return
     if scope.is_file():
         yield scope
         return
     for directory, dirnames, filenames in os.walk(scope, followlinks=False):
         current = Path(directory)
-        dirnames[:] = sorted(
-            name
-            for name in dirnames
-            if name not in excluded_dirs and not (current / name).is_symlink()
-        )
+        retained_dirnames: List[str] = []
+        for name in sorted(dirnames):
+            child = current / name
+            if name in excluded_dirs:
+                continue
+            if child.is_symlink():
+                if skipped is not None:
+                    skipped[symlink_skip_key] += 1
+                continue
+            retained_dirnames.append(name)
+        dirnames[:] = retained_dirnames
         for filename in sorted(filenames):
             path = current / filename
-            if not path.is_symlink() and path.is_file():
+            if path.is_symlink():
+                if skipped is not None:
+                    skipped[symlink_skip_key] += 1
+                continue
+            if path.is_file():
                 yield path
 
 
@@ -2022,7 +2044,12 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
         }
         reference_scan_incomplete = False
         for reference_root in reference_roots:
-            for path in iter_scope_files(reference_root, excluded_dirs):
+            for path in iter_scope_files(
+                reference_root,
+                excluded_dirs,
+                skipped,
+                "reference_symlink",
+            ):
                 resolved = path.resolve(strict=False)
                 if resolved in link_source_paths:
                     continue
@@ -2041,6 +2068,9 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
                     reference_scan_incomplete = True
                     continue
                 link_source_paths[resolved] = path
+
+        if skipped["reference_symlink"]:
+            reference_scan_incomplete = True
 
         for resolved, source_path in sorted(
             link_source_paths.items(), key=lambda pair: pair[0].as_posix()
