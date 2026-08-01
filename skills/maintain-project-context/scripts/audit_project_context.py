@@ -155,6 +155,7 @@ class AuditFile:
     task_ids: List[str] = field(default_factory=list)
     broken_targets: List[str] = field(default_factory=list)
     incoming_link_count: int = 0
+    incoming_link_coverage: str = "not_checked"
     duplicate_group: Optional[str] = None
     fingerprint: Optional[str] = None
 
@@ -1763,6 +1764,7 @@ def file_summary(item: AuditFile, hints: Optional[List[str]] = None) -> Dict[str
                 "task_id_count": item.task_id_count,
                 "task_ids": item.task_ids,
                 "incoming_links": item.incoming_link_count,
+                "incoming_links_coverage": item.incoming_link_coverage,
                 "broken_targets": item.broken_targets,
             }
         )
@@ -1783,6 +1785,10 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
         fail("--root must be a directory")
 
     scopes = [resolve_inside(root, raw, "--scope", True) for raw in args.scope]
+    reference_roots = [
+        resolve_inside(root, raw, "--reference-root", True)
+        for raw in args.reference_root
+    ]
     active_roots = [resolve_inside(root, raw, "--active-root", False) for raw in args.active_root]
     canonical_roots = [resolve_inside(root, raw, "--canonical", False) for raw in args.canonical]
     protected_roots = [resolve_inside(root, raw, "--protected", False) for raw in args.protected]
@@ -1855,20 +1861,86 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
 
     links_by_source: Dict[str, Set[Path]] = {}
     incoming: Counter = Counter()
+    link_coverage_status = "not_checked"
+    link_source_files_scanned = 0
+    external_link_source_files_scanned = 0
     if args.include_content_signals:
-        for item in files:
+        audited_by_path = {
+            item.absolute_path.resolve(strict=False): item for item in files
+        }
+        link_source_paths = {
+            path: item.absolute_path
+            for path, item in audited_by_path.items()
+            if item.absolute_path.suffix.lower() in TEXT_EXTENSIONS
+        }
+        reference_scan_incomplete = False
+        for reference_root in reference_roots:
+            for path in iter_scope_files(reference_root, excluded_dirs):
+                resolved = path.resolve(strict=False)
+                if resolved in link_source_paths:
+                    continue
+                if path.suffix.lower() not in TEXT_EXTENSIONS:
+                    continue
+                if secret_like(path):
+                    skipped["reference_secret_like"] += 1
+                    reference_scan_incomplete = True
+                    continue
+                try:
+                    if looks_binary(path):
+                        skipped["reference_binary"] += 1
+                        continue
+                except (OSError, PermissionError):
+                    skipped["reference_unreadable"] += 1
+                    reference_scan_incomplete = True
+                    continue
+                link_source_paths[resolved] = path
+
+        for resolved, source_path in sorted(
+            link_source_paths.items(), key=lambda pair: pair[0].as_posix()
+        ):
+            item = audited_by_path.get(resolved)
+            is_external_source = item is None
+            if item is None:
+                item = AuditFile(
+                    absolute_path=source_path,
+                    relative_path=source_path.relative_to(root).as_posix(),
+                    scope="reference-only",
+                    size=0,
+                    modified_at="",
+                    age_days=0,
+                    location_state="reference-only",
+                    protected=True,
+                    binary=False,
+                )
             if item.absolute_path.suffix.lower() not in TEXT_EXTENSIONS:
                 continue
             try:
                 targets = inspect_text(item, root, task_id_pattern)
             except (OSError, PermissionError):
-                skipped["content_unreadable"] += 1
+                skipped[
+                    "reference_content_unreadable"
+                    if is_external_source
+                    else "content_unreadable"
+                ] += 1
+                reference_scan_incomplete = True
                 continue
-            links_by_source[item.relative_path] = targets
+            link_source_files_scanned += 1
+            if is_external_source:
+                external_link_source_files_scanned += 1
+            else:
+                links_by_source[item.relative_path] = targets
             for target in targets:
                 incoming[target] += 1
+
+        if not reference_roots:
+            link_coverage_status = "scoped_only_incomplete"
+        elif reference_scan_incomplete:
+            link_coverage_status = "configured_reference_roots_with_skips_incomplete"
+        else:
+            link_coverage_status = "configured_reference_roots"
         for item in files:
             item.incoming_link_count = incoming[item.absolute_path.resolve(strict=False)]
+            item.incoming_link_coverage = link_coverage_status
             broken = [
                 target.relative_to(root).as_posix()
                 for target in links_by_source.get(item.relative_path, set())
@@ -1928,11 +2000,21 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
     shown_duplicates = duplicate_groups[: args.top]
 
     report: Dict[str, object] = {
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at": now.isoformat(),
         "read_only": True,
         "root": str(root),
         "scopes": [scope.relative_to(root).as_posix() or "." for scope in scopes],
+        "link_coverage": {
+            "status": link_coverage_status,
+            "complete_for_configured_roots": link_coverage_status
+            == "configured_reference_roots",
+            "reference_roots": [
+                path.relative_to(root).as_posix() or "." for path in reference_roots
+            ],
+            "source_files_scanned": link_source_files_scanned,
+            "external_source_files_scanned": external_link_source_files_scanned,
+        },
         "options": {
             "content_signals": args.include_content_signals,
             "git_state": args.include_git_state,
@@ -1990,6 +2072,13 @@ def print_text(report: Dict[str, object]) -> None:
     print("Project context audit (read-only)")
     print(f"Root: {report['root']}")
     print(f"Scopes: {', '.join(report['scopes'])}")
+    link_coverage = report["link_coverage"]
+    if link_coverage["status"] != "not_checked":
+        roots = ", ".join(link_coverage["reference_roots"]) or "none"
+        print(
+            f"Incoming-link coverage: {link_coverage['status']} "
+            f"(reference roots: {roots})"
+        )
     line_part = f", lines={summary['lines']}" if summary["lines"] is not None else ""
     print(
         f"Files: {summary['files']}, size={format_bytes(summary['bytes'])}{line_part}, "
@@ -2044,6 +2133,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--root", required=True, help="Workspace root")
     parser.add_argument(
         "--scope", action="append", required=True, help="File or directory to audit; repeatable"
+    )
+    parser.add_argument(
+        "--reference-root",
+        action="append",
+        default=[],
+        help=(
+            "Configured file or directory scanned only as an incoming-link source; "
+            "repeatable"
+        ),
     )
     parser.add_argument("--active-root", action="append", default=[], help="Active-context root")
     parser.add_argument("--canonical", action="append", default=[], help="Canonical path")

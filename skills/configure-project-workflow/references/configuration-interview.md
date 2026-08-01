@@ -100,7 +100,8 @@ Ask 7–10 prompts covering:
    task-chronology exclusion policy;
 7. recording language, provenance, and update-existing-before-create rules;
 8. retention, archive, manual cleanup, section-level oversized canonical
-   compaction, and categories that must not be created;
+   compaction, all reference-bearing roots needed for complete incoming-link
+   checks, and categories that must not be created;
 9. human-facing report root and chat, file, handoff, incident, link, and
    path-only output policy;
 10. whether `load`, `record`, and `maintain` modules are applicable.

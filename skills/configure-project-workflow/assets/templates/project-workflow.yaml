@@ -65,6 +65,11 @@ memory:
     exact_manifest_approval_required: true
     section_level_compaction_for_mixed_canonical: true
     diagnostic_metrics_are_not_retention_rules: true
+    reference_roots:
+      - "AGENTS.md"
+      - ".codex/project-workflow.yaml"
+      - "{{PROJECT_DOCS_ROOT}}"
+      - "{{INTERNAL_MEMORY_ROOT}}"
 
 # Keep this section only when record-architecture-decision is selected.
 architecture_decisions:

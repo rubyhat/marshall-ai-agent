@@ -159,7 +159,13 @@
             "audit_before_cleanup": {"const": true},
             "exact_manifest_approval_required": {"const": true},
             "section_level_compaction_for_mixed_canonical": {"const": true},
-            "diagnostic_metrics_are_not_retention_rules": {"const": true}
+            "diagnostic_metrics_are_not_retention_rules": {"const": true},
+            "reference_roots": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            }
           },
           "additionalProperties": true
         }

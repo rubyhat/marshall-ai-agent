@@ -24,6 +24,7 @@ Read the project workflow configuration and applicable project instructions. Res
 
 - project root and configured context roots;
 - active, canonical, historical, archive, and protected locations;
+- every configured reference-bearing root that can link to context artifacts;
 - context map and source-of-truth ownership;
 - active maintenance-manifest path, if configured;
 - language and reporting policy.
@@ -38,7 +39,9 @@ Use this phase for `--context-audit`, health checks, stale-context review, dupli
 
 1. Read [context-retention-policy.md](references/context-retention-policy.md).
 2. Read [audit-project-context.md](references/audit-project-context.md).
-3. Inspect metadata across the configured or requested scope.
+3. Inspect metadata across the configured or requested candidate scope. Scan all
+   configured reference-bearing roots separately for incoming links without
+   adding their files to the candidate inventory.
 4. Use `scripts/audit_project_context.py` when Python 3.9+ is available.
 5. Read candidate contents only after the metadata pass, and only where semantic classification requires it.
 6. For an oversized or mixed canonical artifact, read
@@ -95,6 +98,7 @@ Run the script directly without installing dependencies:
 python3 scripts/audit_project_context.py \
   --root <workspace> \
   --scope <context-root> \
+  --reference-root <configured-reference-root> \
   --active-root <active-root> \
   --canonical <canonical-path> \
   --protected <protected-path> \
@@ -106,8 +110,11 @@ python3 scripts/audit_project_context.py \
   --format text
 ```
 
-Repeat path flags as needed. Pass the project's configured Task ID validation
-regex when one exists; without it, the script omits Task-ID counts and
+Repeat path flags as needed. Pass every configured reference-bearing root even
+when auditing only one logical layer; otherwise the report marks incoming-link
+counts as incomplete and they must not be used to omit `update_reference`
+operations from a cleanup manifest. Pass the project's configured Task ID
+validation regex when one exists; without it, the script omits Task-ID counts and
 task-chronology signals instead of guessing from hyphenated words. Use `--format
 json` when structured output is useful. The script accepts no mutation flags
 and prints no file contents.

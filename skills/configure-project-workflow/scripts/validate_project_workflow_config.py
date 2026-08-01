@@ -358,6 +358,29 @@ def validate_semantics(
         if owner not in selected and present:
             errors.append(f"memory.{policy} is forbidden without {owner}")
 
+    context_maintenance = memory_mapping.get("context_maintenance")
+    if (
+        isinstance(context_maintenance, dict)
+        and "reference_roots" in context_maintenance
+    ):
+        reference_roots = context_maintenance["reference_roots"]
+        validate_nonblank_string_list(
+            errors,
+            "memory.context_maintenance.reference_roots",
+            reference_roots,
+        )
+        if isinstance(reference_roots, list):
+            for index, path in enumerate(reference_roots):
+                if (
+                    isinstance(path, str)
+                    and path.strip()
+                    and not safe_relative_project_path(path.strip())
+                ):
+                    errors.append(
+                        "memory.context_maintenance.reference_roots"
+                        f"[{index}] must stay inside the project root"
+                    )
+
     adr = config.get("architecture_decisions")
     if ADR_MODULE in selected and not isinstance(adr, dict):
         errors.append(f"architecture_decisions is required by {ADR_MODULE}")

@@ -7,8 +7,14 @@ Use this runbook for phase 1 only. The output is evidence for review, not author
 1. Use the scope explicitly named by the user.
 2. If the request is `--context-audit` without arguments, use the configured internal-memory and project-documentation roots.
 3. Gather metadata across those roots.
-4. Inspect file contents only for bounded candidate classification.
-5. Do not follow symlinks or expand into repositories, dependency trees, build outputs, secret-like files, or archives outside the selected scope.
+4. Resolve every configured reference-bearing root that can link to context
+   artifacts. Scan it only for incoming-link evidence; do not add files outside
+   the selected scope to candidate, size, age, duplicate, or broken-link results.
+5. Inspect file contents only for bounded candidate classification and link
+   evidence.
+6. Do not follow symlinks or expand into repositories, dependency trees, build
+   outputs, secret-like files, or archives outside the selected scope and
+   declared reference roots.
 
 For a very broad project, audit one logical layer at a time when that produces a clearer report. Say which configured roots were not included.
 
@@ -21,6 +27,7 @@ python3 scripts/audit_project_context.py \
   --root <workspace> \
   --scope <scope-one> \
   --scope <scope-two> \
+  --reference-root <configured-reference-root> \
   --active-root <active-root> \
   --canonical <canonical-file-or-directory> \
   --protected <protected-file-or-directory> \
@@ -39,6 +46,9 @@ Useful optional flags:
 - `--top 20` for largest-file and duplicate summaries;
 - `--candidate-limit 50`, or `0` for all detected candidates;
 - repeatable `--exclude-dir <name>` for project-specific generated directories.
+- repeatable `--reference-root <path>` for all configured maps, canonical
+  context, runbooks, and other context roots that can link to an audit
+  candidate while remaining outside the candidate scope;
 - `--task-id-regex <regex>` to enable Task-ID counts and chronology signals
   through the project's configured validation pattern; without it those
   metrics remain empty rather than guessing from hyphenated words.
@@ -56,6 +66,9 @@ The script reports:
 - location-state hints;
 - exact-content duplicate groups;
 - possible broken Markdown references;
+- incoming-link coverage status and counts from sources outside the candidate
+  scope; without declared reference roots, counts are explicitly marked
+  `scoped_only_incomplete`;
 - Git state when available;
 - candidate signals without printing file contents.
 
@@ -84,6 +97,9 @@ For each surfaced candidate:
 2. Resolve the canonical owner and any replacement.
 3. Check active blockers and unresolved markers in context.
 4. Check incoming references, maps, configured paths, and external spec links.
+   Do not treat zero incoming links as manifest evidence unless coverage is
+   complete for all configured reference roots and the audit reports no skipped
+   reference sources.
 5. Check whether Git provides a committed recovery source.
 6. Apply the retention policy classification.
 

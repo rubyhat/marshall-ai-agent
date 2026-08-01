@@ -174,6 +174,12 @@ def rendered_config() -> Dict[str, Any]:
                 "exact_manifest_approval_required": True,
                 "section_level_compaction_for_mixed_canonical": True,
                 "diagnostic_metrics_are_not_retention_rules": True,
+                "reference_roots": [
+                    "AGENTS.md",
+                    ".codex/project-workflow.yaml",
+                    "docs_ai",
+                    "local_memory_ai",
+                ],
             },
         },
         "architecture_decisions": {
@@ -461,6 +467,19 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                 for key in path[:-1]:
                     owner = owner[key]
                 owner[path[-1]] = ["   "]
+                self.assert_invalid(config)
+
+    def test_context_reference_roots_must_be_distinct_safe_project_paths(self) -> None:
+        for reference_roots in (
+            ["docs_ai", "docs_ai"],
+            ["../outside"],
+            ["   "],
+        ):
+            with self.subTest(reference_roots=reference_roots):
+                config = rendered_config()
+                config["memory"]["context_maintenance"][
+                    "reference_roots"
+                ] = reference_roots
                 self.assert_invalid(config)
 
     def test_each_context_conditional_has_positive_and_negative_coverage(self) -> None:

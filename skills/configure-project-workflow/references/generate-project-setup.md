@@ -67,7 +67,9 @@ child policy owned by each selected module:
   logs, and duplicated tracker state from canonical memory;
 - `maintain-project-context` -> manual-only maintenance,
   audit-before-cleanup, exact manifest approval, section-level compaction for
-  mixed canonical artifacts, and diagnostic-only size or chronology metrics.
+  mixed canonical artifacts, diagnostic-only size or chronology metrics, and
+  explicit reference roots used to count incoming links without expanding a
+  bounded candidate scope.
 
 Removing a context module removes its child policy from generated
 configuration after the approved reconfiguration manifest; it does not remove

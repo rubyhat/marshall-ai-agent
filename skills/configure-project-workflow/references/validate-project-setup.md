@@ -41,6 +41,9 @@ Validate the configured workflow without executing ordinary project work.
   task, or operational sources of truth.
 - Verify persistent report types have a configured destination and that
   file/link/path-only output rules do not conflict.
+- When context maintenance is selected, verify its reference roots are safe,
+  distinct project-relative paths and cover maps, canonical memory, runbooks,
+  and other configured sources that can link to cleanup candidates.
 - When architecture decisions are selected, verify one canonical ADR root and
   index, a complete semantic mapping for required lifecycle states, explicit
   filename convention, decision authority, materiality triggers,

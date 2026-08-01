@@ -233,6 +233,86 @@ completed"
             self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 0)
             self.assertEqual(by_path["memory/source.md"]["completed_markers"], 0)
 
+    def test_reference_root_counts_cross_scope_links_without_expanding_candidates(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            history = root / "history"
+            canonical = root / "canonical"
+            history.mkdir()
+            canonical.mkdir()
+            target = history / "completed.md"
+            source = canonical / "map.md"
+            target.write_text("# Completed task\n", encoding="utf-8")
+            source.write_text(
+                "# Context map\n\n[Historical evidence](../history/completed.md)\n",
+                encoding="utf-8",
+            )
+
+            base_command = [
+                sys.executable,
+                str(SCRIPT),
+                "--root",
+                str(root),
+                "--scope",
+                "history",
+                "--historical-root",
+                "history",
+                "--include-content-signals",
+                "--candidate-limit",
+                "0",
+                "--format",
+                "json",
+            ]
+            scoped_result = subprocess.run(
+                base_command,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            configured_result = subprocess.run(
+                [
+                    *base_command[:-2],
+                    "--reference-root",
+                    "canonical",
+                    *base_command[-2:],
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(scoped_result.returncode, 0, scoped_result.stderr)
+            scoped_report = json.loads(scoped_result.stdout)
+            scoped_target = scoped_report["largest_files"][0]
+            self.assertEqual(scoped_target["incoming_links"], 0)
+            self.assertEqual(
+                scoped_target["incoming_links_coverage"], "scoped_only_incomplete"
+            )
+            self.assertFalse(
+                scoped_report["link_coverage"]["complete_for_configured_roots"]
+            )
+
+            self.assertEqual(configured_result.returncode, 0, configured_result.stderr)
+            configured_report = json.loads(configured_result.stdout)
+            configured_target = configured_report["largest_files"][0]
+            self.assertEqual(configured_report["summary"]["files"], 1)
+            self.assertEqual(
+                [item["path"] for item in configured_report["largest_files"]],
+                ["history/completed.md"],
+            )
+            self.assertEqual(configured_target["incoming_links"], 1)
+            self.assertEqual(
+                configured_target["incoming_links_coverage"],
+                "configured_reference_roots",
+            )
+            self.assertTrue(
+                configured_report["link_coverage"]["complete_for_configured_roots"]
+            )
+            self.assertEqual(
+                configured_report["link_coverage"]["external_source_files_scanned"],
+                1,
+            )
+
     def test_escaped_reference_links_do_not_use_definitions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -3603,7 +3683,7 @@ This decision was replaced by a newer source.
 
             self.assertEqual(result.returncode, 0, result.stderr)
             report = json.loads(result.stdout)
-            self.assertEqual(report["schema_version"], 2)
+            self.assertEqual(report["schema_version"], 3)
             self.assertTrue(report["read_only"])
             largest = report["largest_files"][0]
             self.assertEqual(largest["markdown_headings"], 4)

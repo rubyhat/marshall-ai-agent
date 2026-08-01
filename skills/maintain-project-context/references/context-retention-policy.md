@@ -52,7 +52,9 @@ Classify a file as `delete_candidate` only when every applicable statement is ve
 4. Every durable fact is already present in its canonical owner.
 5. Relevant implementation history remains accessible through a spec, Issue, PR, Git, or approved archive.
 6. It contains no unique production, security, privacy, legal, incident, migration, backup, restore, or manual-action evidence.
-7. Incoming links are absent or included in the same manifest as exact reference updates.
+7. Incoming links are absent according to a complete configured-root scan, or
+   are included in the same manifest as exact reference updates. A zero count
+   from scoped-only or skipped-source coverage is not evidence of absence.
 8. Removing it does not break a context map, workflow, configuration path, or external task-system spec path.
 9. A recovery source exists:
    - committed tracked files may use Git history;
