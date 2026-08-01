@@ -200,8 +200,8 @@ def markdown_visible_signal_text(line: str) -> str:
     )
 
 
-def mask_markdown_code_spans(line: str) -> str:
-    """Mask complete inline-code spans while preserving line structure."""
+def sanitize_markdown_inline(line: str, in_comment: bool) -> Tuple[str, bool]:
+    """Mask code spans and remove comments in their lexical order."""
     result: List[str] = []
     cursor = 0
     length = len(line)
@@ -215,14 +215,29 @@ def mask_markdown_code_spans(line: str) -> str:
         return backslashes % 2 == 1
 
     while cursor < length:
-        start = line.find("`", cursor)
-        if start < 0:
+        if in_comment:
+            comment_end = line.find("-->", cursor)
+            if comment_end < 0:
+                return "".join(result), True
+            cursor = comment_end + 3
+            in_comment = False
+            continue
+
+        comment_start = line.find("<!--", cursor)
+        code_start = line.find("`", cursor)
+        while code_start >= 0 and escaped(code_start):
+            code_start = line.find("`", code_start + 1)
+
+        if comment_start < 0 and code_start < 0:
             result.append(line[cursor:])
             break
-        if escaped(start):
-            result.append(line[cursor : start + 1])
-            cursor = start + 1
+        if comment_start >= 0 and (code_start < 0 or comment_start < code_start):
+            result.append(line[cursor:comment_start])
+            cursor = comment_start + 4
+            in_comment = True
             continue
+
+        start = code_start
         opening_end = start
         while opening_end < length and line[opening_end] == "`":
             opening_end += 1
@@ -249,29 +264,7 @@ def mask_markdown_code_spans(line: str) -> str:
         result.append(line[cursor:start])
         result.append(" " * (closing_end - start))
         cursor = closing_end
-    return "".join(result)
-
-
-def strip_markdown_html_comments(line: str, in_comment: bool) -> Tuple[str, bool]:
-    """Remove HTML comment segments while preserving visible line content."""
-    visible: List[str] = []
-    cursor = 0
-    while cursor < len(line):
-        if in_comment:
-            end = line.find("-->", cursor)
-            if end < 0:
-                return "".join(visible), True
-            cursor = end + 3
-            in_comment = False
-            continue
-        start = line.find("<!--", cursor)
-        if start < 0:
-            visible.append(line[cursor:])
-            break
-        visible.append(line[cursor:start])
-        cursor = start + 4
-        in_comment = True
-    return "".join(visible), in_comment
+    return "".join(result), in_comment
 
 
 def resolve_inside(root: Path, raw: str, label: str, require_exists: bool) -> Path:
@@ -522,8 +515,7 @@ def inspect_text(
                         fence_length = 0
                     previous_setext_candidate = None
                     continue
-                line = mask_markdown_code_spans(line)
-                line, html_comment_open = strip_markdown_html_comments(
+                line, html_comment_open = sanitize_markdown_inline(
                     line, html_comment_open
                 )
                 if not line.strip():

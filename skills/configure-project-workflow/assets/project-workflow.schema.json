@@ -187,7 +187,11 @@
         "root": {"type": "string", "minLength": 1},
         "index": {"type": "string", "minLength": 1},
         "id_pattern": {"type": "string", "minLength": 1},
-        "filename_pattern": {"type": "string", "minLength": 1},
+        "filename_pattern": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "<ID>"
+        },
         "statuses": {
           "type": "object",
           "$comment": "Distinct project labels are enforced by scripts/validate_project_workflow_config.py because standard JSON Schema cannot compare sibling property values.",

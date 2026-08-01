@@ -308,6 +308,11 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         config["architecture_decisions"]["id_pattern"] = "["
         self.assert_invalid(config)
 
+    def test_adr_filename_pattern_must_contain_complete_id(self) -> None:
+        config = rendered_config()
+        config["architecture_decisions"]["filename_pattern"] = "decision.md"
+        self.assert_invalid(config)
+
     def test_adr_authority_and_trigger_entries_must_not_be_blank(self) -> None:
         cases = (
             ("decision_authority",),

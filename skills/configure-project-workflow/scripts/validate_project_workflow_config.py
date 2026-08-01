@@ -132,6 +132,11 @@ def validate_semantics(
                 errors.append(
                     f"architecture_decisions.id_pattern is invalid: {error}"
                 )
+        filename_pattern = adr.get("filename_pattern")
+        if isinstance(filename_pattern, str) and "<ID>" not in filename_pattern:
+            errors.append(
+                "architecture_decisions.filename_pattern must contain <ID>"
+            )
         statuses = adr.get("statuses")
         if not isinstance(statuses, dict):
             errors.append("architecture_decisions.statuses must be a mapping")
