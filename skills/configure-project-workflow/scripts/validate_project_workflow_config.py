@@ -105,21 +105,19 @@ def validate_semantics(
         else:
             labels: List[str] = []
             for state in REQUIRED_ADR_STATES:
-                label = statuses.get(state)
+                if state not in statuses:
+                    errors.append(
+                        f"architecture_decisions.statuses.{state} must be a non-empty label"
+                    )
+            for state, label in statuses.items():
+                if state == "proposed" and label is None:
+                    continue
                 if not isinstance(label, str) or not label:
                     errors.append(
                         f"architecture_decisions.statuses.{state} must be a non-empty label"
                     )
                 else:
                     labels.append(label)
-            proposed = statuses.get("proposed")
-            if proposed is not None:
-                if not isinstance(proposed, str) or not proposed:
-                    errors.append(
-                        "architecture_decisions.statuses.proposed must be null or a non-empty label"
-                    )
-                else:
-                    labels.append(proposed)
             duplicates = sorted({label for label in labels if labels.count(label) > 1})
             if duplicates:
                 errors.append(

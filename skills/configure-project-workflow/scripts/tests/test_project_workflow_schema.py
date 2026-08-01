@@ -286,6 +286,11 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         }
         self.assert_invalid(config)
 
+    def test_custom_adr_lifecycle_label_must_be_distinct(self) -> None:
+        config = rendered_config()
+        config["architecture_decisions"]["statuses"]["draft"] = "accepted"
+        self.assert_invalid(config)
+
     def test_each_context_conditional_has_positive_and_negative_coverage(self) -> None:
         policy_by_module = {
             "load-project-context": "context_loading",
