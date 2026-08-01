@@ -251,7 +251,9 @@ def markdown_visible_signal_text(line: str) -> str:
         pieces: List[str] = []
         cursor = 0
         for start, end, label, _ in links:
-            pieces.extend((line[cursor:start], label))
+            pieces.extend(
+                (line[cursor:start], markdown_visible_signal_text(label))
+            )
             cursor = end
         pieces.append(line[cursor:])
         visible = "".join(pieces)
@@ -450,7 +452,6 @@ def markdown_nested_image_links(label: str) -> List[Tuple[str, str]]:
         if label[start : start + 1] != "!":
             continue
         nested_images.append((nested_label, raw_target))
-        nested_images.extend(markdown_nested_image_links(nested_label))
     return nested_images
 
 
@@ -1725,14 +1726,17 @@ def inspect_text(
             else:
                 item.superseded_marker_count += len(SUPERSEDED_RE.findall(signal_line))
             item.completed_marker_count += len(STATUS_RE.findall(signal_line))
-            for _, _, label, raw_target in inline_links:
-                for nested_label, nested_target in markdown_nested_image_links(label):
-                    inline_link_candidates.append(
-                        (
-                            nested_target,
-                            markdown_reference_use_labels(nested_label),
+            for start, _, label, raw_target in inline_links:
+                if line[start : start + 1] != "!":
+                    for nested_label, nested_target in markdown_nested_image_links(
+                        label
+                    ):
+                        inline_link_candidates.append(
+                            (
+                                nested_target,
+                                markdown_reference_use_labels(nested_label),
+                            )
                         )
-                    )
                 inline_link_candidates.append(
                     (raw_target, markdown_reference_use_labels(label))
                 )
