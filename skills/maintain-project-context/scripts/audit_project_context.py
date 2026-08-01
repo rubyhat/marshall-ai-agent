@@ -49,6 +49,9 @@ MARKDOWN_SETEXT_RE = re.compile(r"^[ ]{0,3}(=+|-+)[ \t]*$")
 MARKDOWN_FENCE_RE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})")
 MARKDOWN_FRONT_MATTER_START_RE = re.compile(r"^\ufeff?---[ \t]*(?:\r?\n)?$")
 MARKDOWN_FRONT_MATTER_END_RE = re.compile(r"^(?:---|\.\.\.)[ \t]*(?:\r?\n)?$")
+MARKDOWN_NON_PARAGRAPH_PREFIX_RE = re.compile(
+    r"^[ ]{0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+|>[ \t]?)"
+)
 UNRESOLVED_RE = re.compile(
     r"\b(?:TODO|FIXME|BLOCKED|UNRESOLVED|OPEN QUESTION|PENDING)\b|"
     r"\b(?:блокер|заблокирован|нереш[её]н|открыт(?:ый|ые)? вопрос)\w*",
@@ -154,6 +157,31 @@ def configured_task_ids(
         for candidate in candidates
         if candidate and task_id_pattern.fullmatch(candidate)
     }
+
+
+def markdown_front_matter_end(path: Path) -> Optional[int]:
+    """Return the inclusive closing line number for valid leading front matter."""
+    with path.open("r", encoding="utf-8", errors="replace") as handle:
+        first_line = handle.readline()
+        if not MARKDOWN_FRONT_MATTER_START_RE.match(first_line):
+            return None
+        for line_number, line in enumerate(handle, start=2):
+            if MARKDOWN_FRONT_MATTER_END_RE.match(line):
+                return line_number
+    # A leading thematic break without a closing delimiter is ordinary body
+    # content, not an unterminated metadata block that hides the whole file.
+    return None
+
+
+def markdown_fence_closes(line: str, character: str, minimum_length: int) -> bool:
+    candidate = line.rstrip("\r\n")
+    match = re.fullmatch(r"[ ]{0,3}([`~]+)[ \t]*", candidate)
+    return bool(
+        match
+        and match.group(1)[0] == character
+        and set(match.group(1)) == {character}
+        and len(match.group(1)) >= minimum_length
+    )
 
 
 def resolve_inside(root: Path, raw: str, label: str, require_exists: bool) -> Path:
@@ -343,10 +371,16 @@ def inspect_text(
     nonblank = 0
     open_sections: List[Tuple[int, int]] = []
     markdown = item.absolute_path.suffix.lower() in {".md", ".markdown", ".mdx"}
-    root_block_start: Optional[int] = 1 if markdown else None
+    front_matter_end = (
+        markdown_front_matter_end(item.absolute_path) if markdown else None
+    )
+    root_block_start: Optional[int] = (
+        front_matter_end + 1
+        if front_matter_end is not None
+        else (1 if markdown else None)
+    )
     fence_character: Optional[str] = None
     fence_length = 0
-    front_matter_open = False
     previous_setext_candidate: Optional[Tuple[int, str, Set[str]]] = None
 
     def register_heading(
@@ -388,22 +422,12 @@ def inspect_text(
             if line.strip():
                 nonblank += 1
             if markdown:
-                if line_count == 1 and MARKDOWN_FRONT_MATTER_START_RE.match(line):
-                    front_matter_open = True
-                    previous_setext_candidate = None
-                    continue
-                if front_matter_open:
-                    if MARKDOWN_FRONT_MATTER_END_RE.match(line):
-                        front_matter_open = False
+                if front_matter_end is not None and line_count <= front_matter_end:
                     previous_setext_candidate = None
                     continue
                 fence_match = MARKDOWN_FENCE_RE.match(line)
                 if fence_character is not None:
-                    if (
-                        fence_match
-                        and fence_match.group(1)[0] == fence_character
-                        and len(fence_match.group(1)) >= fence_length
-                    ):
+                    if markdown_fence_closes(line, fence_character, fence_length):
                         fence_character = None
                         fence_length = 0
                     previous_setext_candidate = None
@@ -450,6 +474,7 @@ def inspect_text(
                     line.strip()
                     and heading_match is None
                     and setext_match is None
+                    and not MARKDOWN_NON_PARAGRAPH_PREFIX_RE.match(line)
                 )
                 previous_setext_candidate = (
                     (line_count, line.rstrip("\r\n"), line_task_ids)
