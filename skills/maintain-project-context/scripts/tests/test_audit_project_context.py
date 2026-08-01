@@ -363,6 +363,45 @@ completed"
                 report["link_coverage"]["complete_for_declared_roots"]
             )
 
+    def test_raw_html_scan_ignores_markdown_link_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "page.md").write_text("# Page\n", encoding="utf-8")
+            (memory / "hidden.md").write_text("# Hidden\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                "[Guide](page.md \"<a href='hidden.md'>\")\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/page.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/hidden.md"]["incoming_links"], 0)
+
     def test_reference_root_symlink_marks_link_coverage_incomplete(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

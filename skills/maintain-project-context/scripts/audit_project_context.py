@@ -1657,11 +1657,6 @@ def inspect_text(
                     previous_setext_candidate = None
                     continue
 
-                html_target_parser.feed(markdown_mask_escaped_html_openers(line))
-
-            else:
-                html_target_parser.feed(line)
-
             semantic_line = line
             inline_links = markdown_inline_links(line)
             if markdown:
@@ -1678,6 +1673,19 @@ def inspect_text(
                             if index != line_index
                         }
                     )
+
+            if markdown:
+                html_reference_line = container_line
+                if not MARKDOWN_REFERENCE_DEFINITION_RE.match(
+                    html_reference_line
+                ):
+                    html_target_parser.feed(
+                        markdown_mask_escaped_html_openers(
+                            markdown_visible_signal_text(semantic_line)
+                        )
+                    )
+            else:
+                html_target_parser.feed(line)
 
             reference_line = container_line if markdown else line
             definition_prefix_match = (
