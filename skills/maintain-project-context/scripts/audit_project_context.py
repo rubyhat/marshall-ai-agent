@@ -55,6 +55,9 @@ MARKDOWN_FRONT_MATTER_END_RE = re.compile(r"^(?:---|\.\.\.)[ \t]*(?:\r?\n)?$")
 MARKDOWN_NON_PARAGRAPH_PREFIX_RE = re.compile(
     r"^[ ]{0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+|>[ \t]?)"
 )
+MARKDOWN_LIST_ITEM_RE = re.compile(
+    r"^[ ]{0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)"
+)
 UNRESOLVED_RE = re.compile(
     r"\b(?:TODO|FIXME|BLOCKED|UNRESOLVED|OPEN QUESTION|PENDING)\b|"
     r"\b(?:блокер|заблокирован|нереш[её]н|открыт(?:ый|ые)? вопрос)\w*",
@@ -268,6 +271,12 @@ def markdown_block_quote_content(line: str) -> Tuple[str, int]:
         if cursor < len(line) and line[cursor] in " \t":
             cursor += 1
     return line[cursor:], depth
+
+
+def markdown_container_paragraph_content(line: str) -> str:
+    content, _ = markdown_block_quote_content(line)
+    list_item = MARKDOWN_LIST_ITEM_RE.match(content)
+    return content[list_item.end():] if list_item else content
 
 
 def matching_backtick_run_end(
@@ -629,6 +638,7 @@ def inspect_text(
     html_comment_block_open = False
     inline_code_span_length = 0
     previous_setext_candidate: Optional[Tuple[int, str, Set[str]]] = None
+    paragraph_active = False
     reference_definitions: Dict[str, str] = {}
     used_reference_labels: Set[str] = set()
     pending_reference_label: Optional[str] = None
@@ -677,22 +687,26 @@ def inspect_text(
             if markdown:
                 inline_sanitized = False
                 if front_matter_end is not None and line_count <= front_matter_end:
+                    paragraph_active = False
                     previous_setext_candidate = None
                     continue
                 if fence_character is not None:
                     if markdown_fence_closes(line, fence_character, fence_length):
                         fence_character = None
                         fence_length = 0
+                    paragraph_active = False
                     previous_setext_candidate = None
                     continue
                 if html_block_end_token is not None:
                     if html_block_end_token in line.lower():
                         html_block_end_token = None
+                    paragraph_active = False
                     previous_setext_candidate = None
                     continue
                 if html_block_until_blank:
                     if not line.strip():
                         html_block_until_blank = False
+                    paragraph_active = False
                     previous_setext_candidate = None
                     continue
                 if html_comment_open:
@@ -709,6 +723,7 @@ def inspect_text(
                     inline_sanitized = True
                     if comment_was_block:
                         html_comment_block_open = html_comment_open
+                        paragraph_active = False
                         previous_setext_candidate = None
                         continue
                     if not line.strip():
@@ -716,7 +731,7 @@ def inspect_text(
                         continue
                 html_block_start = markdown_html_block_start(
                     line,
-                    allow_type_7=previous_setext_candidate is None,
+                    allow_type_7=not paragraph_active,
                 )
                 if html_block_start is not None:
                     end_token, until_blank = html_block_start
@@ -724,6 +739,7 @@ def inspect_text(
                         html_block_end_token = end_token
                     html_block_until_blank = until_blank
                     inline_code_span_length = 0
+                    paragraph_active = False
                     previous_setext_candidate = None
                     continue
                 if not inline_sanitized:
@@ -741,18 +757,22 @@ def inspect_text(
                     )
                     if comment_block_starts:
                         html_comment_block_open = html_comment_open
+                        paragraph_active = False
                         previous_setext_candidate = None
                         continue
                 if not line.strip():
+                    paragraph_active = False
                     previous_setext_candidate = None
                     continue
                 fence_match = MARKDOWN_FENCE_RE.match(line)
                 if fence_match:
                     fence_character = fence_match.group(1)[0]
                     fence_length = len(fence_match.group(1))
+                    paragraph_active = False
                     previous_setext_candidate = None
                     continue
                 if markdown_indentation_columns(line) >= 4:
+                    paragraph_active = False
                     previous_setext_candidate = None
                     continue
 
@@ -860,6 +880,15 @@ def inspect_text(
                     )
                 else:
                     previous_setext_candidate = None
+                paragraph_content = markdown_container_paragraph_content(line)
+                paragraph_heading = MARKDOWN_HEADING_RE.match(paragraph_content)
+                paragraph_active = bool(
+                    paragraph_content.strip()
+                    and paragraph_heading is None
+                    and setext_match is None
+                    and not thematic_break
+                    and not reference_definition
+                )
     for label in used_reference_labels:
         raw_target = reference_definitions.get(label)
         if raw_target is None:

@@ -340,6 +340,18 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                 config["architecture_decisions"][field] = path
                 self.assert_invalid(config)
 
+    def test_adr_index_must_be_distinct_from_root(self) -> None:
+        for root, index in (
+            ("docs/adr", "docs/adr"),
+            ("docs/adr", "docs/./adr"),
+            ("docs/ADR", "docs/adr"),
+        ):
+            with self.subTest(root=root, index=index):
+                config = rendered_config()
+                config["architecture_decisions"]["root"] = root
+                config["architecture_decisions"]["index"] = index
+                self.assert_invalid(config)
+
     def test_adr_filename_pattern_must_contain_complete_id(self) -> None:
         config = rendered_config()
         config["architecture_decisions"]["filename_pattern"] = "decision.md"

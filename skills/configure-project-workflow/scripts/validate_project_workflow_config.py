@@ -231,6 +231,17 @@ def validate_semantics(
                     f"architecture_decisions.{path_name} must stay inside "
                     "the project root"
                 )
+        adr_root = adr.get("root")
+        adr_index = adr.get("index")
+        if isinstance(adr_root, str) and isinstance(adr_index, str):
+            if (
+                PurePosixPath(adr_root) == PurePosixPath(adr_index)
+                or PureWindowsPath(adr_root) == PureWindowsPath(adr_index)
+            ):
+                errors.append(
+                    "architecture_decisions.index must be distinct from "
+                    "architecture_decisions.root"
+                )
         id_pattern = adr.get("id_pattern")
         if isinstance(id_pattern, str) and id_pattern:
             try:
