@@ -294,10 +294,9 @@ def adr_index_conflicts_with_rendered_filename(
         return False
     pattern_parts = PureWindowsPath(filename_pattern).parts
     index_parts = relative_index.parts
-    if len(index_parts) > len(pattern_parts):
-        return False
-    prefix_pattern = "/".join(pattern_parts[: len(index_parts)])
-    normalized_index = "/".join(index_parts)
+    shared_length = min(len(index_parts), len(pattern_parts))
+    prefix_pattern = "/".join(pattern_parts[:shared_length])
+    normalized_index = "/".join(index_parts[:shared_length])
     matches, identifier = template_identifier_match(
         prefix_pattern, normalized_index, ignore_case=True
     )

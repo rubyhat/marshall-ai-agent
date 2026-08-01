@@ -104,8 +104,14 @@ MARKDOWN_HTML_BLOCK_TAG_RE = re.compile(
     r"track|ul)(?:[ \t/>]|$)",
     re.I,
 )
-MARKDOWN_COMPLETE_HTML_TAG_RE = re.compile(
-    r"^[ ]{0,3}</?[A-Za-z][A-Za-z0-9-]*(?:[ \t]+[^<>]*)?[ \t]*/?>[ \t]*$"
+MARKDOWN_COMPLETE_HTML_OPENING_TAG_RE = re.compile(
+    r"^[ ]{0,3}<[A-Za-z][A-Za-z0-9-]*"
+    r"(?:[ \t]+[A-Za-z_:][A-Za-z0-9_.:-]*"
+    r"(?:[ \t]*=[ \t]*(?:[^ \t\"'=<>`]+|'[^']*'|\"[^\"]*\"))?)*"
+    r"[ \t]*/?>[ \t]*$"
+)
+MARKDOWN_COMPLETE_HTML_CLOSING_TAG_RE = re.compile(
+    r"^[ ]{0,3}</[A-Za-z][A-Za-z0-9-]*[ \t]*>[ \t]*$"
 )
 URI_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 SUPERSESSION_FIELD_RE = re.compile(
@@ -504,6 +510,31 @@ def markdown_container_continuation(
     return content
 
 
+def markdown_paragraph_continuation(
+    line: str, tokens: Sequence[Tuple[str, int]]
+) -> Optional[str]:
+    content = markdown_container_continuation(line, tokens)
+    if content is None:
+        current_content, current_tokens = markdown_container_details(line)
+        lazy_list_continuation = (
+            any(kind == "list" for kind, _ in tokens)
+            and not current_tokens
+            and bool(current_content.strip())
+            and MARKDOWN_HEADING_RE.match(current_content) is None
+            and markdown_fence_opens(current_content) is None
+            and MARKDOWN_SETEXT_RE.match(current_content) is None
+            and MARKDOWN_THEMATIC_BREAK_RE.match(current_content) is None
+            and markdown_html_block_start(
+                current_content, allow_type_7=False
+            ) is None
+            and MARKDOWN_REFERENCE_DEFINITION_RE.match(current_content) is None
+            and markdown_indentation_columns(current_content) < 4
+        )
+        return current_content if lazy_list_continuation else None
+    _, nested_tokens = markdown_container_details(content)
+    return None if nested_tokens else content
+
+
 def matching_backtick_run_end(
     line: str, start: int, run_length: int
 ) -> Optional[int]:
@@ -572,11 +603,14 @@ def markdown_html_block_start(
         return "?>", False
     if re.match(r"<![A-Z]", candidate):
         return ">", False
-    if lowered.startswith("<![cdata["):
+    if candidate.startswith("<![CDATA["):
         return "]]>", False
     if MARKDOWN_HTML_BLOCK_TAG_RE.match(line):
         return None, True
-    if allow_type_7 and MARKDOWN_COMPLETE_HTML_TAG_RE.match(line.rstrip("\r\n")):
+    if allow_type_7 and (
+        MARKDOWN_COMPLETE_HTML_OPENING_TAG_RE.match(line.rstrip("\r\n"))
+        or MARKDOWN_COMPLETE_HTML_CLOSING_TAG_RE.match(line.rstrip("\r\n"))
+    ):
         return None, True
     return None
 
@@ -874,6 +908,7 @@ def inspect_text(
         Tuple[int, str, Set[str], Tuple[Tuple[str, int], ...]]
     ] = None
     paragraph_active = False
+    paragraph_container_tokens: Tuple[Tuple[str, int], ...] = ()
     reference_definitions: Dict[str, str] = {}
     used_reference_labels: Set[str] = set()
     pending_reference_label: Optional[str] = None
@@ -922,6 +957,13 @@ def inspect_text(
             if markdown:
                 inline_sanitized = False
                 container_line, container_tokens = markdown_container_details(line)
+                paragraph_continuation_line = (
+                    markdown_paragraph_continuation(
+                        line, paragraph_container_tokens
+                    )
+                    if paragraph_active
+                    else None
+                )
                 if front_matter_end is not None and line_count <= front_matter_end:
                     paragraph_active = False
                     previous_setext_candidate = None
@@ -1001,7 +1043,7 @@ def inspect_text(
                         continue
                 html_block_start = markdown_html_block_start(
                     container_line,
-                    allow_type_7=not paragraph_active,
+                    allow_type_7=paragraph_continuation_line is None,
                 )
                 if html_block_start is not None:
                     end_token, until_blank = html_block_start
@@ -1044,6 +1086,13 @@ def inspect_text(
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
+                paragraph_continuation_line = (
+                    markdown_paragraph_continuation(
+                        line, paragraph_container_tokens
+                    )
+                    if paragraph_active
+                    else None
+                )
                 container_line, container_tokens = markdown_container_details(line)
                 fence_line = container_line
                 fence_match = markdown_fence_opens(fence_line)
@@ -1054,7 +1103,10 @@ def inspect_text(
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
-                if markdown_indentation_columns(container_line) >= 4:
+                if (
+                    paragraph_continuation_line is None
+                    and markdown_indentation_columns(container_line) >= 4
+                ):
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
@@ -1109,6 +1161,8 @@ def inspect_text(
             structure_line, structure_tokens = (
                 markdown_container_details(line) if markdown else (line, ())
             )
+            if markdown and paragraph_continuation_line is not None:
+                structure_line = paragraph_continuation_line
             previous_container_continues = False
             if previous_setext_candidate is not None:
                 previous_tokens = previous_setext_candidate[3]
@@ -1205,6 +1259,11 @@ def inspect_text(
                     and not thematic_break
                     and not reference_definition
                 )
+                if paragraph_active:
+                    if paragraph_continuation_line is None:
+                        paragraph_container_tokens = structure_tokens
+                else:
+                    paragraph_container_tokens = ()
     for label in used_reference_labels:
         raw_target = reference_definitions.get(label)
         if raw_target is None:
