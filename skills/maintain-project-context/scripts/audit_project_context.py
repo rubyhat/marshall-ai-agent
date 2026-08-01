@@ -47,6 +47,8 @@ DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
 MARKDOWN_HEADING_RE = re.compile(r"^\s*(#{1,6})\s+\S")
 MARKDOWN_SETEXT_RE = re.compile(r"^[ ]{0,3}(=+|-+)[ \t]*$")
 MARKDOWN_FENCE_RE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})")
+MARKDOWN_FRONT_MATTER_START_RE = re.compile(r"^\ufeff?---[ \t]*(?:\r?\n)?$")
+MARKDOWN_FRONT_MATTER_END_RE = re.compile(r"^(?:---|\.\.\.)[ \t]*(?:\r?\n)?$")
 UNRESOLVED_RE = re.compile(
     r"\b(?:TODO|FIXME|BLOCKED|UNRESOLVED|OPEN QUESTION|PENDING)\b|"
     r"\b(?:блокер|заблокирован|нереш[её]н|открыт(?:ый|ые)? вопрос)\w*",
@@ -344,6 +346,7 @@ def inspect_text(
     root_block_start: Optional[int] = 1 if markdown else None
     fence_character: Optional[str] = None
     fence_length = 0
+    front_matter_open = False
     previous_setext_candidate: Optional[Tuple[int, str, Set[str]]] = None
 
     def register_heading(
@@ -385,6 +388,15 @@ def inspect_text(
             if line.strip():
                 nonblank += 1
             if markdown:
+                if line_count == 1 and MARKDOWN_FRONT_MATTER_START_RE.match(line):
+                    front_matter_open = True
+                    previous_setext_candidate = None
+                    continue
+                if front_matter_open:
+                    if MARKDOWN_FRONT_MATTER_END_RE.match(line):
+                        front_matter_open = False
+                    previous_setext_candidate = None
+                    continue
                 fence_match = MARKDOWN_FENCE_RE.match(line)
                 if fence_character is not None:
                     if (
