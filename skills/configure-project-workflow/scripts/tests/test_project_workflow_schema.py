@@ -309,7 +309,12 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         self.assert_invalid(config)
 
     def test_adr_identifier_pattern_must_be_filename_safe(self) -> None:
-        for pattern in (r"\.\./[A-Z]+", r"ADR-.*", r"[A-Z]*"):
+        for pattern in (
+            r"\.\./[A-Z]+",
+            r"ADR-.*",
+            r"[A-Z]*",
+            r"A(?=B)",
+        ):
             with self.subTest(pattern=pattern):
                 config = rendered_config()
                 config["architecture_decisions"]["id_pattern"] = pattern
@@ -321,6 +326,18 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
             r"ADR-(?:WEB|API)-[A-Z0-9]{2,6}"
         )
         self.assert_valid(config)
+
+    def test_adr_root_and_index_must_stay_inside_project(self) -> None:
+        for field, path in (
+            ("root", "/tmp/adrs"),
+            ("root", r"C:\\temp\\adrs"),
+            ("index", "../INDEX.md"),
+            ("index", r"C:INDEX.md"),
+        ):
+            with self.subTest(field=field, path=path):
+                config = rendered_config()
+                config["architecture_decisions"][field] = path
+                self.assert_invalid(config)
 
     def test_adr_filename_pattern_must_contain_complete_id(self) -> None:
         config = rendered_config()

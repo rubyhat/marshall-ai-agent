@@ -81,52 +81,90 @@ def validate_nonblank_string_list(
         )
 
 
-def regex_matches_only_safe_adr_id_characters(pattern: str) -> bool:
-    """Conservatively prove that a regex can emit only portable ADR ID chars."""
+def safe_relative_project_path(raw: str) -> bool:
+    posix_path = PurePosixPath(raw)
+    windows_path = PureWindowsPath(raw)
+    return not (
+        posix_path.is_absolute()
+        or windows_path.is_absolute()
+        or bool(windows_path.drive)
+        or ".." in posix_path.parts
+        or ".." in windows_path.parts
+    )
 
-    def subpattern_is_safe(subpattern: Any) -> bool:
+
+def regex_matches_only_safe_adr_id_characters(pattern: str) -> bool:
+    """Prove safety and produce one concrete witness for the ADR ID regex."""
+
+    def safe_witness(subpattern: Any) -> Optional[str]:
+        pieces: List[str] = []
         for operation, argument in subpattern:
             name = str(operation)
             if name == "LITERAL":
                 if argument not in ADR_ID_SAFE_CODEPOINTS:
-                    return False
+                    return None
+                pieces.append(chr(argument))
             elif name == "IN":
+                candidates: List[str] = []
                 for item_operation, item_argument in argument:
                     item_name = str(item_operation)
                     if item_name == "LITERAL":
                         if item_argument not in ADR_ID_SAFE_CODEPOINTS:
-                            return False
+                            return None
+                        candidates.append(chr(item_argument))
                     elif item_name == "RANGE":
                         start, end = item_argument
                         if any(
                             codepoint not in ADR_ID_SAFE_CODEPOINTS
                             for codepoint in range(start, end + 1)
                         ):
-                            return False
+                            return None
+                        candidates.append(chr(start))
                     else:
-                        return False
+                        return None
+                if not candidates:
+                    return None
+                pieces.append(candidates[0])
             elif name in {"MAX_REPEAT", "MIN_REPEAT", "POSSESSIVE_REPEAT"}:
-                if not subpattern_is_safe(argument[-1]):
-                    return False
+                minimum = argument[0]
+                child = safe_witness(argument[-1])
+                if child is None or minimum > 256:
+                    return None
+                pieces.append(child * minimum)
             elif name in {"SUBPATTERN", "ATOMIC_GROUP"}:
                 child = argument[-1] if name == "SUBPATTERN" else argument
-                if not subpattern_is_safe(child):
-                    return False
+                child_witness = safe_witness(child)
+                if child_witness is None:
+                    return None
+                pieces.append(child_witness)
             elif name == "BRANCH":
-                if not all(subpattern_is_safe(branch) for branch in argument[1]):
-                    return False
-            elif name in {"AT", "ASSERT", "ASSERT_NOT"}:
+                branch_witnesses = [
+                    safe_witness(branch) for branch in argument[1]
+                ]
+                if any(witness is None for witness in branch_witnesses):
+                    return None
+                pieces.append(branch_witnesses[0] or "")
+            elif name == "AT":
                 continue
             else:
-                return False
-        return True
+                # Assertions, backreferences, wildcards, categories, negated
+                # classes, and conditionals are intentionally unsupported:
+                # their satisfiability or output alphabet is not provable by
+                # this bounded validator.
+                return None
+        return "".join(pieces)
 
     try:
         compiled = re.compile(pattern)
         parsed = sre_parse.parse(pattern)
     except re.error:
         return False
-    return compiled.fullmatch("") is None and subpattern_is_safe(parsed)
+    witness = safe_witness(parsed)
+    return bool(
+        witness
+        and compiled.fullmatch("") is None
+        and compiled.fullmatch(witness) is not None
+    )
 
 
 def validate_semantics(
@@ -177,6 +215,15 @@ def validate_semantics(
         errors.append(f"architecture_decisions is forbidden without {ADR_MODULE}")
 
     if isinstance(adr, dict):
+        for path_name in ("root", "index"):
+            path_value = adr.get(path_name)
+            if isinstance(path_value, str) and not safe_relative_project_path(
+                path_value
+            ):
+                errors.append(
+                    f"architecture_decisions.{path_name} must stay inside "
+                    "the project root"
+                )
         id_pattern = adr.get("id_pattern")
         if isinstance(id_pattern, str) and id_pattern:
             try:
@@ -197,15 +244,7 @@ def validate_semantics(
                 "architecture_decisions.filename_pattern must contain <ID>"
             )
         if isinstance(filename_pattern, str):
-            posix_filename = PurePosixPath(filename_pattern)
-            windows_filename = PureWindowsPath(filename_pattern)
-            if (
-                posix_filename.is_absolute()
-                or windows_filename.is_absolute()
-                or bool(windows_filename.drive)
-                or ".." in posix_filename.parts
-                or ".." in windows_filename.parts
-            ):
+            if not safe_relative_project_path(filename_pattern):
                 errors.append(
                     "architecture_decisions.filename_pattern must stay inside "
                     "architecture_decisions.root"

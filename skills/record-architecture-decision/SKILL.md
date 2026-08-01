@@ -148,10 +148,12 @@ Use the configured project template. Fall back to
 [adr-template.md](assets/adr-template.md) only when no project template exists.
 Treat `<ID>` as the complete project-configured ADR identifier; never add a
 second fixed prefix to it in the title, filename, index, or links.
-Before writing, require the concrete ID to match both the configured pattern
-and the portable `[A-Za-z0-9_-]+` boundary. Render every filename placeholder
-to a concrete relative path, then reject an absolute path, Windows drive,
-parent component, or any lexical/resolved escape from the configured ADR root,
+Before writing, require the configured ADR root and index to be project-root
+relative and contained on both POSIX and Windows path semantics. Require the
+concrete ID to match both the configured pattern and the portable
+`[A-Za-z0-9_-]+` boundary. Render every filename placeholder to a concrete
+relative path, then reject an absolute path, Windows drive, parent component,
+or any lexical/resolved escape from the configured ADR root or project root,
 including a symlink boundary. Normalize a generated slug to a single safe
 filename segment; never interpolate raw user text into the path.
 

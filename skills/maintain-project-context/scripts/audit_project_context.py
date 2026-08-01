@@ -74,6 +74,7 @@ MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 MARKDOWN_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\([^)]+\)")
 MARKDOWN_REFERENCE_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\[[^\]]*\]")
 MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(r"^[ ]{0,3}\[[^\]]+\]:")
+MARKDOWN_HTML_COMMENT_BLOCK_START_RE = re.compile(r"^[ ]{0,3}<!--")
 MARKDOWN_RAW_HTML_TAG_RE = re.compile(
     r"^[ ]{0,3}<(?P<tag>script|pre|style|textarea)(?:[ \t>]|$)", re.I
 )
@@ -249,6 +250,7 @@ def future_paragraph_has_backtick_run(
             or markdown_html_block_start(
                 future_line, allow_type_7=False
             ) is not None
+            or MARKDOWN_HTML_COMMENT_BLOCK_START_RE.match(future_line)
             or MARKDOWN_REFERENCE_DEFINITION_RE.match(future_line)
             or MARKDOWN_NON_PARAGRAPH_PREFIX_RE.match(future_line)
             or future_line.startswith(("\t", "    "))
@@ -604,6 +606,7 @@ def inspect_text(
             if line.strip():
                 nonblank += 1
             if markdown:
+                inline_sanitized = False
                 if front_matter_end is not None and line_count <= front_matter_end:
                     previous_setext_candidate = None
                     continue
@@ -623,6 +626,20 @@ def inspect_text(
                         html_block_until_blank = False
                     previous_setext_candidate = None
                     continue
+                if html_comment_open:
+                    line, html_comment_open, inline_code_span_length = (
+                        sanitize_markdown_inline(
+                            line,
+                            html_comment_open,
+                            inline_code_span_length,
+                            lines,
+                            line_index + 1,
+                        )
+                    )
+                    inline_sanitized = True
+                    if not line.strip():
+                        previous_setext_candidate = None
+                        continue
                 html_block_start = markdown_html_block_start(
                     line,
                     allow_type_7=previous_setext_candidate is None,
@@ -635,15 +652,16 @@ def inspect_text(
                     inline_code_span_length = 0
                     previous_setext_candidate = None
                     continue
-                line, html_comment_open, inline_code_span_length = (
-                    sanitize_markdown_inline(
-                        line,
-                        html_comment_open,
-                        inline_code_span_length,
-                        lines,
-                        line_index + 1,
+                if not inline_sanitized:
+                    line, html_comment_open, inline_code_span_length = (
+                        sanitize_markdown_inline(
+                            line,
+                            html_comment_open,
+                            inline_code_span_length,
+                            lines,
+                            line_index + 1,
+                        )
                     )
-                )
                 if not line.strip():
                     previous_setext_candidate = None
                     continue
