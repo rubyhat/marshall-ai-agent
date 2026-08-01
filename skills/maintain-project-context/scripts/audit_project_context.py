@@ -44,7 +44,7 @@ TEXT_EXTENSIONS = {
 }
 TASK_ID_TOKEN_WRAPPERS = "`*_[](){}<>.,:;!?\"'"
 DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
-MARKDOWN_HEADING_RE = re.compile(r"^\s*(#{1,6})\s+\S")
+MARKDOWN_HEADING_RE = re.compile(r"^\s*(#{1,6})(?:[ \t]+|$)")
 MARKDOWN_SETEXT_RE = re.compile(r"^[ ]{0,3}(=+|-+)[ \t]*$")
 MARKDOWN_FENCE_RE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})")
 MARKDOWN_FRONT_MATTER_START_RE = re.compile(r"^\ufeff?---[ \t]*(?:\r?\n)?$")
@@ -198,6 +198,56 @@ def markdown_visible_signal_text(line: str) -> str:
     return MARKDOWN_REFERENCE_LINK_LABEL_RE.sub(
         lambda match: match.group(1), visible
     )
+
+
+def mask_markdown_code_spans(line: str) -> str:
+    """Mask complete inline-code spans while preserving line structure."""
+    result: List[str] = []
+    cursor = 0
+    length = len(line)
+
+    def escaped(position: int) -> bool:
+        backslashes = 0
+        index = position - 1
+        while index >= 0 and line[index] == "\\":
+            backslashes += 1
+            index -= 1
+        return backslashes % 2 == 1
+
+    while cursor < length:
+        start = line.find("`", cursor)
+        if start < 0:
+            result.append(line[cursor:])
+            break
+        if escaped(start):
+            result.append(line[cursor : start + 1])
+            cursor = start + 1
+            continue
+        opening_end = start
+        while opening_end < length and line[opening_end] == "`":
+            opening_end += 1
+        run_length = opening_end - start
+        search = opening_end
+        closing_end: Optional[int] = None
+        while search < length:
+            close = line.find("`", search)
+            if close < 0:
+                break
+            close_end = close
+            while close_end < length and line[close_end] == "`":
+                close_end += 1
+            if not escaped(close) and close_end - close == run_length:
+                closing_end = close_end
+                break
+            search = close_end
+        if closing_end is None:
+            result.append(line[cursor:opening_end])
+            cursor = opening_end
+            continue
+        result.append(line[cursor:start])
+        result.append(" " * (closing_end - start))
+        cursor = closing_end
+    return "".join(result)
 
 
 def strip_markdown_html_comments(line: str, in_comment: bool) -> Tuple[str, bool]:
@@ -470,6 +520,7 @@ def inspect_text(
                         fence_length = 0
                     previous_setext_candidate = None
                     continue
+                line = mask_markdown_code_spans(line)
                 line, html_comment_open = strip_markdown_html_comments(
                     line, html_comment_open
                 )
@@ -486,7 +537,12 @@ def inspect_text(
                     previous_setext_candidate = None
                     continue
 
-            line_task_ids = configured_task_ids(line, task_id_pattern)
+            reference_definition = bool(
+                markdown and MARKDOWN_REFERENCE_DEFINITION_RE.match(line)
+            )
+            line_task_ids = configured_task_ids(
+                "" if reference_definition else line, task_id_pattern
+            )
             task_ids.update(line_task_ids)
             heading_match = MARKDOWN_HEADING_RE.search(line) if markdown else None
             setext_match = MARKDOWN_SETEXT_RE.match(line) if markdown else None
@@ -520,6 +576,7 @@ def inspect_text(
                     line.strip()
                     and heading_match is None
                     and setext_match is None
+                    and not reference_definition
                     and not MARKDOWN_NON_PARAGRAPH_PREFIX_RE.match(line)
                 )
                 previous_setext_candidate = (

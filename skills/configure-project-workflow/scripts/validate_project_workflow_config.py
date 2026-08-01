@@ -55,6 +55,27 @@ def module_index(catalog: Mapping[str, Any]) -> Dict[str, Mapping[str, Any]]:
     return index
 
 
+def validate_nonblank_string_list(
+    errors: List[str], path: str, value: Any
+) -> None:
+    if not isinstance(value, list):
+        return
+    normalized: List[str] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, str) or not item.strip():
+            errors.append(f"{path}[{index}] must be a non-empty value")
+        else:
+            normalized.append(item.strip())
+    duplicates = sorted(
+        {item for item in normalized if normalized.count(item) > 1}
+    )
+    if duplicates:
+        errors.append(
+            f"{path} entries must be distinct: "
+            + ", ".join(repr(item) for item in duplicates)
+        )
+
+
 def validate_semantics(
     config: Mapping[str, Any], catalog: Mapping[str, Any]
 ) -> List[str]:
@@ -133,6 +154,23 @@ def validate_semantics(
                     "architecture decision lifecycle labels must be distinct: "
                     + ", ".join(repr(label) for label in duplicates)
                 )
+        validate_nonblank_string_list(
+            errors,
+            "architecture_decisions.decision_authority",
+            adr.get("decision_authority"),
+        )
+        validate_nonblank_string_list(
+            errors,
+            "architecture_decisions.materiality_triggers",
+            adr.get("materiality_triggers"),
+        )
+        applicability_review = adr.get("applicability_review")
+        if isinstance(applicability_review, dict):
+            validate_nonblank_string_list(
+                errors,
+                "architecture_decisions.applicability_review.review_triggers",
+                applicability_review.get("review_triggers"),
+            )
 
     return errors
 

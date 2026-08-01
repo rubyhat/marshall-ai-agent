@@ -301,6 +301,21 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         config["architecture_decisions"]["id_pattern"] = "["
         self.assert_invalid(config)
 
+    def test_adr_authority_and_trigger_entries_must_not_be_blank(self) -> None:
+        cases = (
+            ("decision_authority",),
+            ("materiality_triggers",),
+            ("applicability_review", "review_triggers"),
+        )
+        for path in cases:
+            with self.subTest(path=path):
+                config = rendered_config()
+                owner = config["architecture_decisions"]
+                for key in path[:-1]:
+                    owner = owner[key]
+                owner[path[-1]] = ["   "]
+                self.assert_invalid(config)
+
     def test_each_context_conditional_has_positive_and_negative_coverage(self) -> None:
         policy_by_module = {
             "load-project-context": "context_loading",
