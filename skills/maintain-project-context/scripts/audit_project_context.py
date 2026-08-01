@@ -392,24 +392,29 @@ def markdown_inline_links(line: str) -> List[Tuple[int, int, str, str]]:
 
 def markdown_multiline_inline_links(
     lines: Sequence[str], start_index: int, first_line: str
-) -> List[Tuple[int, int, str, str]]:
+) -> Tuple[List[Tuple[int, int, str, str]], Set[int]]:
     if "](" not in first_line:
-        return []
-    combined = first_line
+        return [], set()
+    first_content, container_tokens = markdown_container_details(first_line)
+    combined = first_content
+    consumed_lines: Set[int] = set()
     for offset in range(1, 8):
         future_index = start_index + offset
         if future_index >= len(lines):
             break
-        future_line = lines[future_index]
-        if not future_line.strip():
+        future_line = markdown_paragraph_continuation(
+            lines[future_index], container_tokens
+        )
+        if future_line is None or not future_line.strip():
             break
         combined += future_line
+        consumed_lines.add(future_index)
         if len(combined) > 4096:
             break
         links = markdown_inline_links(combined)
         if links:
-            return links
-    return []
+            return links, consumed_lines
+    return [], set()
 
 
 def normalize_reference_label(raw: str) -> str:
@@ -449,25 +454,6 @@ def markdown_list_item_prefix(line: str) -> Optional[Tuple[int, int]]:
     consumed_padding = padding if padding_columns <= 4 else padding[:1]
     end = match.start("padding") + len(consumed_padding)
     return end, markdown_text_columns(line[:end])
-
-
-def markdown_block_quote_content(line: str) -> Tuple[str, int]:
-    cursor = 0
-    depth = 0
-    while cursor < len(line):
-        marker_start = cursor
-        spaces = 0
-        while cursor < len(line) and line[cursor] == " " and spaces < 3:
-            cursor += 1
-            spaces += 1
-        if cursor >= len(line) or line[cursor] != ">":
-            cursor = marker_start
-            break
-        cursor += 1
-        depth += 1
-        if cursor < len(line) and line[cursor] in " \t":
-            cursor += 1
-    return line[cursor:], depth
 
 
 def markdown_container_paragraph_content(line: str) -> str:
@@ -551,8 +537,8 @@ def markdown_paragraph_continuation(
     content = markdown_container_continuation(line, tokens)
     if content is None:
         current_content, current_tokens = markdown_container_details(line)
-        lazy_list_continuation = (
-            any(kind == "list" for kind, _ in tokens)
+        lazy_container_continuation = (
+            any(kind in {"list", "quote"} for kind, _ in tokens)
             and not current_tokens
             and bool(current_content.strip())
             and MARKDOWN_HEADING_RE.match(current_content) is None
@@ -565,7 +551,7 @@ def markdown_paragraph_continuation(
             and MARKDOWN_REFERENCE_DEFINITION_RE.match(current_content) is None
             and markdown_indentation_columns(current_content) < 4
         )
-        return current_content if lazy_list_continuation else None
+        return current_content if lazy_container_continuation else None
     _, nested_tokens = markdown_container_details(content)
     return None if nested_tokens else content
 
@@ -591,17 +577,14 @@ def future_paragraph_has_backtick_run(
     lines: Sequence[str],
     start_index: int,
     run_length: int,
-    block_quote_depth: int,
+    container_tokens: Sequence[Tuple[str, int]],
 ) -> bool:
     for line_index in range(start_index, len(lines)):
-        future_line, future_quote_depth = markdown_block_quote_content(
-            lines[line_index]
-        )
-        quote_container_changed = future_quote_depth != block_quote_depth and not (
-            block_quote_depth > 0 and future_quote_depth == 0
+        future_line = markdown_paragraph_continuation(
+            lines[line_index], container_tokens
         )
         if (
-            quote_container_changed
+            future_line is None
             or not future_line.strip()
             or MARKDOWN_HEADING_RE.match(future_line)
             or markdown_fence_opens(future_line)
@@ -715,7 +698,7 @@ def sanitize_markdown_inline(
                 lines,
                 next_line_index,
                 run_length,
-                markdown_block_quote_content(line)[1],
+                markdown_container_details(line)[1],
             ):
                 result.append(line[cursor:start])
                 result.append(" " * (length - start))
@@ -983,12 +966,15 @@ def inspect_text(
 
     with item.absolute_path.open("r", encoding="utf-8", errors="replace") as handle:
         lines = handle.readlines()
+        multiline_link_hidden_lines: Set[int] = set()
         for line_index, line in enumerate(lines):
             previous_pending_reference_label = pending_reference_label
             pending_reference_label = None
             line_count += 1
             if line.strip():
                 nonblank += 1
+            if markdown and line_index in multiline_link_hidden_lines:
+                continue
             if markdown:
                 inline_sanitized = False
                 container_line, container_tokens = markdown_container_details(line)
@@ -1249,9 +1235,10 @@ def inspect_text(
             item.completed_marker_count += len(STATUS_RE.findall(signal_line))
             inline_links = markdown_inline_links(line)
             if not inline_links and markdown:
-                inline_links = markdown_multiline_inline_links(
+                inline_links, consumed_lines = markdown_multiline_inline_links(
                     lines, line_index, line
                 )
+                multiline_link_hidden_lines.update(consumed_lines)
             for _, _, _, raw_target in inline_links:
                 normalized = normalize_link_target(root, item.absolute_path, raw_target)
                 if normalized is not None:

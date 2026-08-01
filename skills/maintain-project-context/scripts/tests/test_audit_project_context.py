@@ -292,6 +292,9 @@ TODO: verify current behavior.
 > Lazy continuation `TASK_456
 completed`
 
+- > Nested example `TASK_789
+  > completed`
+
 TODO: verify current behavior.
 """,
                 encoding="utf-8",
@@ -747,17 +750,21 @@ TODO blocked
             memory = root / "memory"
             memory.mkdir()
             source = memory / "source.md"
-            target = memory / "target.md"
+            target = memory / "TODO.md"
             source.write_text(
                 """# Source
 
 [Existing guide](
-target.md
+TODO.md
 )
 
 [Missing guide](
 missing.md
 )
+
+> [Quoted missing](
+> quoted-missing.md
+> )
 """,
                 encoding="utf-8",
             )
@@ -793,9 +800,10 @@ missing.md
             }
             self.assertEqual(
                 by_path["memory/source.md"]["broken_targets"],
-                ["memory/missing.md"],
+                ["memory/missing.md", "memory/quoted-missing.md"],
             )
-            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/TODO.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 0)
 
     def test_ordered_list_paragraph_continuation_is_not_indented_code(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
