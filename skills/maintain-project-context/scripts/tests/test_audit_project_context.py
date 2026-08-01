@@ -225,6 +225,49 @@ Canonical fact.
             )
             self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
 
+    def test_multiline_reference_definition_does_not_cross_container(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "source.md"
+            source.write_text(
+                """# Source
+
+[Missing guide][guide]
+
+[guide]:
+>   missing.md TODO
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["broken_targets"], [])
+            self.assertEqual(largest["unresolved_markers"], 1)
+
     def test_html_comment_block_closing_line_stays_non_structural(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -541,7 +584,7 @@ Canonical fact.
             source.write_text(
                 """# Source
 
-[Existing guide](../docs/a(b).md)
+[Existing guide](../docs/a(b).md?view=full#current)
 [Missing guide](../docs/missing(c).md)
 """,
                 encoding="utf-8",
@@ -901,6 +944,53 @@ Active paragraph.
             self.assertEqual(largest["completed_markers"], 1)
             self.assertIn(
                 "task_chronology_signal",
+                report["candidates"][0]["review_hints"],
+            )
+
+    def test_loose_ordered_list_paragraph_keeps_lifecycle_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+100. Canonical fact
+
+     TODO completed
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["completed_markers"], 1)
+            self.assertEqual(largest["unresolved_markers"], 1)
+            self.assertIn(
+                "mixed_lifecycle_signal",
                 report["candidates"][0]["review_hints"],
             )
 

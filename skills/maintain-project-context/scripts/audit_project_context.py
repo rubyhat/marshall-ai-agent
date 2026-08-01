@@ -901,7 +901,7 @@ def normalize_link_target(root: Path, source: Path, raw_target: str) -> Optional
         target = target[1 : target.index(">")]
     else:
         target = target.split(maxsplit=1)[0]
-    target = unquote(target.split("#", 1)[0].strip())
+    target = unquote(target.split("#", 1)[0].split("?", 1)[0].strip())
     target = re.sub(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])", r"\1", target)
     if (
         not target
@@ -954,9 +954,11 @@ def inspect_text(
     ] = None
     paragraph_active = False
     paragraph_container_tokens: Tuple[Tuple[str, int], ...] = ()
+    loose_container_tokens: Tuple[Tuple[str, int], ...] = ()
     reference_definitions: Dict[str, str] = {}
     used_reference_labels: Set[str] = set()
     pending_reference_label: Optional[str] = None
+    pending_reference_container_tokens: Tuple[Tuple[str, int], ...] = ()
 
     def register_heading(
         heading_level: int,
@@ -996,7 +998,11 @@ def inspect_text(
         multiline_link_line_overrides: Dict[int, str] = {}
         for line_index, line in enumerate(lines):
             previous_pending_reference_label = pending_reference_label
+            previous_pending_reference_container_tokens = (
+                pending_reference_container_tokens
+            )
             pending_reference_label = None
+            pending_reference_container_tokens = ()
             line_count += 1
             if line.strip():
                 nonblank += 1
@@ -1007,6 +1013,19 @@ def inspect_text(
             if markdown:
                 inline_sanitized = False
                 container_line, container_tokens = markdown_container_details(line)
+                active_loose_container_tokens: Tuple[Tuple[str, int], ...] = ()
+                if line.strip() and loose_container_tokens:
+                    loose_content = markdown_container_continuation(
+                        line, loose_container_tokens
+                    )
+                    if loose_content is not None:
+                        nested_content, nested_tokens = markdown_container_details(
+                            loose_content
+                        )
+                        active_loose_container_tokens = loose_container_tokens
+                        container_line = nested_content
+                        container_tokens = loose_container_tokens + nested_tokens
+                    loose_container_tokens = ()
                 paragraph_continuation_line = (
                     markdown_paragraph_continuation(
                         line, paragraph_container_tokens
@@ -1133,6 +1152,21 @@ def inspect_text(
                         previous_setext_candidate = None
                         continue
                 if not line.strip():
+                    blank_container_tokens = (
+                        paragraph_container_tokens
+                        if paragraph_active
+                        else loose_container_tokens
+                    )
+                    if (
+                        any(kind == "list" for kind, _ in blank_container_tokens)
+                        and markdown_container_continuation(
+                            line, blank_container_tokens
+                        )
+                        is not None
+                    ):
+                        loose_container_tokens = blank_container_tokens
+                    else:
+                        loose_container_tokens = ()
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
@@ -1143,7 +1177,24 @@ def inspect_text(
                     if paragraph_active
                     else None
                 )
-                container_line, container_tokens = markdown_container_details(line)
+                if active_loose_container_tokens:
+                    loose_content = markdown_container_continuation(
+                        line, active_loose_container_tokens
+                    )
+                    if loose_content is not None:
+                        nested_content, nested_tokens = markdown_container_details(
+                            loose_content
+                        )
+                        container_line = nested_content
+                        container_tokens = (
+                            active_loose_container_tokens + nested_tokens
+                        )
+                    else:
+                        container_line, container_tokens = markdown_container_details(
+                            line
+                        )
+                else:
+                    container_line, container_tokens = markdown_container_details(line)
                 fence_line = container_line
                 fence_match = markdown_fence_opens(fence_line)
                 if fence_match:
@@ -1161,9 +1212,7 @@ def inspect_text(
                     previous_setext_candidate = None
                     continue
 
-            reference_line = (
-                markdown_container_paragraph_content(line) if markdown else line
-            )
+            reference_line = container_line if markdown else line
             definition_match = (
                 MARKDOWN_REFERENCE_DEFINITION_TARGET_RE.match(reference_line)
                 if markdown
@@ -1172,9 +1221,18 @@ def inspect_text(
             reference_definition = bool(
                 markdown and MARKDOWN_REFERENCE_DEFINITION_RE.match(reference_line)
             )
+            reference_container_continues = False
+            if markdown and previous_pending_reference_label is not None:
+                reference_continuation = markdown_container_continuation(
+                    line, previous_pending_reference_container_tokens
+                )
+                reference_container_continues = bool(
+                    reference_continuation is not None
+                    and not markdown_container_details(reference_continuation)[1]
+                )
             continuation_match = (
                 MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE.match(reference_line)
-                if markdown and previous_pending_reference_label is not None
+                if reference_container_continues
                 else None
             )
             if continuation_match:
@@ -1193,6 +1251,7 @@ def inspect_text(
                     pending_reference_label = normalize_reference_label(
                         label_match.group(1)
                     )
+                    pending_reference_container_tokens = container_tokens
             elif markdown:
                 for reference_match in MARKDOWN_REFERENCE_LINK_RE.finditer(line):
                     label = reference_match.group(2) or reference_match.group(1)
@@ -1209,7 +1268,7 @@ def inspect_text(
             )
             task_ids.update(line_task_ids)
             structure_line, structure_tokens = (
-                markdown_container_details(line) if markdown else (line, ())
+                (container_line, container_tokens) if markdown else (line, ())
             )
             if markdown and paragraph_continuation_line is not None:
                 structure_line = paragraph_continuation_line
