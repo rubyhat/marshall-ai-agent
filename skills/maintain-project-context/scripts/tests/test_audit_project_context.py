@@ -184,6 +184,7 @@ Canonical fact.
 [Existing guide][guide]
 [Missing guide][missing]
 [Titled guide][titled]
+[Spanning title][spanning]
 
 [guide]:
   target.md
@@ -191,6 +192,8 @@ Canonical fact.
   missing.md
 [titled]: target.md
   "TODO completed"
+[spanning]: target.md "TODO
+completed"
 """,
                 encoding="utf-8",
             )
@@ -387,6 +390,9 @@ TODO: verify current behavior.
 
 > Lazy continuation `TASK_456
 completed`
+
+Example `TASK_999
+2. completed`
 
 - > Nested example `TASK_789
   > completed`
