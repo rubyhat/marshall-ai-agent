@@ -392,12 +392,12 @@ def markdown_inline_links(line: str) -> List[Tuple[int, int, str, str]]:
 
 def markdown_multiline_inline_links(
     lines: Sequence[str], start_index: int, first_line: str
-) -> Tuple[List[Tuple[int, int, str, str]], Set[int]]:
+) -> Tuple[List[Tuple[int, int, str, str]], Dict[int, str]]:
     if "](" not in first_line:
-        return [], set()
+        return [], {}
     first_content, container_tokens = markdown_container_details(first_line)
     combined = first_content
-    consumed_lines: Set[int] = set()
+    continuation_segments: List[Tuple[int, int, str]] = []
     for offset in range(1, 8):
         future_index = start_index + offset
         if future_index >= len(lines):
@@ -407,14 +407,41 @@ def markdown_multiline_inline_links(
         )
         if future_line is None or not future_line.strip():
             break
+        segment_start = len(combined)
         combined += future_line
-        consumed_lines.add(future_index)
+        continuation_segments.append((future_index, segment_start, future_line))
         if len(combined) > 4096:
             break
         links = markdown_inline_links(combined)
         if links:
-            return links, consumed_lines
-    return [], set()
+            hidden_spans: List[Tuple[int, int]] = []
+            for link_start, link_end, _, _ in links:
+                label_start = (
+                    link_start + 1
+                    if combined[link_start : link_start + 1] == "!"
+                    else link_start
+                )
+                label_end = markdown_link_label_end(combined, label_start)
+                if label_end is not None:
+                    hidden_spans.append((label_end + 1, link_end))
+            line_overrides: Dict[int, str] = {}
+            for line_index, segment_start, content in continuation_segments:
+                segment_end = segment_start + len(content)
+                visible_parts: List[str] = []
+                cursor = segment_start
+                for hidden_start, hidden_end in hidden_spans:
+                    overlap_start = max(segment_start, hidden_start)
+                    overlap_end = min(segment_end, hidden_end)
+                    if overlap_start >= overlap_end:
+                        continue
+                    visible_parts.append(
+                        content[cursor - segment_start : overlap_start - segment_start]
+                    )
+                    cursor = max(cursor, overlap_end)
+                visible_parts.append(content[cursor - segment_start :])
+                line_overrides[line_index] = "".join(visible_parts)
+            return links, line_overrides
+    return [], {}
 
 
 def normalize_reference_label(raw: str) -> str:
@@ -966,15 +993,17 @@ def inspect_text(
 
     with item.absolute_path.open("r", encoding="utf-8", errors="replace") as handle:
         lines = handle.readlines()
-        multiline_link_hidden_lines: Set[int] = set()
+        multiline_link_line_overrides: Dict[int, str] = {}
         for line_index, line in enumerate(lines):
             previous_pending_reference_label = pending_reference_label
             pending_reference_label = None
             line_count += 1
             if line.strip():
                 nonblank += 1
-            if markdown and line_index in multiline_link_hidden_lines:
-                continue
+            if markdown and line_index in multiline_link_line_overrides:
+                line = multiline_link_line_overrides[line_index]
+                if not line.strip():
+                    continue
             if markdown:
                 inline_sanitized = False
                 container_line, container_tokens = markdown_container_details(line)
@@ -1190,7 +1219,15 @@ def inspect_text(
                 continuation = markdown_container_continuation(
                     line, previous_tokens
                 )
-                if continuation is not None:
+                continuation_tokens = (
+                    markdown_container_details(continuation)[1]
+                    if continuation is not None
+                    else ()
+                )
+                if continuation is not None and (
+                    not continuation_tokens
+                    or MARKDOWN_THEMATIC_BREAK_RE.match(continuation)
+                ):
                     previous_container_continues = True
                     structure_line = continuation
             heading_match = (
@@ -1235,10 +1272,10 @@ def inspect_text(
             item.completed_marker_count += len(STATUS_RE.findall(signal_line))
             inline_links = markdown_inline_links(line)
             if not inline_links and markdown:
-                inline_links, consumed_lines = markdown_multiline_inline_links(
+                inline_links, line_overrides = markdown_multiline_inline_links(
                     lines, line_index, line
                 )
-                multiline_link_hidden_lines.update(consumed_lines)
+                multiline_link_line_overrides.update(line_overrides)
             for _, _, _, raw_target in inline_links:
                 normalized = normalize_link_target(root, item.absolute_path, raw_target)
                 if normalized is not None:

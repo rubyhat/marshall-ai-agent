@@ -763,8 +763,7 @@ missing.md
 )
 
 > [Quoted missing](
-> quoted-missing.md
-> )
+> quoted-missing.md) TODO completed
 """,
                 encoding="utf-8",
             )
@@ -794,16 +793,25 @@ missing.md
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
             by_path = {
                 item["path"]: item
-                for item in json.loads(result.stdout)["largest_files"]
+                for item in report["largest_files"]
             }
             self.assertEqual(
                 by_path["memory/source.md"]["broken_targets"],
                 ["memory/missing.md", "memory/quoted-missing.md"],
             )
             self.assertEqual(by_path["memory/TODO.md"]["incoming_links"], 1)
-            self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 0)
+            self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 1)
+            self.assertEqual(by_path["memory/source.md"]["completed_markers"], 1)
+            candidate_by_path = {
+                item["path"]: item for item in report["candidates"]
+            }
+            self.assertIn(
+                "mixed_lifecycle_signal",
+                candidate_by_path["memory/source.md"]["review_hints"],
+            )
 
     def test_ordered_list_paragraph_continuation_is_not_indented_code(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -845,6 +853,56 @@ missing.md
             largest = json.loads(result.stdout)["largest_files"][0]
             self.assertEqual(largest["completed_markers"], 1)
             self.assertEqual(largest["unresolved_markers"], 1)
+
+    def test_interrupting_list_preserves_nested_task_heading(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+Active paragraph.
+- ## TASK_123 completed
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 2)
+            self.assertEqual(largest["task_headings"], 1)
+            self.assertEqual(largest["task_id_count"], 1)
+            self.assertEqual(largest["completed_markers"], 1)
+            self.assertIn(
+                "task_chronology_signal",
+                report["candidates"][0]["review_hints"],
+            )
 
     def test_type_7_html_block_starts_after_entering_new_container(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
