@@ -811,6 +811,8 @@ def inspect_text(
     fence_list_indent = 0
     html_block_end_token: Optional[str] = None
     html_block_until_blank = False
+    html_block_quote_depth = 0
+    html_block_list_indent = 0
     html_comment_open = False
     html_comment_block_open = False
     inline_code_span_length = 0
@@ -908,18 +910,43 @@ def inspect_text(
                     fence_length = 0
                     fence_block_quote_depth = 0
                     fence_list_indent = 0
-                if html_block_end_token is not None:
-                    if html_block_end_token in line.lower():
+                if html_block_end_token is not None or html_block_until_blank:
+                    html_container_line = container_line
+                    html_container_ended = (
+                        container_quote_depth != html_block_quote_depth
+                    )
+                    if not html_container_ended and html_block_list_indent:
+                        if not container_line.strip():
+                            html_container_line = ""
+                        else:
+                            continuation = strip_indentation_columns(
+                                container_line, html_block_list_indent
+                            )
+                            if continuation is None:
+                                html_container_ended = True
+                            else:
+                                html_container_line = continuation
+                    if html_container_ended:
                         html_block_end_token = None
-                    paragraph_active = False
-                    previous_setext_candidate = None
-                    continue
-                if html_block_until_blank:
-                    if not line.strip():
                         html_block_until_blank = False
-                    paragraph_active = False
-                    previous_setext_candidate = None
-                    continue
+                        html_block_quote_depth = 0
+                        html_block_list_indent = 0
+                    elif html_block_end_token is not None:
+                        if html_block_end_token in html_container_line.lower():
+                            html_block_end_token = None
+                            html_block_quote_depth = 0
+                            html_block_list_indent = 0
+                        paragraph_active = False
+                        previous_setext_candidate = None
+                        continue
+                    else:
+                        if not html_container_line.strip():
+                            html_block_until_blank = False
+                            html_block_quote_depth = 0
+                            html_block_list_indent = 0
+                        paragraph_active = False
+                        previous_setext_candidate = None
+                        continue
                 if html_comment_open:
                     comment_was_block = html_comment_block_open
                     line, html_comment_open, inline_code_span_length = (
@@ -940,7 +967,11 @@ def inspect_text(
                     if not line.strip():
                         previous_setext_candidate = None
                         continue
-                html_container_line = markdown_container_paragraph_content(line)
+                (
+                    html_container_line,
+                    html_container_quote_depth,
+                    html_container_list_indent,
+                ) = markdown_fence_container(line)
                 html_block_start = markdown_html_block_start(
                     html_container_line,
                     allow_type_7=not paragraph_active,
@@ -953,6 +984,8 @@ def inspect_text(
                     ):
                         html_block_end_token = end_token
                     html_block_until_blank = until_blank
+                    html_block_quote_depth = html_container_quote_depth
+                    html_block_list_indent = html_container_list_indent
                     inline_code_span_length = 0
                     paragraph_active = False
                     previous_setext_candidate = None
@@ -998,16 +1031,19 @@ def inspect_text(
                     previous_setext_candidate = None
                     continue
 
+            reference_line = (
+                markdown_container_paragraph_content(line) if markdown else line
+            )
             definition_match = (
-                MARKDOWN_REFERENCE_DEFINITION_TARGET_RE.match(line)
+                MARKDOWN_REFERENCE_DEFINITION_TARGET_RE.match(reference_line)
                 if markdown
                 else None
             )
             reference_definition = bool(
-                markdown and MARKDOWN_REFERENCE_DEFINITION_RE.match(line)
+                markdown and MARKDOWN_REFERENCE_DEFINITION_RE.match(reference_line)
             )
             continuation_match = (
-                MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE.match(line)
+                MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE.match(reference_line)
                 if markdown and previous_pending_reference_label is not None
                 else None
             )
@@ -1022,7 +1058,7 @@ def inspect_text(
                 target = definition_match.group(2) or definition_match.group(3)
                 reference_definitions.setdefault(label, target)
             elif reference_definition:
-                label_match = MARKDOWN_REFERENCE_DEFINITION_RE.match(line)
+                label_match = MARKDOWN_REFERENCE_DEFINITION_RE.match(reference_line)
                 if label_match:
                     pending_reference_label = normalize_reference_label(
                         label_match.group(1)
