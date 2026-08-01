@@ -44,7 +44,7 @@ TEXT_EXTENSIONS = {
 }
 TASK_ID_TOKEN_WRAPPERS = "`*_[](){}<>.,:;!?\"'"
 DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
-MARKDOWN_HEADING_RE = re.compile(r"^\s*(#{1,6})(?:[ \t]+|$)")
+MARKDOWN_HEADING_RE = re.compile(r"^[ ]{0,3}(#{1,6})(?:[ \t]+|$)")
 MARKDOWN_SETEXT_RE = re.compile(r"^[ ]{0,3}(=+|-+)[ \t]*$")
 MARKDOWN_THEMATIC_BREAK_RE = re.compile(
     r"^[ ]{0,3}(?:(?:\*[ \t]*){3,}|(?:_[ \t]*){3,}|(?:-[ \t]*){3,})$"
