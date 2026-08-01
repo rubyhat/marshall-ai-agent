@@ -2219,7 +2219,7 @@ TODO blocked
             self.assertEqual(largest["markdown_headings"], 2)
             self.assertEqual(largest["task_headings"], 1)
             self.assertEqual(largest["task_ids"], ["TASK_123", "TASK_456"])
-            self.assertEqual(largest["completed_markers"], 2)
+            self.assertEqual(largest["completed_markers"], 3)
             self.assertEqual(largest["unresolved_markers"], 2)
 
     def test_excess_list_padding_remains_indented_code(self) -> None:
@@ -2767,8 +2767,8 @@ Active paragraph.
             largest = json.loads(result.stdout)["largest_files"][0]
             self.assertEqual(largest["markdown_headings"], 2)
             self.assertEqual(largest["task_headings"], 0)
-            self.assertEqual(largest["task_id_count"], 0)
-            self.assertEqual(largest["completed_markers"], 0)
+            self.assertEqual(largest["task_ids"], ["TASK_123"])
+            self.assertEqual(largest["completed_markers"], 1)
 
     def test_invalid_type_7_closer_and_lowercase_cdata_stay_visible(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -3437,8 +3437,8 @@ Canonical fact.
             largest = report["largest_files"][0]
             self.assertEqual(largest["markdown_headings"], 2)
             self.assertEqual(largest["task_headings"], 0)
-            self.assertEqual(largest["task_id_count"], 0)
-            self.assertEqual(largest["completed_markers"], 0)
+            self.assertEqual(largest["task_ids"], ["TASK_123"])
+            self.assertEqual(largest["completed_markers"], 1)
 
     def test_thematic_break_resets_multiline_setext_candidate(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -3490,7 +3490,7 @@ Canonical fact.
             hints = report["candidates"][0]["review_hints"] if report["candidates"] else []
             self.assertNotIn("task_chronology_signal", hints)
 
-    def test_raw_html_blocks_do_not_create_structure_or_signals(self) -> None:
+    def test_raw_html_blocks_do_not_create_markdown_structure(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             memory = root / "memory"
@@ -3543,10 +3543,51 @@ Canonical fact.
             largest = report["largest_files"][0]
             self.assertEqual(largest["markdown_headings"], 2)
             self.assertEqual(largest["task_headings"], 0)
-            self.assertEqual(largest["task_id_count"], 0)
+            self.assertEqual(largest["task_ids"], ["TASK_456"])
             self.assertEqual(largest["completed_markers"], 0)
-            self.assertEqual(largest["superseded_markers"], 0)
+            self.assertEqual(largest["superseded_markers"], 1)
             self.assertEqual(largest["unresolved_markers"], 0)
+
+    def test_ordinary_html_block_text_creates_lifecycle_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "service.md").write_text(
+                "# Service memory\n\n<div>TODO completed</div>\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["unresolved_markers"], 1)
+            self.assertEqual(largest["completed_markers"], 1)
+            self.assertIn(
+                "mixed_lifecycle_signal",
+                report["candidates"][0]["review_hints"],
+            )
 
     def test_multiline_code_span_does_not_create_semantic_signals(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -1628,6 +1628,8 @@ def inspect_text(
                         continue
                     else:
                         html_target_parser.feed(html_container_line)
+                        if html_container_line.strip():
+                            signal_lines.append(html_container_line)
                         if not html_container_line.strip():
                             html_block_until_blank = False
                             html_block_container_tokens = ()
@@ -1672,6 +1674,8 @@ def inspect_text(
                 if html_block_start is not None:
                     end_token, until_blank = html_block_start
                     html_target_parser.feed(container_line)
+                    if until_blank and container_line.strip():
+                        signal_lines.append(container_line)
                     if (
                         end_token is not None
                         and end_token not in container_line.lower()
