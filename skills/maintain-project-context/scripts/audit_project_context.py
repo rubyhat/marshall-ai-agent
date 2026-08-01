@@ -400,6 +400,16 @@ def markdown_indentation_columns(line: str) -> int:
     return columns
 
 
+def markdown_text_columns(text: str) -> int:
+    columns = 0
+    for character in text:
+        if character == "\t":
+            columns += 4 - (columns % 4)
+        else:
+            columns += 1
+    return columns
+
+
 def markdown_block_quote_content(line: str) -> Tuple[str, int]:
     cursor = 0
     depth = 0
@@ -446,7 +456,7 @@ def markdown_fence_container(line: str) -> Tuple[str, int, int]:
     if not list_item:
         return content, quote_depth, 0
     prefix = content[: list_item.end()]
-    return content[list_item.end():], quote_depth, markdown_indentation_columns(prefix)
+    return content[list_item.end():], quote_depth, markdown_text_columns(prefix)
 
 
 def matching_backtick_run_end(
@@ -816,7 +826,9 @@ def inspect_text(
     html_comment_open = False
     html_comment_block_open = False
     inline_code_span_length = 0
-    previous_setext_candidate: Optional[Tuple[int, str, Set[str]]] = None
+    previous_setext_candidate: Optional[
+        Tuple[int, str, Set[str], int, int]
+    ] = None
     paragraph_active = False
     reference_definitions: Dict[str, str] = {}
     used_reference_labels: Set[str] = set()
@@ -1078,21 +1090,52 @@ def inspect_text(
                 "" if reference_definition else line, task_id_pattern
             )
             task_ids.update(line_task_ids)
-            heading_match = MARKDOWN_HEADING_RE.search(line) if markdown else None
-            setext_match = MARKDOWN_SETEXT_RE.match(line) if markdown else None
+            (
+                structure_line,
+                structure_quote_depth,
+                structure_list_indent,
+            ) = markdown_fence_container(line) if markdown else (line, 0, 0)
+            previous_container_continues = False
+            if previous_setext_candidate is not None:
+                previous_quote_depth = previous_setext_candidate[3]
+                previous_list_indent = previous_setext_candidate[4]
+                previous_container_continues = (
+                    previous_quote_depth == structure_quote_depth
+                    and structure_list_indent == 0
+                )
+                if previous_container_continues and previous_list_indent:
+                    continuation = strip_indentation_columns(
+                        container_line, previous_list_indent
+                    )
+                    if continuation is None:
+                        previous_container_continues = False
+                    else:
+                        structure_line = continuation
+            heading_match = (
+                MARKDOWN_HEADING_RE.match(structure_line) if markdown else None
+            )
+            setext_match = (
+                MARKDOWN_SETEXT_RE.match(structure_line) if markdown else None
+            )
             thematic_break = bool(
-                markdown and MARKDOWN_THEMATIC_BREAK_RE.match(line)
+                markdown and MARKDOWN_THEMATIC_BREAK_RE.match(structure_line)
             )
             if heading_match:
                 heading_level = len(heading_match.group(1))
                 register_heading(heading_level, line_count, line_task_ids)
-            elif setext_match and previous_setext_candidate is not None:
-                heading_start, heading_text, heading_task_ids = previous_setext_candidate
+            elif (
+                setext_match
+                and previous_setext_candidate is not None
+                and previous_container_continues
+            ):
+                heading_start, heading_text, heading_task_ids, _, _ = (
+                    previous_setext_candidate
+                )
                 heading_level = 1 if setext_match.group(1).startswith("=") else 2
                 register_heading(heading_level, heading_start, heading_task_ids)
                 if re.search(r"\b20\d{2}-\d{2}-\d{2}\b", heading_text):
                     item.dated_heading_count += 1
-            if heading_match and DATED_HEADING_RE.search(line):
+            if heading_match and DATED_HEADING_RE.search(structure_line):
                 item.dated_heading_count += 1
             signal_line = (
                 ""
@@ -1114,34 +1157,45 @@ def inspect_text(
                     links.add(normalized)
             if markdown:
                 is_candidate = bool(
-                    line.strip()
+                    structure_line.strip()
                     and heading_match is None
                     and setext_match is None
                     and not thematic_break
                     and not reference_definition
-                    and not MARKDOWN_NON_PARAGRAPH_PREFIX_RE.match(line)
+                    and not MARKDOWN_NON_PARAGRAPH_PREFIX_RE.match(structure_line)
                 )
-                if is_candidate and previous_setext_candidate is not None:
-                    heading_start, heading_text, heading_task_ids = (
-                        previous_setext_candidate
-                    )
+                if (
+                    is_candidate
+                    and previous_setext_candidate is not None
+                    and previous_container_continues
+                ):
+                    (
+                        heading_start,
+                        heading_text,
+                        heading_task_ids,
+                        previous_quote_depth,
+                        previous_list_indent,
+                    ) = previous_setext_candidate
                     previous_setext_candidate = (
                         heading_start,
-                        heading_text + "\n" + line.rstrip("\r\n"),
+                        heading_text + "\n" + structure_line.rstrip("\r\n"),
                         heading_task_ids | line_task_ids,
+                        previous_quote_depth,
+                        previous_list_indent,
                     )
                 elif is_candidate:
                     previous_setext_candidate = (
                         line_count,
-                        line.rstrip("\r\n"),
+                        structure_line.rstrip("\r\n"),
                         line_task_ids,
+                        structure_quote_depth,
+                        structure_list_indent,
                     )
                 else:
                     previous_setext_candidate = None
-                paragraph_content = markdown_container_paragraph_content(line)
-                paragraph_heading = MARKDOWN_HEADING_RE.match(paragraph_content)
+                paragraph_heading = MARKDOWN_HEADING_RE.match(structure_line)
                 paragraph_active = bool(
-                    paragraph_content.strip()
+                    structure_line.strip()
                     and paragraph_heading is None
                     and setext_match is None
                     and not thematic_break
