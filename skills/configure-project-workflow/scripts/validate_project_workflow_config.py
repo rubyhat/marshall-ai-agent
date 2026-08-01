@@ -234,12 +234,18 @@ def validate_semantics(
         adr_root = adr.get("root")
         adr_index = adr.get("index")
         if isinstance(adr_root, str) and isinstance(adr_index, str):
+            posix_root = PurePosixPath(adr_root)
+            posix_index = PurePosixPath(adr_index)
+            windows_root = PureWindowsPath(adr_root)
+            windows_index = PureWindowsPath(adr_index)
             if (
-                PurePosixPath(adr_root) == PurePosixPath(adr_index)
-                or PureWindowsPath(adr_root) == PureWindowsPath(adr_index)
+                posix_index == posix_root
+                or posix_index in posix_root.parents
+                or windows_index == windows_root
+                or windows_index in windows_root.parents
             ):
                 errors.append(
-                    "architecture_decisions.index must be distinct from "
+                    "architecture_decisions.index must not equal or contain "
                     "architecture_decisions.root"
                 )
         id_pattern = adr.get("id_pattern")

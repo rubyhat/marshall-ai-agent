@@ -16,6 +16,59 @@ SCRIPT = Path(__file__).resolve().parents[1] / "audit_project_context.py"
 
 
 class AuditProjectContextTest(unittest.TestCase):
+    def test_fenced_code_block_inside_block_quote_is_ignored(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+> ```text
+> ## TASK_123 completed
+> TODO blocked
+> ```
+
+## Current behavior
+
+Canonical fact.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 2)
+            self.assertEqual(largest["task_headings"], 0)
+            self.assertEqual(largest["task_id_count"], 0)
+            self.assertEqual(largest["completed_markers"], 0)
+            self.assertEqual(largest["unresolved_markers"], 0)
+
     def test_type_7_html_tag_does_not_interrupt_list_paragraph(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

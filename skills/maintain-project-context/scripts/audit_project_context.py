@@ -632,6 +632,7 @@ def inspect_text(
     )
     fence_character: Optional[str] = None
     fence_length = 0
+    fence_block_quote_depth = 0
     html_block_end_token: Optional[str] = None
     html_block_until_blank = False
     html_comment_open = False
@@ -686,17 +687,27 @@ def inspect_text(
                 nonblank += 1
             if markdown:
                 inline_sanitized = False
+                container_line, container_quote_depth = markdown_block_quote_content(
+                    line
+                )
                 if front_matter_end is not None and line_count <= front_matter_end:
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
                 if fence_character is not None:
-                    if markdown_fence_closes(line, fence_character, fence_length):
-                        fence_character = None
-                        fence_length = 0
-                    paragraph_active = False
-                    previous_setext_candidate = None
-                    continue
+                    if container_quote_depth == fence_block_quote_depth:
+                        if markdown_fence_closes(
+                            container_line, fence_character, fence_length
+                        ):
+                            fence_character = None
+                            fence_length = 0
+                            fence_block_quote_depth = 0
+                        paragraph_active = False
+                        previous_setext_candidate = None
+                        continue
+                    fence_character = None
+                    fence_length = 0
+                    fence_block_quote_depth = 0
                 if html_block_end_token is not None:
                     if html_block_end_token in line.lower():
                         html_block_end_token = None
@@ -764,10 +775,12 @@ def inspect_text(
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue
-                fence_match = MARKDOWN_FENCE_RE.match(line)
+                fence_line, fence_quote_depth = markdown_block_quote_content(line)
+                fence_match = MARKDOWN_FENCE_RE.match(fence_line)
                 if fence_match:
                     fence_character = fence_match.group(1)[0]
                     fence_length = len(fence_match.group(1))
+                    fence_block_quote_depth = fence_quote_depth
                     paragraph_active = False
                     previous_setext_candidate = None
                     continue

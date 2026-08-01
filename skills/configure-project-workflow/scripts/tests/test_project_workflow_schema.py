@@ -345,6 +345,8 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
             ("docs/adr", "docs/adr"),
             ("docs/adr", "docs/./adr"),
             ("docs/ADR", "docs/adr"),
+            ("docs/adr", "docs"),
+            (r"Docs\\ADR", "docs"),
         ):
             with self.subTest(root=root, index=index):
                 config = rendered_config()
