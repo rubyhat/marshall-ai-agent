@@ -492,6 +492,41 @@ completed"
                 report["candidates"][0]["review_hints"],
             )
 
+    def test_reference_definition_rejects_unbalanced_bare_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "source.md"
+            source.write_text(
+                "# Source\n\n[Guide][guide]\n\n[guide]: TODO.md)\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory",
+                    "--include-content-signals",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["broken_targets"], [])
+            self.assertEqual(largest["unresolved_markers"], 1)
+
     def test_reference_definition_does_not_interrupt_paragraph(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -890,6 +925,46 @@ Canonical fact.
             self.assertEqual(result.returncode, 0, result.stderr)
             largest = json.loads(result.stdout)["largest_files"][0]
             self.assertEqual(largest["broken_targets"], ["memory/missing.md"])
+
+    def test_semicolonless_entity_like_inline_target_remains_literal(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "source.md"
+            target = memory / "target&copy.md"
+            source.write_text(
+                "# Source\n\n[Guide](target&copy.md)\n",
+                encoding="utf-8",
+            )
+            target.write_text("# Target\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/source.md"]["broken_targets"], [])
+            self.assertEqual(by_path["memory/target&copy.md"]["incoming_links"], 1)
 
     def test_balanced_parentheses_in_inline_link_target_are_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -1292,6 +1367,42 @@ missing.md
             self.assertEqual(largest["task_headings"], 1)
             self.assertEqual(largest["task_ids"], ["TASK_123"])
             self.assertEqual(largest["completed_markers"], 1)
+
+    def test_multiline_inline_link_does_not_start_in_atx_heading(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                "# Service memory\n\n## [Guide\ntext](TODO.md)\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--include-content-signals",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 2)
+            self.assertEqual(largest["broken_targets"], [])
+            self.assertEqual(largest["unresolved_markers"], 1)
 
     def test_ordered_list_paragraph_continuation_is_not_indented_code(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -405,6 +405,8 @@ def markdown_multiline_inline_links(
     if "[" not in first_line:
         return [], {}
     first_content, container_tokens = markdown_container_details(first_line)
+    if MARKDOWN_HEADING_RE.match(first_content):
+        return [], {}
     initial_links = markdown_inline_links(first_content)
     uncovered_positions: Set[int] = set()
     marker_cursor = 0
@@ -489,7 +491,7 @@ def markdown_multiline_inline_links(
     return [], {}
 
 
-def normalize_reference_label(raw: str) -> str:
+def decode_markdown_escapes_and_entities(raw: str) -> str:
     decoded: List[str] = []
     cursor = 0
     while cursor < len(raw):
@@ -513,7 +515,37 @@ def normalize_reference_label(raw: str) -> str:
                     continue
         decoded.append(character)
         cursor += 1
-    return " ".join("".join(decoded).split()).casefold()
+    return "".join(decoded)
+
+
+def normalize_reference_label(raw: str) -> str:
+    return " ".join(decode_markdown_escapes_and_entities(raw).split()).casefold()
+
+
+def markdown_bare_destination_is_valid(raw: str) -> bool:
+    if not raw:
+        return False
+    depth = 0
+    cursor = 0
+    while cursor < len(raw):
+        character = raw[cursor]
+        if character == "\\":
+            if cursor + 1 >= len(raw):
+                return False
+            cursor += 2
+            continue
+        if character in "<>" or ord(character) < 0x20:
+            return False
+        if character == "(":
+            depth += 1
+            if depth > 32:
+                return False
+        elif character == ")":
+            if depth == 0:
+                return False
+            depth -= 1
+        cursor += 1
+    return depth == 0
 
 
 def markdown_indentation_columns(line: str) -> int:
@@ -1043,11 +1075,10 @@ def git_inventory(root: Path) -> Tuple[bool, Set[str], Dict[str, str]]:
 
 
 def normalize_link_target(root: Path, source: Path, raw_target: str) -> Optional[Path]:
-    target = html_unescape(raw_target.strip())
+    target = decode_markdown_escapes_and_entities(raw_target.strip())
     if target.startswith("<") and ">" in target:
         target = target[1 : target.index(">")]
     target = unquote(target.split("#", 1)[0].split("?", 1)[0].strip())
-    target = re.sub(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])", r"\1", target)
     if (
         not target
         or target.startswith(("#", "//"))
@@ -1405,6 +1436,14 @@ def inspect_text(
                 if markdown and paragraph_continuation_line is None
                 else None
             )
+            if (
+                definition_match
+                and definition_match.group(3)
+                and not markdown_bare_destination_is_valid(
+                    definition_match.group(3)
+                )
+            ):
+                definition_match = None
             if definition_match and (
                 definition_suffix := reference_line[definition_match.end() :].strip()
             ):
@@ -1477,6 +1516,14 @@ def inspect_text(
                 if reference_container_continues
                 else None
             )
+            if (
+                continuation_match
+                and continuation_match.group(2)
+                and not markdown_bare_destination_is_valid(
+                    continuation_match.group(2)
+                )
+            ):
+                continuation_match = None
             if continuation_match and (
                 continuation_suffix := reference_line[
                     continuation_match.end() :
