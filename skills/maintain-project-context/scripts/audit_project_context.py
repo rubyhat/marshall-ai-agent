@@ -274,9 +274,10 @@ def markdown_mask_inline_links(line: str) -> str:
         return line
     pieces: List[str] = []
     cursor = 0
-    for start, end, _, _ in links:
+    for start, end, label, _ in links:
         pieces.append(line[cursor:start])
-        pieces.append(" " * (end - start))
+        nested_reference_labels = markdown_reference_use_labels(label)
+        pieces.append(label if nested_reference_labels else " " * (end - start))
         cursor = end
     pieces.append(line[cursor:])
     return "".join(pieces)
@@ -289,6 +290,39 @@ def markdown_character_is_escaped(line: str, position: int) -> bool:
         backslashes += 1
         cursor -= 1
     return backslashes % 2 == 1
+
+
+def markdown_reference_label_is_valid(raw: str) -> bool:
+    return bool(raw) and len(raw) <= 999
+
+
+def markdown_reference_use_labels(line: str) -> Set[str]:
+    labels: Set[str] = set()
+    visible = list(line)
+    for match in MARKDOWN_REFERENCE_LINK_RE.finditer(line):
+        opening = match.start()
+        if line[opening : opening + 1] == "!":
+            opening += 1
+        visible[match.start() : match.end()] = " " * (match.end() - match.start())
+        if markdown_character_is_escaped(line, opening):
+            continue
+        raw_label = match.group(2) or match.group(1)
+        if not markdown_reference_label_is_valid(raw_label):
+            continue
+        labels.add(normalize_reference_label(raw_label))
+    without_explicit_references = "".join(visible)
+    for match in MARKDOWN_REFERENCE_SHORTCUT_RE.finditer(
+        without_explicit_references
+    ):
+        opening = match.start()
+        if without_explicit_references[opening : opening + 1] == "!":
+            opening += 1
+        if markdown_character_is_escaped(without_explicit_references, opening):
+            continue
+        raw_label = match.group(1)
+        if markdown_reference_label_is_valid(raw_label):
+            labels.add(normalize_reference_label(raw_label))
+    return labels
 
 
 def markdown_link_label_end(line: str, opening: int) -> Optional[int]:
@@ -1148,6 +1182,7 @@ def inspect_text(
     loose_container_tokens: Tuple[Tuple[str, int], ...] = ()
     reference_definitions: Dict[str, str] = {}
     used_reference_labels: Set[str] = set()
+    inline_link_candidates: List[Tuple[str, Set[str]]] = []
     pending_reference_label: Optional[str] = None
     pending_reference_container_tokens: Tuple[Tuple[str, int], ...] = ()
     pending_reference_title_container_tokens: Optional[
@@ -1446,6 +1481,10 @@ def inspect_text(
                 if markdown and paragraph_continuation_line is None
                 else None
             )
+            if definition_prefix_match and not markdown_reference_label_is_valid(
+                definition_prefix_match.group(1)
+            ):
+                definition_prefix_match = None
             definition_match = (
                 MARKDOWN_REFERENCE_DEFINITION_TARGET_RE.match(reference_line)
                 if markdown and paragraph_continuation_line is None
@@ -1453,9 +1492,16 @@ def inspect_text(
             )
             if (
                 definition_match
-                and definition_match.group(3)
-                and not markdown_bare_destination_is_valid(
-                    definition_match.group(3)
+                and (
+                    not markdown_reference_label_is_valid(
+                        definition_match.group(1)
+                    )
+                    or (
+                        definition_match.group(3)
+                        and not markdown_bare_destination_is_valid(
+                            definition_match.group(3)
+                        )
+                    )
                 )
             ):
                 definition_match = None
@@ -1599,34 +1645,9 @@ def inspect_text(
                     pending_reference_container_tokens = container_tokens
             elif markdown:
                 reference_use_line = markdown_mask_inline_links(line)
-                for reference_match in MARKDOWN_REFERENCE_LINK_RE.finditer(
-                    reference_use_line
-                ):
-                    opening = reference_match.start()
-                    if reference_use_line[opening : opening + 1] == "!":
-                        opening += 1
-                    if markdown_character_is_escaped(reference_use_line, opening):
-                        continue
-                    label = reference_match.group(2) or reference_match.group(1)
-                    used_reference_labels.add(normalize_reference_label(label))
-                without_explicit_references = MARKDOWN_REFERENCE_LINK_RE.sub(
-                    "", reference_use_line
+                used_reference_labels.update(
+                    markdown_reference_use_labels(reference_use_line)
                 )
-                for shortcut_match in MARKDOWN_REFERENCE_SHORTCUT_RE.finditer(
-                    without_explicit_references
-                ):
-                    opening = shortcut_match.start()
-                    if without_explicit_references[
-                        opening : opening + 1
-                    ] == "!":
-                        opening += 1
-                    if markdown_character_is_escaped(
-                        without_explicit_references, opening
-                    ):
-                        continue
-                    used_reference_labels.add(
-                        normalize_reference_label(shortcut_match.group(1))
-                    )
             line_task_ids = configured_task_ids(
                 "" if reference_definition else semantic_line, task_id_pattern
             )
@@ -1698,10 +1719,10 @@ def inspect_text(
             else:
                 item.superseded_marker_count += len(SUPERSEDED_RE.findall(signal_line))
             item.completed_marker_count += len(STATUS_RE.findall(signal_line))
-            for _, _, _, raw_target in inline_links:
-                normalized = normalize_link_target(root, item.absolute_path, raw_target)
-                if normalized is not None:
-                    links.add(normalized)
+            for _, _, label, raw_target in inline_links:
+                inline_link_candidates.append(
+                    (raw_target, markdown_reference_use_labels(label))
+                )
             if markdown:
                 is_candidate = bool(
                     structure_line.strip()
@@ -1750,6 +1771,13 @@ def inspect_text(
                         paragraph_container_tokens = structure_tokens
                 else:
                     paragraph_container_tokens = ()
+    defined_labels = set(reference_definitions)
+    for raw_target, nested_reference_labels in inline_link_candidates:
+        if nested_reference_labels & defined_labels:
+            continue
+        normalized = normalize_link_target(root, item.absolute_path, raw_target)
+        if normalized is not None:
+            links.add(normalized)
     for label in used_reference_labels:
         raw_target = reference_definitions.get(label)
         if raw_target is None:

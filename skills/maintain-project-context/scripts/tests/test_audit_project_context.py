@@ -406,6 +406,97 @@ completed"
             self.assertEqual(by_path["memory/source.md"]["broken_targets"], [])
             self.assertEqual(by_path["memory/target.md"]["incoming_links"], 0)
 
+    def test_defined_nested_reference_link_wins_over_outer_inline_link(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "outer.md").write_text("# Outer\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                """# Source
+
+[outer [inner][ref]](outer.md)
+
+[ref]: target.md
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/source.md"]["broken_targets"], [])
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/outer.md"]["incoming_links"], 0)
+
+    def test_reference_labels_enforce_commonmark_length_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            valid_label = "a" * 999
+            invalid_label = "b" * 1000
+            (memory / "valid.md").write_text("# Valid\n", encoding="utf-8")
+            (memory / "invalid.md").write_text("# Invalid\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                (
+                    f"[Valid][{valid_label}]\n"
+                    f"[Invalid][{invalid_label}]\n\n"
+                    f"[{valid_label}]: valid.md\n"
+                    f"[{invalid_label}]: invalid.md\n"
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/valid.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/invalid.md"]["incoming_links"], 0)
+
     def test_escaped_reference_links_do_not_use_definitions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
