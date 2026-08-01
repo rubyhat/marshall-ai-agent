@@ -4423,6 +4423,53 @@ This decision was replaced by a newer source.
             after = hashlib.sha256(source.read_bytes()).hexdigest()
             self.assertEqual(before, after)
 
+    def test_balanced_reference_link_text_hides_reference_label_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+[Guide [nested]][TODO completed]
+
+[TODO completed]: target.md
+""",
+                encoding="utf-8",
+            )
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/service.md"]["unresolved_markers"], 0)
+            self.assertEqual(by_path["memory/service.md"]["completed_markers"], 0)
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

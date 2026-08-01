@@ -75,12 +75,6 @@ STATUS_RE = re.compile(
     r"\b(?:заверш[её]н\w*|выполнен\w*|закрыт\w*|отмен[её]н\w*|слит\w*)",
     re.I,
 )
-MARKDOWN_REFERENCE_LINK_RE = re.compile(
-    r"(?<!!)!?\[((?:\\.|[^\]\\])+)\]\[((?:\\.|[^\]\\])*)\]"
-)
-MARKDOWN_REFERENCE_LINK_LABEL_RE = re.compile(
-    r"(?<!!)!?\[((?:\\.|[^\]\\])+)\]\[(?:\\.|[^\]\\])*\]"
-)
 MARKDOWN_REFERENCE_SHORTCUT_RE = re.compile(
     r"(?<!!)!?\[((?:\\.|[^\]\\])+)\](?![\[(:])"
 )
@@ -259,9 +253,18 @@ def markdown_visible_signal_text(line: str) -> str:
         visible = "".join(pieces)
     else:
         visible = line
-    return MARKDOWN_REFERENCE_LINK_LABEL_RE.sub(
-        lambda match: match.group(1), visible
-    )
+    reference_links = markdown_reference_links(visible)
+    if not reference_links:
+        return visible
+    pieces = []
+    cursor = 0
+    for start, end, label, _, _ in reference_links:
+        pieces.extend(
+            (visible[cursor:start], markdown_visible_signal_text(label))
+        )
+        cursor = end
+    pieces.append(visible[cursor:])
+    return "".join(pieces)
 
 
 def markdown_mask_inline_links(line: str) -> str:
@@ -298,19 +301,16 @@ def markdown_reference_use_labels(
 ) -> Set[str]:
     labels: Set[str] = set()
     visible = list(line)
-    for match in MARKDOWN_REFERENCE_LINK_RE.finditer(line):
-        opening = match.start()
-        if line[opening : opening + 1] == "!":
-            opening += 1
-            is_image = True
-        else:
-            is_image = False
-        visible[match.start() : match.end()] = " " * (match.end() - match.start())
+    for start, end, label, reference_label, is_image in markdown_reference_links(
+        line, include_escaped=True
+    ):
+        visible[start:end] = " " * (end - start)
+        opening = start + 1 if is_image else start
         if markdown_character_is_escaped(line, opening):
             continue
         if is_image and not include_images:
             continue
-        raw_label = match.group(2) or match.group(1)
+        raw_label = reference_label or label
         if not markdown_reference_label_is_valid(raw_label):
             continue
         labels.add(normalize_reference_label(raw_label))
@@ -350,6 +350,51 @@ def markdown_link_label_end(line: str, opening: int) -> Optional[int]:
                 return cursor
         cursor += 1
     return None
+
+
+def markdown_reference_links(
+    line: str, *, include_escaped: bool = False
+) -> List[Tuple[int, int, str, str, bool]]:
+    """Parse full and collapsed reference links with balanced link text."""
+    links: List[Tuple[int, int, str, str, bool]] = []
+    cursor = 0
+    while cursor < len(line):
+        opening = line.find("[", cursor)
+        if opening < 0:
+            break
+        if (
+            markdown_character_is_escaped(line, opening)
+            and not include_escaped
+        ):
+            cursor = opening + 1
+            continue
+        label_end = markdown_link_label_end(line, opening)
+        if label_end is None:
+            break
+        reference_opening = label_end + 1
+        if (
+            reference_opening >= len(line)
+            or line[reference_opening] != "["
+        ):
+            cursor = opening + 1
+            continue
+        reference_end = markdown_link_label_end(line, reference_opening)
+        if reference_end is None:
+            cursor = opening + 1
+            continue
+        label = line[opening + 1 : label_end]
+        reference_label = line[reference_opening + 1 : reference_end]
+        is_image = bool(
+            opening > 0
+            and line[opening - 1] == "!"
+            and not markdown_character_is_escaped(line, opening - 1)
+        )
+        start = opening - 1 if is_image else opening
+        links.append(
+            (start, reference_end + 1, label, reference_label, is_image)
+        )
+        cursor = reference_end + 1
+    return links
 
 
 def markdown_link_title_close(line: str, cursor: int) -> Optional[int]:
