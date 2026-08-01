@@ -302,7 +302,7 @@ def markdown_character_is_escaped(line: str, position: int) -> bool:
 
 
 def markdown_reference_label_is_valid(raw: str) -> bool:
-    return bool(raw) and len(raw) <= 999
+    return bool(normalize_reference_label(raw)) and len(raw) <= 999
 
 
 def markdown_reference_use_labels(
@@ -1172,6 +1172,7 @@ def iter_scope_files(
     skipped: Optional[Counter] = None,
     symlink_skip_key: str = "symlink",
     excluded_dir_skip_key: str = "excluded_dir",
+    traversal_error_skip_key: str = "traversal_error",
 ) -> Iterable[Path]:
     if scope.is_symlink():
         if skipped is not None:
@@ -1180,7 +1181,13 @@ def iter_scope_files(
     if scope.is_file():
         yield scope
         return
-    for directory, dirnames, filenames in os.walk(scope, followlinks=False):
+    def record_traversal_error(_: OSError) -> None:
+        if skipped is not None:
+            skipped[traversal_error_skip_key] += 1
+
+    for directory, dirnames, filenames in os.walk(
+        scope, followlinks=False, onerror=record_traversal_error
+    ):
         current = Path(directory)
         retained_dirnames: List[str] = []
         for name in sorted(dirnames):
@@ -2182,11 +2189,10 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
                 skipped,
                 "reference_symlink",
                 "reference_excluded_dir",
+                "reference_traversal_error",
             ):
                 resolved = path.resolve(strict=False)
                 if resolved in link_source_paths:
-                    continue
-                if path.suffix.lower() not in TEXT_EXTENSIONS:
                     continue
                 if secret_like(path):
                     skipped["reference_secret_like"] += 1
@@ -2201,9 +2207,17 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
                     skipped["reference_unreadable"] += 1
                     reference_scan_incomplete = True
                     continue
+                if path.suffix.lower() not in TEXT_EXTENSIONS:
+                    skipped["reference_unsupported_text_extension"] += 1
+                    reference_scan_incomplete = True
+                    continue
                 link_source_paths[resolved] = path
 
-        if skipped["reference_symlink"] or skipped["reference_excluded_dir"]:
+        if (
+            skipped["reference_symlink"]
+            or skipped["reference_excluded_dir"]
+            or skipped["reference_traversal_error"]
+        ):
             reference_scan_incomplete = True
 
         for resolved, source_path in sorted(

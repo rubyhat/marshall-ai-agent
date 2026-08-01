@@ -414,6 +414,102 @@ completed"
                 report["summary"]["skipped"]["reference_excluded_dir"], 1
             )
 
+    def test_unsupported_reference_text_extension_marks_coverage_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            history = root / "history"
+            references = root / "references"
+            history.mkdir()
+            references.mkdir()
+            (history / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "links.mdown").write_text(
+                "[Target](../history/target.md)\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "history",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 0)
+            self.assertEqual(
+                target["incoming_links_coverage"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertEqual(
+                report["summary"]["skipped"][
+                    "reference_unsupported_text_extension"
+                ],
+                1,
+            )
+
+    def test_unreadable_reference_directory_marks_coverage_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            history = root / "history"
+            references = root / "references"
+            unreadable = references / "private"
+            history.mkdir()
+            unreadable.mkdir(parents=True)
+            (history / "target.md").write_text("# Target\n", encoding="utf-8")
+            (unreadable / "links.md").write_text(
+                "[Target](../../history/target.md)\n",
+                encoding="utf-8",
+            )
+            unreadable.chmod(0o000)
+            try:
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(SCRIPT),
+                        "--root",
+                        str(root),
+                        "--scope",
+                        "history",
+                        "--reference-root",
+                        "references",
+                        "--include-content-signals",
+                        "--format",
+                        "json",
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+            finally:
+                unreadable.chmod(0o755)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            if not report["summary"]["skipped"].get(
+                "reference_traversal_error"
+            ):
+                self.skipTest("test process can read mode-000 directories")
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 0)
+            self.assertEqual(
+                target["incoming_links_coverage"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+
     def test_binary_reference_source_marks_coverage_incomplete(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -637,6 +733,43 @@ completed"
             by_path = {item["path"]: item for item in report["largest_files"]}
             self.assertEqual(by_path["memory/valid.md"]["incoming_links"], 1)
             self.assertEqual(by_path["memory/invalid.md"]["incoming_links"], 0)
+
+    def test_whitespace_only_reference_labels_do_not_create_links(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                "[Use][   ]\n\n[   ]: target.md\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 0)
 
     def test_linked_image_counts_outer_and_nested_image_targets(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
