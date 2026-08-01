@@ -164,7 +164,7 @@
           "additionalProperties": true
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "architecture_decisions": {
       "type": "object",

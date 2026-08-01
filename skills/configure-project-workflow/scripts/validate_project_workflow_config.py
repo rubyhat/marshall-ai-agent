@@ -107,6 +107,9 @@ def validate_semantics(
 
     memory = config.get("memory")
     memory_mapping = memory if isinstance(memory, dict) else {}
+    unknown_memory_policies = sorted(memory_mapping.keys() - POLICY_OWNERS.keys())
+    for policy in unknown_memory_policies:
+        errors.append(f"memory policy has no workflow module owner: {policy}")
     for policy, owner in POLICY_OWNERS.items():
         present = policy in memory_mapping
         if owner in selected and not present:

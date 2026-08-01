@@ -16,6 +16,59 @@ SCRIPT = Path(__file__).resolve().parents[1] / "audit_project_context.py"
 
 
 class AuditProjectContextTest(unittest.TestCase):
+    def test_multiline_setext_heading_preserves_all_semantic_lines(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+TASK_123 2026-01-01
+completed
+---------
+
+Canonical fact.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 2)
+            self.assertEqual(largest["task_headings"], 1)
+            self.assertEqual(largest["dated_headings"], 1)
+            self.assertEqual(largest["task_ids"], ["TASK_123"])
+            self.assertIn(
+                "task_chronology_signal",
+                report["candidates"][0]["review_hints"],
+            )
+
     def test_inline_code_does_not_create_task_or_lifecycle_signals(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

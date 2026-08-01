@@ -579,11 +579,23 @@ def inspect_text(
                     and not reference_definition
                     and not MARKDOWN_NON_PARAGRAPH_PREFIX_RE.match(line)
                 )
-                previous_setext_candidate = (
-                    (line_count, line.rstrip("\r\n"), line_task_ids)
-                    if is_candidate
-                    else None
-                )
+                if is_candidate and previous_setext_candidate is not None:
+                    heading_start, heading_text, heading_task_ids = (
+                        previous_setext_candidate
+                    )
+                    previous_setext_candidate = (
+                        heading_start,
+                        heading_text + "\n" + line.rstrip("\r\n"),
+                        heading_task_ids | line_task_ids,
+                    )
+                elif is_candidate:
+                    previous_setext_candidate = (
+                        line_count,
+                        line.rstrip("\r\n"),
+                        line_task_ids,
+                    )
+                else:
+                    previous_setext_candidate = None
     for _, section_start in open_sections:
         item.max_section_lines = max(
             item.max_section_lines, line_count - section_start + 1

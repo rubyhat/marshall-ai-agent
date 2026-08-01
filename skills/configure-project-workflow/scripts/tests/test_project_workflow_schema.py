@@ -275,6 +275,13 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         del config["architecture_decisions"]
         self.assert_valid(config)
 
+    def test_memory_policy_without_context_module_owner_is_invalid(self) -> None:
+        config = rendered_config()
+        config["workflow_kit"]["selected_modules"] = ["shape-project-work"]
+        config["memory"] = {"custom_policy": {}}
+        del config["architecture_decisions"]
+        self.assert_invalid(config)
+
     def test_adr_lifecycle_labels_must_be_distinct(self) -> None:
         config = rendered_config()
         config["architecture_decisions"]["statuses"] = {
