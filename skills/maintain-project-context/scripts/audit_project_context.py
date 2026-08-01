@@ -132,6 +132,9 @@ MARKDOWN_COMPLETE_HTML_OPENING_TAG_RE = re.compile(
 MARKDOWN_COMPLETE_HTML_CLOSING_TAG_RE = re.compile(
     r"^[ ]{0,3}</[A-Za-z][A-Za-z0-9-]*[ \t]*>[ \t]*$"
 )
+MARKDOWN_COMPLETE_HTML_DECLARATION_RE = re.compile(
+    r"^<![A-Z]+(?:[ \t\r\n]+[^>]*)?>$"
+)
 URI_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 SUPERSESSION_FIELD_RE = re.compile(
     r"^\s*(?:[-*]\s*)?superseded by\s*:\s*(.*?)\s*$",
@@ -246,7 +249,7 @@ def html_srcset_targets(raw: str) -> Set[str]:
 
 
 def html_visible_signal_text(raw: str) -> str:
-    """Strip only syntactically complete raw HTML tags from visible text."""
+    """Strip only syntactically complete CommonMark raw-HTML tokens."""
     pieces: List[str] = []
     cursor = 0
     while cursor < len(raw):
@@ -256,8 +259,12 @@ def html_visible_signal_text(raw: str) -> str:
             break
         html_end = markdown_inline_html_token_end(raw, opening)
         if html_end is None:
-            pieces.append(raw[cursor:])
-            break
+            # Malformed HTML-like text is rendered literally. Preserve this
+            # opener and continue so a later valid raw-HTML token can still be
+            # removed from lifecycle signals.
+            pieces.append(raw[cursor : opening + 1])
+            cursor = opening + 1
+            continue
         pieces.append(raw[cursor:opening])
         cursor = html_end
     return html_unescape("".join(pieces))
@@ -502,7 +509,24 @@ def markdown_link_label_end(line: str, opening: int) -> Optional[int]:
 
 
 def markdown_inline_html_token_end(line: str, opening: int) -> Optional[int]:
-    """Return the end of a same-line raw HTML tag, treating attrs as opaque."""
+    """Return the end of a complete same-line CommonMark raw-HTML token."""
+    if line.startswith("<?", opening):
+        terminator = line.find("?>", opening + 2)
+        return terminator + 2 if terminator >= 0 else None
+    if line.startswith("<![CDATA[", opening):
+        terminator = line.find("]]>", opening + 9)
+        return terminator + 3 if terminator >= 0 else None
+    if re.match(r"<![A-Z]", line[opening:]):
+        terminator = line.find(">", opening + 3)
+        if terminator < 0:
+            return None
+        candidate = line[opening : terminator + 1]
+        return (
+            terminator + 1
+            if MARKDOWN_COMPLETE_HTML_DECLARATION_RE.fullmatch(candidate)
+            else None
+        )
+
     cursor = opening + 1
     if cursor < len(line) and line[cursor] == "/":
         cursor += 1
@@ -522,7 +546,13 @@ def markdown_inline_html_token_end(line: str, opening: int) -> Optional[int]:
         elif character in "\"'":
             quote = character
         elif character == ">":
-            return cursor + 1
+            candidate = line[opening : cursor + 1]
+            if (
+                MARKDOWN_COMPLETE_HTML_OPENING_TAG_RE.fullmatch(candidate)
+                or MARKDOWN_COMPLETE_HTML_CLOSING_TAG_RE.fullmatch(candidate)
+            ):
+                return cursor + 1
+            return None
         elif character in "\r\n<":
             return None
         cursor += 1
@@ -550,6 +580,26 @@ def markdown_has_incomplete_html_token(line: str) -> bool:
             return True
         cursor = html_end
     return False
+
+
+def markdown_complete_html_tokens(line: str) -> List[str]:
+    """Return only complete CommonMark raw-HTML tokens from one line."""
+    tokens: List[str] = []
+    cursor = 0
+    while cursor < len(line):
+        opening = line.find("<", cursor)
+        if opening < 0:
+            break
+        if markdown_character_is_escaped(line, opening):
+            cursor = opening + 1
+            continue
+        html_end = markdown_inline_html_token_end(line, opening)
+        if html_end is None:
+            cursor = opening + 1
+            continue
+        tokens.append(line[opening:html_end])
+        cursor = html_end
+    return tokens
 
 
 def markdown_reference_links(
@@ -1552,7 +1602,7 @@ def inspect_text(
 
     def register_html_fragment(fragment: str) -> None:
         parser = MarkdownHtmlTargetParser()
-        parser.feed(fragment)
+        parser.feed("".join(markdown_complete_html_tokens(fragment)))
         parser.close()
         html_targets.update(parser.targets)
         if markdown_has_incomplete_html_token(fragment):
