@@ -2082,6 +2082,7 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
                 try:
                     if looks_binary(path):
                         skipped["reference_binary"] += 1
+                        reference_scan_incomplete = True
                         continue
                 except (OSError, PermissionError):
                     skipped["reference_unreadable"] += 1
