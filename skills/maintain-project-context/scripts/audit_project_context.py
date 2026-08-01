@@ -409,7 +409,9 @@ def markdown_multiline_inline_links(
     if not uncovered_markers:
         return [], {}
     combined = first_content
-    continuation_segments: List[Tuple[int, int, str]] = []
+    continuation_segments: List[Tuple[int, int, str]] = [
+        (start_index, 0, first_content)
+    ]
     for offset in range(1, 8):
         future_index = start_index + offset
         if future_index >= len(lines):
@@ -1134,6 +1136,7 @@ def inspect_text(
                         previous_setext_candidate = None
                         continue
                     if not line.strip():
+                        html_comment_open = False
                         previous_setext_candidate = None
                         continue
                 html_block_start = markdown_html_block_start(
@@ -1238,6 +1241,23 @@ def inspect_text(
                     previous_setext_candidate = None
                     continue
 
+            semantic_line = line
+            inline_links = markdown_inline_links(line)
+            if markdown:
+                multiline_links, line_overrides = markdown_multiline_inline_links(
+                    lines, line_index, line
+                )
+                if multiline_links:
+                    inline_links = multiline_links
+                    semantic_line = line_overrides.get(line_index, line)
+                    multiline_link_line_overrides.update(
+                        {
+                            index: override
+                            for index, override in line_overrides.items()
+                            if index != line_index
+                        }
+                    )
+
             reference_line = container_line if markdown else line
             definition_match = (
                 MARKDOWN_REFERENCE_DEFINITION_TARGET_RE.match(reference_line)
@@ -1290,7 +1310,7 @@ def inspect_text(
                 ):
                     used_reference_labels.add(normalize_reference_label(label))
             line_task_ids = configured_task_ids(
-                "" if reference_definition else line, task_id_pattern
+                "" if reference_definition else semantic_line, task_id_pattern
             )
             task_ids.update(line_task_ids)
             structure_line, structure_tokens = (
@@ -1345,7 +1365,11 @@ def inspect_text(
             signal_line = (
                 ""
                 if reference_definition
-                else (markdown_visible_signal_text(line) if markdown else line)
+                else (
+                    markdown_visible_signal_text(semantic_line)
+                    if markdown
+                    else semantic_line
+                )
             )
             item.unresolved_marker_count += len(UNRESOLVED_RE.findall(signal_line))
             supersession_field = SUPERSESSION_FIELD_RE.match(signal_line)
@@ -1356,14 +1380,6 @@ def inspect_text(
             else:
                 item.superseded_marker_count += len(SUPERSEDED_RE.findall(signal_line))
             item.completed_marker_count += len(STATUS_RE.findall(signal_line))
-            inline_links = markdown_inline_links(line)
-            if markdown:
-                multiline_links, line_overrides = markdown_multiline_inline_links(
-                    lines, line_index, line
-                )
-                if multiline_links:
-                    inline_links = multiline_links
-                    multiline_link_line_overrides.update(line_overrides)
             for _, _, _, raw_target in inline_links:
                 normalized = normalize_link_target(root, item.absolute_path, raw_target)
                 if normalized is not None:
