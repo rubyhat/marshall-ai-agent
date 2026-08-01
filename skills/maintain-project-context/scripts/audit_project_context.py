@@ -56,7 +56,7 @@ MARKDOWN_NON_PARAGRAPH_PREFIX_RE = re.compile(
     r"^[ ]{0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+|>[ \t]?)"
 )
 MARKDOWN_LIST_ITEM_RE = re.compile(
-    r"^[ ]{0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)"
+    r"^(?P<indent>[ ]{0,3})(?P<marker>[-+*]|\d{1,9}[.)])(?P<padding>[ \t]+)"
 )
 UNRESOLVED_RE = re.compile(
     r"\b(?:TODO|FIXME|BLOCKED|UNRESOLVED|OPEN QUESTION|PENDING)\b|"
@@ -291,7 +291,7 @@ def markdown_link_label_end(line: str, opening: int) -> Optional[int]:
 
 
 def markdown_link_title_close(line: str, cursor: int) -> Optional[int]:
-    while cursor < len(line) and line[cursor] in " \t":
+    while cursor < len(line) and line[cursor] in " \t\r\n":
         cursor += 1
     if cursor >= len(line):
         return None
@@ -308,7 +308,7 @@ def markdown_link_title_close(line: str, cursor: int) -> Optional[int]:
             continue
         if line[cursor] == closer:
             cursor += 1
-            while cursor < len(line) and line[cursor] in " \t":
+            while cursor < len(line) and line[cursor] in " \t\r\n":
                 cursor += 1
             return cursor if cursor < len(line) and line[cursor] == ")" else None
         cursor += 1
@@ -319,7 +319,7 @@ def markdown_link_destination(
     line: str, opening: int
 ) -> Optional[Tuple[str, int]]:
     cursor = opening + 1
-    while cursor < len(line) and line[cursor] in " \t":
+    while cursor < len(line) and line[cursor] in " \t\r\n":
         cursor += 1
     if cursor >= len(line):
         return None
@@ -352,11 +352,11 @@ def markdown_link_destination(
             if parenthesis_depth == 0:
                 return line[destination_start:cursor], cursor + 1
             parenthesis_depth -= 1
-        elif character in " \t" and parenthesis_depth == 0:
+        elif character in " \t\r\n" and parenthesis_depth == 0:
             target = line[destination_start:cursor]
             closing = markdown_link_title_close(line, cursor)
             return (target, closing + 1) if closing is not None else None
-        elif character in "\r\n" or parenthesis_depth > 32:
+        elif parenthesis_depth > 32:
             return None
         cursor += 1
     return None
@@ -390,6 +390,28 @@ def markdown_inline_links(line: str) -> List[Tuple[int, int, str, str]]:
     return links
 
 
+def markdown_multiline_inline_links(
+    lines: Sequence[str], start_index: int, first_line: str
+) -> List[Tuple[int, int, str, str]]:
+    if "](" not in first_line:
+        return []
+    combined = first_line
+    for offset in range(1, 8):
+        future_index = start_index + offset
+        if future_index >= len(lines):
+            break
+        future_line = lines[future_index]
+        if not future_line.strip():
+            break
+        combined += future_line
+        if len(combined) > 4096:
+            break
+        links = markdown_inline_links(combined)
+        if links:
+            return links
+    return []
+
+
 def normalize_reference_label(raw: str) -> str:
     return " ".join(raw.split()).casefold()
 
@@ -414,6 +436,19 @@ def markdown_text_columns(text: str) -> int:
         else:
             columns += 1
     return columns
+
+
+def markdown_list_item_prefix(line: str) -> Optional[Tuple[int, int]]:
+    match = MARKDOWN_LIST_ITEM_RE.match(line)
+    if not match:
+        return None
+    padding = match.group("padding")
+    marker_prefix = line[: match.start("padding")]
+    marker_columns = markdown_text_columns(marker_prefix)
+    padding_columns = markdown_text_columns(marker_prefix + padding) - marker_columns
+    consumed_padding = padding if padding_columns <= 4 else padding[:1]
+    end = match.start("padding") + len(consumed_padding)
+    return end, markdown_text_columns(line[:end])
 
 
 def markdown_block_quote_content(line: str) -> Tuple[str, int]:
@@ -479,11 +514,11 @@ def markdown_container_details(
             content = quoted_content
             tokens.append(("quote", 0))
             continue
-        list_item = MARKDOWN_LIST_ITEM_RE.match(content)
-        if list_item:
-            prefix = content[: list_item.end()]
-            content = content[list_item.end():]
-            tokens.append(("list", markdown_text_columns(prefix)))
+        list_item = markdown_list_item_prefix(content)
+        if list_item is not None:
+            end, content_indent = list_item
+            content = content[end:]
+            tokens.append(("list", content_indent))
             continue
         break
     return content, tuple(tokens)
@@ -1212,7 +1247,12 @@ def inspect_text(
             else:
                 item.superseded_marker_count += len(SUPERSEDED_RE.findall(signal_line))
             item.completed_marker_count += len(STATUS_RE.findall(signal_line))
-            for _, _, _, raw_target in markdown_inline_links(line):
+            inline_links = markdown_inline_links(line)
+            if not inline_links and markdown:
+                inline_links = markdown_multiline_inline_links(
+                    lines, line_index, line
+                )
+            for _, _, _, raw_target in inline_links:
                 normalized = normalize_link_target(root, item.absolute_path, raw_target)
                 if normalized is not None:
                     links.add(normalized)
