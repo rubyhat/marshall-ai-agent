@@ -42,11 +42,10 @@ TEXT_EXTENSIONS = {
     ".csv",
     ".tsv",
 }
-GENERIC_TASK_ID_TOKEN_RE = re.compile(
-    r"\b[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+\b"
-)
+TASK_ID_TOKEN_WRAPPERS = "`*_[](){}<>.,:;!?\"'"
 DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
 MARKDOWN_HEADING_RE = re.compile(r"^\s*(#{1,6})\s+\S")
+MARKDOWN_FENCE_RE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})")
 UNRESOLVED_RE = re.compile(
     r"\b(?:TODO|FIXME|BLOCKED|UNRESOLVED|OPEN QUESTION|PENDING)\b|"
     r"\b(?:блокер|заблокирован|нереш[её]н|открыт(?:ый|ые)? вопрос)\w*",
@@ -130,6 +129,22 @@ def compile_task_id_pattern(raw: Optional[str]) -> Optional[re.Pattern]:
     except re.error as error:
         fail(f"--task-id-regex is invalid: {error}")
     return None
+
+
+def configured_task_ids(
+    line: str, task_id_pattern: Optional[re.Pattern]
+) -> Set[str]:
+    if task_id_pattern is None:
+        return set()
+    candidates = {
+        raw.strip(TASK_ID_TOKEN_WRAPPERS)
+        for raw in line.split()
+    }
+    return {
+        candidate
+        for candidate in candidates
+        if candidate and task_id_pattern.fullmatch(candidate)
+    }
 
 
 def resolve_inside(root: Path, raw: str, label: str, require_exists: bool) -> Path:
@@ -320,20 +335,32 @@ def inspect_text(
     open_sections: List[Tuple[int, int]] = []
     markdown = item.absolute_path.suffix.lower() in {".md", ".markdown", ".mdx"}
     root_block_start: Optional[int] = 1 if markdown else None
+    fence_character: Optional[str] = None
+    fence_length = 0
     with item.absolute_path.open("r", encoding="utf-8", errors="replace") as handle:
         for line in handle:
             line_count += 1
             if line.strip():
                 nonblank += 1
-            line_task_ids = (
-                {
-                    token
-                    for token in GENERIC_TASK_ID_TOKEN_RE.findall(line)
-                    if task_id_pattern.fullmatch(token)
-                }
-                if task_id_pattern is not None
-                else set()
-            )
+            if markdown:
+                fence_match = MARKDOWN_FENCE_RE.match(line)
+                if fence_character is not None:
+                    if (
+                        fence_match
+                        and fence_match.group(1)[0] == fence_character
+                        and len(fence_match.group(1)) >= fence_length
+                    ):
+                        fence_character = None
+                        fence_length = 0
+                    continue
+                if fence_match:
+                    fence_character = fence_match.group(1)[0]
+                    fence_length = len(fence_match.group(1))
+                    continue
+                if line.startswith("\t") or line.startswith("    "):
+                    continue
+
+            line_task_ids = configured_task_ids(line, task_id_pattern)
             task_ids.update(line_task_ids)
             heading_match = MARKDOWN_HEADING_RE.search(line) if markdown else None
             if heading_match:

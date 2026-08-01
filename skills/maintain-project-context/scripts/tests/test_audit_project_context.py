@@ -16,6 +16,117 @@ SCRIPT = Path(__file__).resolve().parents[1] / "audit_project_context.py"
 
 
 class AuditProjectContextTest(unittest.TestCase):
+    def test_configured_task_id_regex_accepts_underscore_syntax(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+## TASK_123 completed
+
+Historical implementation entry.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["task_ids"], ["TASK_123"])
+            self.assertEqual(largest["task_headings"], 1)
+            self.assertIn(
+                "task_chronology_signal",
+                report["candidates"][0]["review_hints"],
+            )
+
+    def test_ignores_markdown_code_blocks_for_structure_and_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+## Current behavior
+
+Canonical fact.
+
+```markdown
+## TASK-999 completed
+TODO: example only.
+```
+
+    ## TASK-888 superseded
+    FIXME: indented example only.
+
+Canonical conclusion.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK-[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 2)
+            self.assertEqual(largest["task_headings"], 0)
+            self.assertEqual(largest["task_id_count"], 0)
+            self.assertEqual(largest["completed_markers"], 0)
+            self.assertEqual(largest["superseded_markers"], 0)
+            self.assertEqual(largest["unresolved_markers"], 0)
+            hints = report["candidates"][0]["review_hints"] if report["candidates"] else []
+            self.assertNotIn("task_chronology_signal", hints)
+            self.assertNotIn("mixed_lifecycle_signal", hints)
+
     def test_largest_section_includes_root_block_after_later_h1(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
