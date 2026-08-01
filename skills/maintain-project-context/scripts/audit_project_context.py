@@ -45,6 +45,7 @@ TEXT_EXTENSIONS = {
     ".csv",
     ".tsv",
 }
+STRUCTURED_TEXT_EXTENSIONS = {".csv", ".json", ".toml", ".tsv", ".yaml", ".yml"}
 MAX_MULTILINE_LINK_SCAN_CHARS = 1024 * 1024
 HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     "a": {"href"},
@@ -208,12 +209,7 @@ class MarkdownHtmlTargetParser(HTMLParser):
             if normalized_name not in resource_attributes or not value:
                 continue
             if normalized_name in {"srcset", "imagesrcset"}:
-                if value.lstrip().casefold().startswith("data:"):
-                    continue
-                for candidate in value.split(","):
-                    parts = candidate.strip().split(maxsplit=1)
-                    if parts:
-                        self.targets.add(parts[0])
+                self.targets.update(html_srcset_targets(value))
             else:
                 self.targets.add(value)
 
@@ -221,6 +217,32 @@ class MarkdownHtmlTargetParser(HTMLParser):
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
     ) -> None:
         self.handle_starttag(tag, attrs)
+
+
+def html_srcset_targets(raw: str) -> Set[str]:
+    """Return srcset URLs without splitting commas inside data URLs."""
+    targets: Set[str] = set()
+    cursor = 0
+    while cursor < len(raw):
+        while cursor < len(raw) and (raw[cursor].isspace() or raw[cursor] == ","):
+            cursor += 1
+        if cursor >= len(raw):
+            break
+        url_start = cursor
+        while cursor < len(raw) and not raw[cursor].isspace():
+            cursor += 1
+        url = raw[url_start:cursor]
+        ended_with_separator = url.endswith(",")
+        url = url.rstrip(",")
+        if url:
+            targets.add(url)
+        if ended_with_separator:
+            continue
+        while cursor < len(raw) and raw[cursor] != ",":
+            cursor += 1
+        if cursor < len(raw):
+            cursor += 1
+    return targets
 
 
 def html_visible_signal_text(raw: str) -> str:
@@ -2425,6 +2447,9 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
                 )
             if item.absolute_path.suffix.lower() not in TEXT_EXTENSIONS:
                 continue
+            if item.absolute_path.suffix.lower() in STRUCTURED_TEXT_EXTENSIONS:
+                skipped["reference_unparsed_structured_source"] += 1
+                reference_scan_incomplete = True
             try:
                 targets = inspect_text(item, root, task_id_pattern)
             except (OSError, PermissionError):

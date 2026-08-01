@@ -368,10 +368,12 @@ completed"
             (history / "target.md").write_text("# Target\n", encoding="utf-8")
             (history / "image.md").write_text("# Image\n", encoding="utf-8")
             (history / "object.md").write_text("# Object\n", encoding="utf-8")
+            (history / "srcset.md").write_text("# Srcset\n", encoding="utf-8")
             (references / "source.md").write_text(
                 """<a href="../history/target.md">Target</a>
 <img src='../history/image.md' alt="Image">
 <object data="../history/object.md"></object>
+<img srcset="data:image/png;base64,AAAA 1x, ../history/srcset.md 2x">
 """,
                 encoding="utf-8",
             )
@@ -403,6 +405,7 @@ completed"
             self.assertEqual(by_path["history/target.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/image.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/object.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["history/srcset.md"]["incoming_links"], 1)
             self.assertTrue(
                 report["link_coverage"]["complete_for_declared_roots"]
             )
@@ -695,6 +698,53 @@ completed"
             self.assertEqual(
                 report["summary"]["skipped"][
                     "reference_unsupported_text_extension"
+                ],
+                1,
+            )
+
+    def test_structured_reference_source_marks_coverage_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            history = root / "history"
+            references = root / "references"
+            history.mkdir()
+            references.mkdir()
+            (history / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "project-workflow.yaml").write_text(
+                "project_context: ../history/target.md\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "history",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 0)
+            self.assertEqual(
+                target["incoming_links_coverage"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertEqual(
+                report["summary"]["skipped"][
+                    "reference_unparsed_structured_source"
                 ],
                 1,
             )
