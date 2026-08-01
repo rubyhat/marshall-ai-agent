@@ -122,7 +122,7 @@ Apply operations idempotently:
 
 Read [validate-project-setup.md](references/validate-project-setup.md).
 
-Validate configuration structure, module dependencies, skill paths, active-copy identity, managed instruction routing, project-topology coverage and routing, aliases, sticky session constraints, capability gates, artifact output contracts, links, placeholders, safety policy, preservation of user content, and representative dry-run routes. When the generated config can be parsed safely, run `scripts/validate_project_workflow_config.py --config <path>` to enforce cross-field module ownership and distinct ADR lifecycle labels in addition to the JSON Schema. Do not install a parser automatically. Do not run project builds, tests, migrations, services, or network workflows as setup validation unless separately requested and authorized.
+Validate configuration structure, module dependencies, skill paths, active-copy identity, managed instruction routing, project-topology coverage and routing, aliases, sticky session constraints, capability gates, artifact output contracts, links, placeholders, safety policy, preservation of user content, and representative dry-run routes. When the generated config can be parsed safely, run `scripts/validate_project_workflow_config.py --config <path>` to enforce cross-field module ownership, portable ADR identifiers, contained ADR filename patterns, and distinct ADR lifecycle labels in addition to the JSON Schema. Do not install a parser automatically. Do not run project builds, tests, migrations, services, or network workflows as setup validation unless separately requested and authorized.
 
 ### 8. Close or preserve setup state
 

@@ -16,6 +16,159 @@ SCRIPT = Path(__file__).resolve().parents[1] / "audit_project_context.py"
 
 
 class AuditProjectContextTest(unittest.TestCase):
+    def test_multiline_code_span_stops_before_html_block(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+Syntax: `unclosed example
+<pre>
+` not a code-span closer
+</pre>
+
+## TASK_123 completed
+
+TODO: verify current behavior.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 2)
+            self.assertEqual(largest["task_headings"], 1)
+            self.assertEqual(largest["task_ids"], ["TASK_123"])
+            self.assertEqual(largest["completed_markers"], 1)
+            self.assertEqual(largest["unresolved_markers"], 1)
+
+    def test_type_7_html_tag_does_not_interrupt_active_paragraph(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+Active paragraph.
+<span>
+## TASK_123 completed
+
+Canonical fact.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 2)
+            self.assertEqual(largest["task_headings"], 1)
+            self.assertEqual(largest["task_ids"], ["TASK_123"])
+            self.assertEqual(largest["completed_markers"], 1)
+
+    def test_type_7_html_tag_after_blank_starts_block(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+<span>
+## TASK_123 completed
+</span>
+
+## Current behavior
+
+Canonical fact.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 2)
+            self.assertEqual(largest["task_headings"], 0)
+            self.assertEqual(largest["task_id_count"], 0)
+            self.assertEqual(largest["completed_markers"], 0)
+
     def test_thematic_break_resets_multiline_setext_candidate(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -246,6 +246,9 @@ def future_paragraph_has_backtick_run(
             or MARKDOWN_FENCE_RE.match(future_line)
             or MARKDOWN_SETEXT_RE.match(future_line)
             or MARKDOWN_THEMATIC_BREAK_RE.match(future_line)
+            or markdown_html_block_start(
+                future_line, allow_type_7=False
+            ) is not None
             or MARKDOWN_REFERENCE_DEFINITION_RE.match(future_line)
             or MARKDOWN_NON_PARAGRAPH_PREFIX_RE.match(future_line)
             or future_line.startswith(("\t", "    "))
@@ -256,7 +259,9 @@ def future_paragraph_has_backtick_run(
     return False
 
 
-def markdown_html_block_start(line: str) -> Optional[Tuple[Optional[str], bool]]:
+def markdown_html_block_start(
+    line: str, *, allow_type_7: bool = True
+) -> Optional[Tuple[Optional[str], bool]]:
     """Return an end token or blank-line mode for a CommonMark HTML block."""
     raw_tag = MARKDOWN_RAW_HTML_TAG_RE.match(line)
     if raw_tag:
@@ -275,7 +280,7 @@ def markdown_html_block_start(line: str) -> Optional[Tuple[Optional[str], bool]]
         return "]]>", False
     if MARKDOWN_HTML_BLOCK_TAG_RE.match(line):
         return None, True
-    if MARKDOWN_COMPLETE_HTML_TAG_RE.match(line.rstrip("\r\n")):
+    if allow_type_7 and MARKDOWN_COMPLETE_HTML_TAG_RE.match(line.rstrip("\r\n")):
         return None, True
     return None
 
@@ -618,12 +623,16 @@ def inspect_text(
                         html_block_until_blank = False
                     previous_setext_candidate = None
                     continue
-                html_block_start = markdown_html_block_start(line)
+                html_block_start = markdown_html_block_start(
+                    line,
+                    allow_type_7=previous_setext_candidate is None,
+                )
                 if html_block_start is not None:
                     end_token, until_blank = html_block_start
                     if end_token is not None and end_token not in line.lower():
                         html_block_end_token = end_token
                     html_block_until_blank = until_blank
+                    inline_code_span_length = 0
                     previous_setext_candidate = None
                     continue
                 line, html_comment_open, inline_code_span_length = (

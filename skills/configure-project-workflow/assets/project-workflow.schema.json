@@ -186,7 +186,11 @@
         "enabled": {"const": true},
         "root": {"type": "string", "minLength": 1},
         "index": {"type": "string", "minLength": 1},
-        "id_pattern": {"type": "string", "minLength": 1},
+        "id_pattern": {
+          "type": "string",
+          "minLength": 1,
+          "$comment": "scripts/validate_project_workflow_config.py conservatively proves that this regex emits one or more portable filename-safe ADR ID characters."
+        },
         "filename_pattern": {
           "type": "string",
           "minLength": 1,

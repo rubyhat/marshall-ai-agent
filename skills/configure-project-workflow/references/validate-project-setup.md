@@ -25,6 +25,9 @@ Validate the configured workflow without executing ordinary project work.
 - Verify no unresolved template placeholders.
 - Verify every generated relative link.
 - Verify no configured path escapes its intended root.
+- Verify the ADR ID regex can emit only non-empty portable identifier
+  characters and that every concrete rendered ADR filename remains inside the
+  configured ADR root on both POSIX and Windows path semantics.
 - Verify `paths.project_topology` resolves to exactly one canonical topology
   artifact.
 - Verify every configured repository or deployable unit has one topology entry

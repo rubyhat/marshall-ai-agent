@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sre_parse
 import sys
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -20,6 +21,10 @@ POLICY_OWNERS = {
 }
 ADR_MODULE = "record-architecture-decision"
 REQUIRED_ADR_STATES = ("accepted", "superseded", "deprecated", "rejected")
+ADR_ID_SAFE_CODEPOINTS = frozenset(
+    ord(character)
+    for character in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+)
 
 
 def load_mapping(path: Path) -> Mapping[str, Any]:
@@ -74,6 +79,54 @@ def validate_nonblank_string_list(
             f"{path} entries must be distinct: "
             + ", ".join(repr(item) for item in duplicates)
         )
+
+
+def regex_matches_only_safe_adr_id_characters(pattern: str) -> bool:
+    """Conservatively prove that a regex can emit only portable ADR ID chars."""
+
+    def subpattern_is_safe(subpattern: Any) -> bool:
+        for operation, argument in subpattern:
+            name = str(operation)
+            if name == "LITERAL":
+                if argument not in ADR_ID_SAFE_CODEPOINTS:
+                    return False
+            elif name == "IN":
+                for item_operation, item_argument in argument:
+                    item_name = str(item_operation)
+                    if item_name == "LITERAL":
+                        if item_argument not in ADR_ID_SAFE_CODEPOINTS:
+                            return False
+                    elif item_name == "RANGE":
+                        start, end = item_argument
+                        if any(
+                            codepoint not in ADR_ID_SAFE_CODEPOINTS
+                            for codepoint in range(start, end + 1)
+                        ):
+                            return False
+                    else:
+                        return False
+            elif name in {"MAX_REPEAT", "MIN_REPEAT", "POSSESSIVE_REPEAT"}:
+                if not subpattern_is_safe(argument[-1]):
+                    return False
+            elif name in {"SUBPATTERN", "ATOMIC_GROUP"}:
+                child = argument[-1] if name == "SUBPATTERN" else argument
+                if not subpattern_is_safe(child):
+                    return False
+            elif name == "BRANCH":
+                if not all(subpattern_is_safe(branch) for branch in argument[1]):
+                    return False
+            elif name in {"AT", "ASSERT", "ASSERT_NOT"}:
+                continue
+            else:
+                return False
+        return True
+
+    try:
+        compiled = re.compile(pattern)
+        parsed = sre_parse.parse(pattern)
+    except re.error:
+        return False
+    return compiled.fullmatch("") is None and subpattern_is_safe(parsed)
 
 
 def validate_semantics(
@@ -132,6 +185,12 @@ def validate_semantics(
                 errors.append(
                     f"architecture_decisions.id_pattern is invalid: {error}"
                 )
+            else:
+                if not regex_matches_only_safe_adr_id_characters(id_pattern):
+                    errors.append(
+                        "architecture_decisions.id_pattern must match one or more "
+                        "portable filename-safe characters: A-Z, a-z, 0-9, - or _"
+                    )
         filename_pattern = adr.get("filename_pattern")
         if isinstance(filename_pattern, str) and "<ID>" not in filename_pattern:
             errors.append(
