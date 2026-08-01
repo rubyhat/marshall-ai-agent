@@ -402,6 +402,82 @@ completed"
             self.assertEqual(by_path["memory/page.md"]["incoming_links"], 1)
             self.assertEqual(by_path["memory/hidden.md"]["incoming_links"], 0)
 
+    def test_raw_html_attributes_do_not_create_lifecycle_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                '<a href="target.md" title="TODO completed">Guide</a>\n',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 0)
+            self.assertEqual(by_path["memory/source.md"]["completed_markers"], 0)
+
+    def test_inline_html_bracket_does_not_close_markdown_link_label(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "page.md").write_text("# Page\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                '[Guide <span title="]">hidden</span>](page.md)\n',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/page.md"]["incoming_links"], 1)
+
     def test_reference_root_symlink_marks_link_coverage_incomplete(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -4819,6 +4895,45 @@ This decision was replaced by a newer source.
                 "mixed_lifecycle_signal",
                 report["candidates"][0]["review_hints"],
             )
+
+    def test_undefined_reference_task_id_remains_visible_in_heading(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                "# Service memory\n\n## [Guide][TASK_123]\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["task_ids"], ["TASK_123"])
+            self.assertEqual(largest["task_headings"], 1)
 
 
 if __name__ == "__main__":

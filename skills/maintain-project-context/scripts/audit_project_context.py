@@ -189,6 +189,24 @@ class MarkdownHtmlTargetParser(HTMLParser):
         self.handle_starttag(tag, attrs)
 
 
+class MarkdownHtmlVisibleTextParser(HTMLParser):
+    """Reduce raw HTML to text that is actually rendered to the reader."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: List[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self.parts.append(data)
+
+
+def html_visible_signal_text(raw: str) -> str:
+    parser = MarkdownHtmlVisibleTextParser()
+    parser.feed(raw)
+    parser.close()
+    return "".join(parser.parts)
+
+
 def fail(message: str, code: int = 2) -> None:
     print(f"error: {message}", file=sys.stderr)
     raise SystemExit(code)
@@ -215,17 +233,23 @@ def compile_task_id_pattern(raw: Optional[str]) -> Optional[re.Pattern]:
 
 
 def configured_task_ids(
-    line: str, task_id_pattern: Optional[re.Pattern]
+    line: str,
+    task_id_pattern: Optional[re.Pattern],
+    defined_reference_labels: Optional[Set[str]] = None,
 ) -> Set[str]:
     if task_id_pattern is None:
         return set()
     # Inspect only rendered-visible text. Raw inline destinations and titles
     # are metadata and must not create task chronology signals.
-    candidate_sources = [markdown_visible_signal_text(line)]
+    candidate_sources = [
+        html_visible_signal_text(
+            markdown_visible_signal_text(line, defined_reference_labels)
+        )
+    ]
     candidates = {
         raw.strip(TASK_ID_TOKEN_WRAPPERS)
         for source in candidate_sources
-        for raw in source.split()
+        for raw in source.replace("][", "] [").split()
     }
     return {
         candidate
@@ -406,12 +430,45 @@ def markdown_link_label_end(line: str, opening: int) -> Optional[int]:
         if character == "\\":
             cursor += 2
             continue
+        if character == "<":
+            html_end = markdown_inline_html_token_end(line, cursor)
+            if html_end is not None:
+                cursor = html_end
+                continue
         if character == "[":
             depth += 1
         elif character == "]":
             depth -= 1
             if depth == 0:
                 return cursor
+        cursor += 1
+    return None
+
+
+def markdown_inline_html_token_end(line: str, opening: int) -> Optional[int]:
+    """Return the end of a same-line raw HTML tag, treating attrs as opaque."""
+    cursor = opening + 1
+    if cursor < len(line) and line[cursor] == "/":
+        cursor += 1
+    if cursor >= len(line) or not line[cursor].isalpha():
+        return None
+    cursor += 1
+    while cursor < len(line) and (
+        line[cursor].isalnum() or line[cursor] in "-"
+    ):
+        cursor += 1
+    quote: Optional[str] = None
+    while cursor < len(line):
+        character = line[cursor]
+        if quote is not None:
+            if character == quote:
+                quote = None
+        elif character in "\"'":
+            quote = character
+        elif character == ">":
+            return cursor + 1
+        elif character in "\r\n<":
+            return None
         cursor += 1
     return None
 
@@ -1404,6 +1461,7 @@ def inspect_text(
     used_reference_labels: Set[str] = set()
     inline_link_candidates: List[Tuple[str, Set[str]]] = []
     signal_lines: List[str] = []
+    heading_signal_lines: List[str] = []
     pending_reference_label: Optional[str] = None
     pending_reference_container_tokens: Tuple[Tuple[str, int], ...] = ()
     pending_reference_title_container_tokens: Optional[
@@ -1413,7 +1471,7 @@ def inspect_text(
     def register_heading(
         heading_level: int,
         heading_start: int,
-        heading_task_ids: Set[str],
+        heading_signal_text: str,
     ) -> None:
         nonlocal root_block_start
         while open_sections and open_sections[-1][0] >= heading_level:
@@ -1438,10 +1496,7 @@ def inspect_text(
                 root_block_start = None
             open_sections.append((heading_level, heading_start))
         item.markdown_heading_count += 1
-        # Only a project-validated identifier can prove that a heading belongs
-        # to task chronology.
-        if task_id_pattern is not None and heading_task_ids:
-            item.task_heading_count += 1
+        heading_signal_lines.append(heading_signal_text)
 
     with item.absolute_path.open("r", encoding="utf-8", errors="replace") as handle:
         lines = handle.readlines()
@@ -1910,7 +1965,7 @@ def inspect_text(
             )
             if heading_match:
                 heading_level = len(heading_match.group(1))
-                register_heading(heading_level, line_count, line_task_ids)
+                register_heading(heading_level, line_count, structure_line)
             elif (
                 setext_match
                 and previous_setext_candidate is not None
@@ -1920,7 +1975,7 @@ def inspect_text(
                     previous_setext_candidate
                 )
                 heading_level = 1 if setext_match.group(1).startswith("=") else 2
-                register_heading(heading_level, heading_start, heading_task_ids)
+                register_heading(heading_level, heading_start, heading_text)
                 if re.search(r"\b20\d{2}-\d{2}-\d{2}\b", heading_text):
                     item.dated_heading_count += 1
             if heading_match and DATED_HEADING_RE.search(structure_line):
@@ -1994,18 +2049,34 @@ def inspect_text(
                 else:
                     paragraph_container_tokens = ()
     defined_labels = set(reference_definitions)
+    if task_id_pattern is not None:
+        task_ids = set()
+        item.task_heading_count = sum(
+            bool(
+                configured_task_ids(
+                    heading_line, task_id_pattern, defined_labels
+                )
+            )
+            for heading_line in heading_signal_lines
+        )
     for raw_signal_line in signal_lines:
-        signal_line = (
+        markdown_signal_line = (
             markdown_visible_signal_text(raw_signal_line, defined_labels)
             if markdown
             else raw_signal_line
         )
+        html_signal_input = (
+            markdown_mask_escaped_html_openers(markdown_signal_line)
+            if markdown
+            else markdown_signal_line
+        )
         if markdown:
             html_target_parser.feed(
-                markdown_mask_escaped_html_openers(signal_line)
+                html_signal_input
             )
         else:
-            html_target_parser.feed(signal_line)
+            html_target_parser.feed(html_signal_input)
+        signal_line = html_visible_signal_text(html_signal_input)
         item.unresolved_marker_count += len(UNRESOLVED_RE.findall(signal_line))
         supersession_field = SUPERSESSION_FIELD_RE.match(signal_line)
         if supersession_field:
@@ -2016,7 +2087,11 @@ def inspect_text(
             item.superseded_marker_count += len(SUPERSEDED_RE.findall(signal_line))
         item.completed_marker_count += len(STATUS_RE.findall(signal_line))
         if task_id_pattern is not None:
-            task_ids.update(configured_task_ids(signal_line, task_id_pattern))
+            task_ids.update(
+                configured_task_ids(
+                    raw_signal_line, task_id_pattern, defined_labels
+                )
+            )
     html_target_parser.close()
     for raw_target in html_target_parser.targets:
         normalized = normalize_link_target(root, item.absolute_path, raw_target)
