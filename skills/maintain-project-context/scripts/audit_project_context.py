@@ -430,9 +430,7 @@ def markdown_block_quote_content(line: str) -> Tuple[str, int]:
 
 
 def markdown_container_paragraph_content(line: str) -> str:
-    content, _ = markdown_block_quote_content(line)
-    list_item = MARKDOWN_LIST_ITEM_RE.match(content)
-    return content[list_item.end():] if list_item else content
+    return markdown_fence_container(line)[0]
 
 
 def strip_indentation_columns(line: str, required_columns: int) -> Optional[str]:
@@ -451,12 +449,25 @@ def strip_indentation_columns(line: str, required_columns: int) -> Optional[str]
 
 
 def markdown_fence_container(line: str) -> Tuple[str, int, int]:
-    content, quote_depth = markdown_block_quote_content(line)
-    list_item = MARKDOWN_LIST_ITEM_RE.match(content)
-    if not list_item:
-        return content, quote_depth, 0
-    prefix = content[: list_item.end()]
-    return content[list_item.end():], quote_depth, markdown_text_columns(prefix)
+    content = line
+    quote_depth = 0
+    list_indent = 0
+    for _ in range(32):
+        changed = False
+        quoted_content, nested_quote_depth = markdown_block_quote_content(content)
+        if nested_quote_depth:
+            content = quoted_content
+            quote_depth += nested_quote_depth
+            changed = True
+        list_item = MARKDOWN_LIST_ITEM_RE.match(content)
+        if list_item:
+            prefix = content[: list_item.end()]
+            content = content[list_item.end():]
+            list_indent += markdown_text_columns(prefix)
+            changed = True
+        if not changed:
+            break
+    return content, quote_depth, list_indent
 
 
 def matching_backtick_run_end(

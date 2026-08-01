@@ -333,9 +333,11 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
             ("root", "/tmp/adrs"),
             ("root", r"C:\\temp\\adrs"),
             ("root", "CON"),
+            ("root", "docs/COM¹"),
             ("index", "../INDEX.md"),
             ("index", r"C:INDEX.md"),
             ("index", "docs/NUL.md"),
+            ("index", "docs/conin$.md"),
         ):
             with self.subTest(field=field, path=path):
                 config = rendered_config()
@@ -404,6 +406,16 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                 config = rendered_config()
                 config["architecture_decisions"]["id_pattern"] = identifier
                 config["architecture_decisions"]["filename_pattern"] = "<ID>.md"
+                self.assert_invalid(config)
+
+        for filename_pattern in (
+            "COM¹/<ID>.md",
+            "lpt³/<ID>.md",
+            "CONOUT$/<ID>.md",
+        ):
+            with self.subTest(filename_pattern=filename_pattern):
+                config = rendered_config()
+                config["architecture_decisions"]["filename_pattern"] = filename_pattern
                 self.assert_invalid(config)
 
     def test_adr_filename_pattern_must_not_compose_windows_device_name(self) -> None:

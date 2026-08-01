@@ -156,8 +156,9 @@ relative path, then reject an absolute path, Windows drive, parent component,
 or any lexical/resolved escape from the configured ADR root or project root,
 including a symlink boundary. Normalize a generated slug to a single safe
 filename segment, and reject Windows reserved device components such as
-`CON`, `NUL`, `COM1`, or `LPT1` even when they have an extension; never
-interpolate raw user text into the path.
+`CON`, `NUL`, `COM0`–`COM9`, `LPT0`–`LPT9`, their ISO-8859-1 superscript
+`1`–`3` aliases, `CONIN$`, or `CONOUT$` even when they have an extension;
+never interpolate raw user text into the path.
 
 Include only applicable content:
 

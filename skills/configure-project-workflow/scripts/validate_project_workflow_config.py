@@ -27,11 +27,16 @@ ADR_ID_SAFE_CODEPOINTS = frozenset(
 )
 WINDOWS_RESERVED_BASENAMES = {
     "CON",
+    "CONIN$",
+    "CONOUT$",
     "PRN",
     "AUX",
     "NUL",
-    *(f"COM{number}" for number in range(1, 10)),
-    *(f"LPT{number}" for number in range(1, 10)),
+    *(
+        f"{prefix}{suffix}"
+        for prefix in ("COM", "LPT")
+        for suffix in (*map(str, range(10)), "¹", "²", "³")
+    ),
 }
 WINDOWS_FORBIDDEN_COMPONENT_CHARACTERS = frozenset('<>:"|?*')
 ADR_FILENAME_PLACEHOLDER_RE = re.compile(r"<[^<>]+>")
