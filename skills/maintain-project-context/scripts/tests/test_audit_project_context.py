@@ -16,6 +16,40 @@ SCRIPT = Path(__file__).resolve().parents[1] / "audit_project_context.py"
 
 
 class AuditProjectContextTest(unittest.TestCase):
+    def test_largest_section_includes_root_block_after_later_h1(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "mixed.md"
+            lines = ["# First domain", "## Small section", "current fact", "# Second domain"]
+            lines.extend(f"legacy fact {index}" for index in range(50))
+            lines.extend(["## Final small section", "current fact"])
+            source.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/mixed.md",
+                    "--include-content-signals",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["max_section_lines"], 51)
+
     def test_largest_section_includes_root_preamble_before_first_h2(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

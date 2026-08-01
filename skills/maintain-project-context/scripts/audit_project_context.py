@@ -319,7 +319,7 @@ def inspect_text(
     nonblank = 0
     open_sections: List[Tuple[int, int]] = []
     markdown = item.absolute_path.suffix.lower() in {".md", ".markdown", ".mdx"}
-    root_preamble_open = markdown
+    root_block_start: Optional[int] = 1 if markdown else None
     with item.absolute_path.open("r", encoding="utf-8", errors="replace") as handle:
         for line in handle:
             line_count += 1
@@ -343,15 +343,21 @@ def inspect_text(
                     item.max_section_lines = max(
                         item.max_section_lines, line_count - section_start
                     )
-                # Treat H1 as the document title/root. H2+ sections include
-                # their nested descendants without degenerating the metric
-                # into the full document length for every normal Markdown file.
-                if heading_level >= 2:
-                    if root_preamble_open:
+                # Treat content before H2+ and after every H1 as bounded root
+                # blocks. H2+ sections include nested descendants without
+                # degenerating the metric into the whole document length.
+                if heading_level == 1:
+                    if root_block_start is not None:
                         item.max_section_lines = max(
-                            item.max_section_lines, line_count - 1
+                            item.max_section_lines, line_count - root_block_start
                         )
-                        root_preamble_open = False
+                    root_block_start = line_count
+                else:
+                    if root_block_start is not None:
+                        item.max_section_lines = max(
+                            item.max_section_lines, line_count - root_block_start
+                        )
+                        root_block_start = None
                     open_sections.append((heading_level, line_count))
                 item.markdown_heading_count += 1
                 # A generic hyphenated token is useful for bounded discovery,
@@ -378,8 +384,10 @@ def inspect_text(
         item.max_section_lines = max(
             item.max_section_lines, line_count - section_start + 1
         )
-    if root_preamble_open and line_count:
-        item.max_section_lines = max(item.max_section_lines, line_count)
+    if root_block_start is not None and line_count:
+        item.max_section_lines = max(
+            item.max_section_lines, line_count - root_block_start + 1
+        )
     if item.markdown_heading_count and not item.max_section_lines:
         item.max_section_lines = line_count
     item.line_count = line_count
