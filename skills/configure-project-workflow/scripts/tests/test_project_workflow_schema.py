@@ -181,7 +181,7 @@ def rendered_config() -> Dict[str, Any]:
             "root": "docs_ai/adr",
             "index": "docs_ai/adr/README.md",
             "id_pattern": "ADR-[0-9]{4}",
-            "filename_pattern": "ADR-<ID>-<slug>.md",
+            "filename_pattern": "<ID>-<slug>.md",
             "statuses": {
                 "proposed": "proposed",
                 "accepted": "accepted",
@@ -289,6 +289,11 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
     def test_custom_adr_lifecycle_label_must_be_distinct(self) -> None:
         config = rendered_config()
         config["architecture_decisions"]["statuses"]["draft"] = "accepted"
+        self.assert_invalid(config)
+
+    def test_adr_lifecycle_label_must_not_be_whitespace_only(self) -> None:
+        config = rendered_config()
+        config["architecture_decisions"]["statuses"]["accepted"] = "   "
         self.assert_invalid(config)
 
     def test_each_context_conditional_has_positive_and_negative_coverage(self) -> None:

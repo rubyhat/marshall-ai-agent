@@ -1,4 +1,4 @@
-# ADR-<ID>: <Decision title>
+# <ID>: <Decision title>
 
 - Status: `<project-configured label for the semantic lifecycle state>`
 - Decision date: `<YYYY-MM-DD or pending>`

@@ -146,6 +146,8 @@ Read [supersede-architecture-decision.md](references/supersede-architecture-deci
 
 Use the configured project template. Fall back to
 [adr-template.md](assets/adr-template.md) only when no project template exists.
+Treat `<ID>` as the complete project-configured ADR identifier; never add a
+second fixed prefix to it in the title, filename, index, or links.
 
 Include only applicable content:
 

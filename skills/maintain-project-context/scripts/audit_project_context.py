@@ -69,6 +69,7 @@ STATUS_RE = re.compile(
 )
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 MARKDOWN_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\([^)]+\)")
+MARKDOWN_REFERENCE_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\[[^\]]*\]")
 SUPERSESSION_FIELD_RE = re.compile(
     r"^\s*(?:[-*]\s*)?superseded by\s*:\s*(.*?)\s*$",
     re.I,
@@ -146,7 +147,11 @@ def configured_task_ids(
     # Inspect visible inline-link labels separately. Splitting the raw Markdown
     # alone leaves the destination attached to identifiers such as
     # ``[TASK_123](https://tracker/123)`` and prevents an exact fullmatch.
-    candidate_sources = [line, *MARKDOWN_LINK_LABEL_RE.findall(line)]
+    candidate_sources = [
+        line,
+        *MARKDOWN_LINK_LABEL_RE.findall(line),
+        *MARKDOWN_REFERENCE_LINK_LABEL_RE.findall(line),
+    ]
     candidates = {
         raw.strip(TASK_ID_TOKEN_WRAPPERS)
         for source in candidate_sources
@@ -182,6 +187,28 @@ def markdown_fence_closes(line: str, character: str, minimum_length: int) -> boo
         and set(match.group(1)) == {character}
         and len(match.group(1)) >= minimum_length
     )
+
+
+def strip_markdown_html_comments(line: str, in_comment: bool) -> Tuple[str, bool]:
+    """Remove HTML comment segments while preserving visible line content."""
+    visible: List[str] = []
+    cursor = 0
+    while cursor < len(line):
+        if in_comment:
+            end = line.find("-->", cursor)
+            if end < 0:
+                return "".join(visible), True
+            cursor = end + 3
+            in_comment = False
+            continue
+        start = line.find("<!--", cursor)
+        if start < 0:
+            visible.append(line[cursor:])
+            break
+        visible.append(line[cursor:start])
+        cursor = start + 4
+        in_comment = True
+    return "".join(visible), in_comment
 
 
 def resolve_inside(root: Path, raw: str, label: str, require_exists: bool) -> Path:
@@ -381,6 +408,7 @@ def inspect_text(
     )
     fence_character: Optional[str] = None
     fence_length = 0
+    html_comment_open = False
     previous_setext_candidate: Optional[Tuple[int, str, Set[str]]] = None
 
     def register_heading(
@@ -425,13 +453,19 @@ def inspect_text(
                 if front_matter_end is not None and line_count <= front_matter_end:
                     previous_setext_candidate = None
                     continue
-                fence_match = MARKDOWN_FENCE_RE.match(line)
                 if fence_character is not None:
                     if markdown_fence_closes(line, fence_character, fence_length):
                         fence_character = None
                         fence_length = 0
                     previous_setext_candidate = None
                     continue
+                line, html_comment_open = strip_markdown_html_comments(
+                    line, html_comment_open
+                )
+                if not line.strip():
+                    previous_setext_candidate = None
+                    continue
+                fence_match = MARKDOWN_FENCE_RE.match(line)
                 if fence_match:
                     fence_character = fence_match.group(1)[0]
                     fence_length = len(fence_match.group(1))

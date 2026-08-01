@@ -112,12 +112,12 @@ def validate_semantics(
             for state, label in statuses.items():
                 if state == "proposed" and label is None:
                     continue
-                if not isinstance(label, str) or not label:
+                if not isinstance(label, str) or not label.strip():
                     errors.append(
                         f"architecture_decisions.statuses.{state} must be a non-empty label"
                     )
                 else:
-                    labels.append(label)
+                    labels.append(label.strip())
             duplicates = sorted({label for label in labels if labels.count(label) > 1})
             if duplicates:
                 errors.append(
