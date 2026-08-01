@@ -80,6 +80,8 @@ Canonical fact.
 
 ## Format `TASK_123 completed`
 
+## Literal backslash `TASK_456 completed\`
+
 TODO: verify the current prose boundary.
 """,
                 encoding="utf-8",

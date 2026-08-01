@@ -236,7 +236,9 @@ def mask_markdown_code_spans(line: str) -> str:
             close_end = close
             while close_end < length and line[close_end] == "`":
                 close_end += 1
-            if not escaped(close) and close_end - close == run_length:
+            # Once a code span is open, backslashes are literal content and do
+            # not escape a matching closing backtick run.
+            if close_end - close == run_length:
                 closing_end = close_end
                 break
             search = close_end
