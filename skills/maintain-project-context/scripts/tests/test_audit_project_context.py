@@ -233,6 +233,49 @@ completed"
             self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 0)
             self.assertEqual(by_path["memory/source.md"]["completed_markers"], 0)
 
+    def test_escaped_reference_links_do_not_use_definitions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "source.md"
+            source.write_text(
+                """# Source
+
+\\[shortcut]
+\\[Full reference][full]
+
+[shortcut]: missing-shortcut.md
+[full]: missing-full.md
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["broken_targets"], [])
+
     def test_multiline_reference_definition_does_not_cross_container(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -1001,6 +1044,7 @@ TODO blocked
             source = memory / "source.md"
             target = memory / "TODO.md"
             same_line_target = memory / "target.md"
+            multiline_label_target = memory / "label-target.md"
             source.write_text(
                 """# Source
 
@@ -1011,6 +1055,9 @@ TODO.md
 [Opening-line destination](TODO.md
 "title"
 )
+
+[Multiline
+label](label-target.md)
 
 [Missing guide](
 missing.md
@@ -1023,6 +1070,9 @@ missing.md
             )
             target.write_text("# Target\n", encoding="utf-8")
             same_line_target.write_text("# Same-line target\n", encoding="utf-8")
+            multiline_label_target.write_text(
+                "# Multiline label target\n", encoding="utf-8"
+            )
 
             result = subprocess.run(
                 [
@@ -1059,6 +1109,9 @@ missing.md
             )
             self.assertEqual(by_path["memory/TODO.md"]["incoming_links"], 1)
             self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+            self.assertEqual(
+                by_path["memory/label-target.md"]["incoming_links"], 1
+            )
             self.assertEqual(by_path["memory/source.md"]["markdown_headings"], 1)
             self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 1)
             self.assertEqual(by_path["memory/source.md"]["completed_markers"], 1)

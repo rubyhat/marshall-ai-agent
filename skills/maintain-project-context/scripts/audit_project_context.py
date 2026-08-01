@@ -397,20 +397,34 @@ def markdown_inline_links(line: str) -> List[Tuple[int, int, str, str]]:
 def markdown_multiline_inline_links(
     lines: Sequence[str], start_index: int, first_line: str
 ) -> Tuple[List[Tuple[int, int, str, str]], Dict[int, str]]:
-    if "](" not in first_line:
+    if "[" not in first_line:
         return [], {}
     first_content, container_tokens = markdown_container_details(first_line)
     initial_links = markdown_inline_links(first_content)
-    uncovered_markers: List[int] = []
+    uncovered_positions: Set[int] = set()
     marker_cursor = 0
     while True:
         marker = first_content.find("](", marker_cursor)
         if marker < 0:
             break
         if not any(start <= marker < end for start, end, _, _ in initial_links):
-            uncovered_markers.append(marker)
+            uncovered_positions.add(marker)
         marker_cursor = marker + 2
-    if not uncovered_markers:
+    opening_cursor = 0
+    while True:
+        opening = first_content.find("[", opening_cursor)
+        if opening < 0:
+            break
+        if (
+            not markdown_character_is_escaped(first_content, opening)
+            and not any(
+                start <= opening < end for start, end, _, _ in initial_links
+            )
+            and markdown_link_label_end(first_content, opening) is None
+        ):
+            uncovered_positions.add(opening)
+        opening_cursor = opening + 1
+    if not uncovered_positions:
         return [], {}
     combined = first_content
     continuation_segments: List[Tuple[int, int, str]] = [
@@ -436,8 +450,8 @@ def markdown_multiline_inline_links(
             break
         links = markdown_inline_links(combined)
         if any(
-            start <= marker < end
-            for marker in uncovered_markers
+            start <= position < end
+            for position in uncovered_positions
             for start, end, _, _ in links
         ):
             hidden_spans: List[Tuple[int, int]] = []
@@ -1485,15 +1499,31 @@ def inspect_text(
                     pending_reference_container_tokens = container_tokens
             elif markdown:
                 for reference_match in MARKDOWN_REFERENCE_LINK_RE.finditer(line):
+                    opening = reference_match.start()
+                    if line[opening : opening + 1] == "!":
+                        opening += 1
+                    if markdown_character_is_escaped(line, opening):
+                        continue
                     label = reference_match.group(2) or reference_match.group(1)
                     used_reference_labels.add(normalize_reference_label(label))
                 without_explicit_references = MARKDOWN_REFERENCE_LINK_RE.sub(
                     "", line
                 )
-                for label in MARKDOWN_REFERENCE_SHORTCUT_RE.findall(
+                for shortcut_match in MARKDOWN_REFERENCE_SHORTCUT_RE.finditer(
                     without_explicit_references
                 ):
-                    used_reference_labels.add(normalize_reference_label(label))
+                    opening = shortcut_match.start()
+                    if without_explicit_references[
+                        opening : opening + 1
+                    ] == "!":
+                        opening += 1
+                    if markdown_character_is_escaped(
+                        without_explicit_references, opening
+                    ):
+                        continue
+                    used_reference_labels.add(
+                        normalize_reference_label(shortcut_match.group(1))
+                    )
             line_task_ids = configured_task_ids(
                 "" if reference_definition else semantic_line, task_id_pattern
             )
