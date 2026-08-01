@@ -45,6 +45,7 @@ TEXT_EXTENSIONS = {
     ".csv",
     ".tsv",
 }
+MAX_MULTILINE_LINK_SCAN_CHARS = 1024 * 1024
 TASK_ID_TOKEN_WRAPPERS = "`*_[](){}<>.,:;!?\"'"
 DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
 MARKDOWN_HEADING_RE = re.compile(r"^[ ]{0,3}(#{1,6})(?:[ \t]+|$)")
@@ -152,6 +153,7 @@ class AuditFile:
     incoming_link_coverage: str = "not_checked"
     duplicate_group: Optional[str] = None
     fingerprint: Optional[str] = None
+    link_parse_incomplete: bool = False
 
 
 @dataclass(frozen=True)
@@ -189,22 +191,22 @@ class MarkdownHtmlTargetParser(HTMLParser):
         self.handle_starttag(tag, attrs)
 
 
-class MarkdownHtmlVisibleTextParser(HTMLParser):
-    """Reduce raw HTML to text that is actually rendered to the reader."""
-
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.parts: List[str] = []
-
-    def handle_data(self, data: str) -> None:
-        self.parts.append(data)
-
-
 def html_visible_signal_text(raw: str) -> str:
-    parser = MarkdownHtmlVisibleTextParser()
-    parser.feed(raw)
-    parser.close()
-    return "".join(parser.parts)
+    """Strip only syntactically complete raw HTML tags from visible text."""
+    pieces: List[str] = []
+    cursor = 0
+    while cursor < len(raw):
+        opening = raw.find("<", cursor)
+        if opening < 0:
+            pieces.append(raw[cursor:])
+            break
+        html_end = markdown_inline_html_token_end(raw, opening)
+        if html_end is None:
+            pieces.append(raw[cursor:])
+            break
+        pieces.append(raw[cursor:opening])
+        cursor = html_end
+    return html_unescape("".join(pieces))
 
 
 def fail(message: str, code: int = 2) -> None:
@@ -703,12 +705,12 @@ def markdown_nested_image_links(label: str) -> List[Tuple[str, str]]:
 
 def markdown_multiline_inline_links(
     lines: Sequence[str], start_index: int, first_line: str
-) -> Tuple[List[Tuple[int, int, str, str]], Dict[int, str]]:
+) -> Tuple[List[Tuple[int, int, str, str]], Dict[int, str], bool]:
     if "[" not in first_line:
-        return [], {}
+        return [], {}, False
     first_content, container_tokens = markdown_container_details(first_line)
     if MARKDOWN_HEADING_RE.match(first_content):
-        return [], {}
+        return [], {}, False
     initial_links = markdown_inline_links(first_content)
     uncovered_positions: Set[int] = set()
     marker_cursor = 0
@@ -734,15 +736,12 @@ def markdown_multiline_inline_links(
             uncovered_positions.add(opening)
         opening_cursor = opening + 1
     if not uncovered_positions:
-        return [], {}
+        return [], {}, False
     combined = first_content
     continuation_segments: List[Tuple[int, int, str]] = [
         (start_index, 0, first_content)
     ]
-    for offset in range(1, 8):
-        future_index = start_index + offset
-        if future_index >= len(lines):
-            break
+    for future_index in range(start_index + 1, len(lines)):
         future_line = markdown_paragraph_continuation(
             lines[future_index], container_tokens
         )
@@ -755,8 +754,8 @@ def markdown_multiline_inline_links(
         segment_start = len(combined)
         combined += future_line
         continuation_segments.append((future_index, segment_start, future_line))
-        if len(combined) > 4096:
-            break
+        if len(combined) > MAX_MULTILINE_LINK_SCAN_CHARS:
+            return [], {}, True
         links = markdown_inline_links(combined)
         if any(
             start <= position < end
@@ -789,8 +788,8 @@ def markdown_multiline_inline_links(
                     cursor = max(cursor, overlap_end)
                 visible_parts.append(content[cursor - segment_start :])
                 line_overrides[line_index] = "".join(visible_parts)
-            return links, line_overrides
-    return [], {}
+            return links, line_overrides, False
+    return [], {}, False
 
 
 def decode_markdown_escapes_and_entities(raw: str) -> str:
@@ -1740,9 +1739,13 @@ def inspect_text(
             semantic_line = line
             inline_links = markdown_inline_links(line)
             if markdown:
-                multiline_links, line_overrides = markdown_multiline_inline_links(
-                    lines, line_index, line
-                )
+                (
+                    multiline_links,
+                    line_overrides,
+                    multiline_scan_incomplete,
+                ) = markdown_multiline_inline_links(lines, line_index, line)
+                if multiline_scan_incomplete:
+                    item.link_parse_incomplete = True
                 if multiline_links:
                     inline_links = multiline_links
                     semantic_line = line_overrides.get(line_index, line)
@@ -2396,6 +2399,9 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
                 ] += 1
                 reference_scan_incomplete = True
                 continue
+            if item.link_parse_incomplete:
+                skipped["reference_parse_limit"] += 1
+                reference_scan_incomplete = True
             link_source_files_scanned += 1
             if is_external_source:
                 external_link_source_files_scanned += 1
