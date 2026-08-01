@@ -367,9 +367,11 @@ completed"
             references.mkdir()
             (history / "target.md").write_text("# Target\n", encoding="utf-8")
             (history / "image.md").write_text("# Image\n", encoding="utf-8")
+            (history / "object.md").write_text("# Object\n", encoding="utf-8")
             (references / "source.md").write_text(
                 """<a href="../history/target.md">Target</a>
 <img src='../history/image.md' alt="Image">
+<object data="../history/object.md"></object>
 """,
                 encoding="utf-8",
             )
@@ -400,6 +402,7 @@ completed"
             by_path = {item["path"]: item for item in report["largest_files"]}
             self.assertEqual(by_path["history/target.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/image.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["history/object.md"]["incoming_links"], 1)
             self.assertTrue(
                 report["link_coverage"]["complete_for_declared_roots"]
             )

@@ -46,6 +46,28 @@ TEXT_EXTENSIONS = {
     ".tsv",
 }
 MAX_MULTILINE_LINK_SCAN_CHARS = 1024 * 1024
+HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
+    "a": {"href"},
+    "area": {"href"},
+    "audio": {"src"},
+    "base": {"href"},
+    "blockquote": {"cite"},
+    "button": {"formaction"},
+    "del": {"cite"},
+    "embed": {"src"},
+    "form": {"action"},
+    "iframe": {"src"},
+    "img": {"src", "srcset"},
+    "input": {"formaction", "src"},
+    "ins": {"cite"},
+    "link": {"href", "imagesrcset"},
+    "object": {"data"},
+    "q": {"cite"},
+    "script": {"src"},
+    "source": {"src", "srcset"},
+    "track": {"src"},
+    "video": {"poster", "src"},
+}
 TASK_ID_TOKEN_WRAPPERS = "`*_[](){}<>.,:;!?\"'"
 DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
 MARKDOWN_HEADING_RE = re.compile(r"^[ ]{0,3}(#{1,6})(?:[ \t]+|$)")
@@ -180,9 +202,19 @@ class MarkdownHtmlTargetParser(HTMLParser):
     def handle_starttag(
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
     ) -> None:
-        del tag
+        resource_attributes = HTML_RESOURCE_ATTRIBUTES.get(tag.casefold(), set())
         for name, value in attrs:
-            if name.casefold() in {"href", "src"} and value:
+            normalized_name = name.casefold()
+            if normalized_name not in resource_attributes or not value:
+                continue
+            if normalized_name in {"srcset", "imagesrcset"}:
+                if value.lstrip().casefold().startswith("data:"):
+                    continue
+                for candidate in value.split(","):
+                    parts = candidate.strip().split(maxsplit=1)
+                    if parts:
+                        self.targets.add(parts[0])
+            else:
                 self.targets.add(value)
 
     def handle_startendtag(
