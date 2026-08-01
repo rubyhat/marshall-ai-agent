@@ -132,7 +132,12 @@ def regex_matches_only_safe_adr_id_characters(pattern: str) -> bool:
                     return None
                 pieces.append(child * minimum)
             elif name in {"SUBPATTERN", "ATOMIC_GROUP"}:
-                child = argument[-1] if name == "SUBPATTERN" else argument
+                if name == "SUBPATTERN":
+                    _, added_flags, removed_flags, child = argument
+                    if added_flags or removed_flags:
+                        return None
+                else:
+                    child = argument
                 child_witness = safe_witness(child)
                 if child_witness is None:
                     return None
@@ -158,6 +163,8 @@ def regex_matches_only_safe_adr_id_characters(pattern: str) -> bool:
         compiled = re.compile(pattern)
         parsed = sre_parse.parse(pattern)
     except re.error:
+        return False
+    if compiled.flags != re.UNICODE:
         return False
     witness = safe_witness(parsed)
     return bool(

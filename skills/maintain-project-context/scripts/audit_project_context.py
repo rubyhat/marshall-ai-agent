@@ -72,8 +72,19 @@ STATUS_RE = re.compile(
 )
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 MARKDOWN_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\([^)]+\)")
-MARKDOWN_REFERENCE_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\[[^\]]*\]")
+MARKDOWN_REFERENCE_LINK_RE = re.compile(
+    r"(?<!!)!?\[([^\]]+)\]\[([^\]]*)\]"
+)
+MARKDOWN_REFERENCE_LINK_LABEL_RE = re.compile(
+    r"(?<!!)!?\[([^\]]+)\]\[[^\]]*\]"
+)
+MARKDOWN_REFERENCE_SHORTCUT_RE = re.compile(
+    r"(?<!!)!?\[([^\]]+)\](?![\[(:])"
+)
 MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(r"^[ ]{0,3}\[[^\]]+\]:")
+MARKDOWN_REFERENCE_DEFINITION_TARGET_RE = re.compile(
+    r"^[ ]{0,3}\[([^\]]+)\]:[ \t]*(?:<([^>\r\n]+)>|([^ \t\r\n]+))"
+)
 MARKDOWN_HTML_COMMENT_BLOCK_START_RE = re.compile(r"^[ ]{0,3}<!--")
 MARKDOWN_RAW_HTML_TAG_RE = re.compile(
     r"^[ ]{0,3}<(?P<tag>script|pre|style|textarea)(?:[ \t>]|$)", re.I
@@ -219,6 +230,22 @@ def markdown_visible_signal_text(line: str) -> str:
     )
 
 
+def normalize_reference_label(raw: str) -> str:
+    return " ".join(raw.split()).casefold()
+
+
+def markdown_indentation_columns(line: str) -> int:
+    columns = 0
+    for character in line:
+        if character == " ":
+            columns += 1
+        elif character == "\t":
+            columns += 4 - (columns % 4)
+        else:
+            break
+    return columns
+
+
 def matching_backtick_run_end(
     line: str, start: int, run_length: int
 ) -> Optional[int]:
@@ -253,7 +280,7 @@ def future_paragraph_has_backtick_run(
             or MARKDOWN_HTML_COMMENT_BLOCK_START_RE.match(future_line)
             or MARKDOWN_REFERENCE_DEFINITION_RE.match(future_line)
             or MARKDOWN_NON_PARAGRAPH_PREFIX_RE.match(future_line)
-            or future_line.startswith(("\t", "    "))
+            or markdown_indentation_columns(future_line) >= 4
         ):
             return False
         if matching_backtick_run_end(future_line, 0, run_length) is not None:
@@ -565,6 +592,8 @@ def inspect_text(
     html_comment_open = False
     inline_code_span_length = 0
     previous_setext_candidate: Optional[Tuple[int, str, Set[str]]] = None
+    reference_definitions: Dict[str, str] = {}
+    used_reference_labels: Set[str] = set()
 
     def register_heading(
         heading_level: int,
@@ -671,13 +700,33 @@ def inspect_text(
                     fence_length = len(fence_match.group(1))
                     previous_setext_candidate = None
                     continue
-                if line.startswith("\t") or line.startswith("    "):
+                if markdown_indentation_columns(line) >= 4:
                     previous_setext_candidate = None
                     continue
 
+            definition_match = (
+                MARKDOWN_REFERENCE_DEFINITION_TARGET_RE.match(line)
+                if markdown
+                else None
+            )
             reference_definition = bool(
                 markdown and MARKDOWN_REFERENCE_DEFINITION_RE.match(line)
             )
+            if definition_match:
+                label = normalize_reference_label(definition_match.group(1))
+                target = definition_match.group(2) or definition_match.group(3)
+                reference_definitions.setdefault(label, target)
+            elif markdown:
+                for reference_match in MARKDOWN_REFERENCE_LINK_RE.finditer(line):
+                    label = reference_match.group(2) or reference_match.group(1)
+                    used_reference_labels.add(normalize_reference_label(label))
+                without_explicit_references = MARKDOWN_REFERENCE_LINK_RE.sub(
+                    "", line
+                )
+                for label in MARKDOWN_REFERENCE_SHORTCUT_RE.findall(
+                    without_explicit_references
+                ):
+                    used_reference_labels.add(normalize_reference_label(label))
             line_task_ids = configured_task_ids(
                 "" if reference_definition else line, task_id_pattern
             )
@@ -738,6 +787,13 @@ def inspect_text(
                     )
                 else:
                     previous_setext_candidate = None
+    for label in used_reference_labels:
+        raw_target = reference_definitions.get(label)
+        if raw_target is None:
+            continue
+        normalized = normalize_link_target(root, item.absolute_path, raw_target)
+        if normalized is not None:
+            links.add(normalized)
     for _, section_start in open_sections:
         item.max_section_lines = max(
             item.max_section_lines, line_count - section_start + 1

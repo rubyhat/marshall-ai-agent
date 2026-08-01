@@ -314,6 +314,7 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
             r"ADR-.*",
             r"[A-Z]*",
             r"A(?=B)",
+            r"(?i:k+)",
         ):
             with self.subTest(pattern=pattern):
                 config = rendered_config()
