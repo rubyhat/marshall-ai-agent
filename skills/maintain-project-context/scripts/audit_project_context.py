@@ -764,6 +764,8 @@ def markdown_link_destination(
         if character == "\\":
             cursor += 2
             continue
+        if character in "<>":
+            return None
         if character == "(":
             parenthesis_depth += 1
         elif character == ")":
@@ -792,7 +794,10 @@ def markdown_inline_links(line: str) -> List[Tuple[int, int, str, str]]:
             cursor = opening + 1
             continue
         label_end = markdown_link_label_end(line, opening)
-        if label_end is None or label_end + 1 >= len(line):
+        if label_end is None:
+            cursor = opening + 1
+            continue
+        if label_end + 1 >= len(line):
             break
         label = line[opening + 1 : label_end]
         is_image = bool(

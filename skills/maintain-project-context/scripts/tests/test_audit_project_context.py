@@ -358,6 +358,98 @@ completed"
                 1,
             )
 
+    def test_inline_link_after_unmatched_opening_bracket_is_counted(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                "[ note [target](../context/target.md)\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["path"], "context/target.md")
+            self.assertEqual(target["incoming_links"], 1)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
+    def test_bare_inline_destinations_reject_unescaped_angle_characters(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "foo<bar.md").write_text("# Less than\n", encoding="utf-8")
+            (context / "foo>bar.md").write_text("# Greater than\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                """[fake-lt](../context/foo<bar.md)
+[fake-gt](../context/foo>bar.md)
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["context/foo<bar.md"]["incoming_links"], 0)
+            self.assertEqual(by_path["context/foo>bar.md"]["incoming_links"], 0)
+            self.assertFalse(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+            self.assertEqual(
+                report["summary"]["skipped"]["reference_parse_incomplete"], 1
+            )
+
     def test_reference_root_counts_local_targets_in_raw_html(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
