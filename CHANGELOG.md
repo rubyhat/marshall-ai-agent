@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.2.1...v0.3.0) (2026-08-01)
+
+
+### Новые возможности
+
+* **workflow:** add topology onboarding and spec continuation ([843f06c](https://github.com/rubyhat/marshall-ai-agent/commit/843f06ce79bab0ca89d6f485feac8eccf6cec471))
+
 ## [0.2.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.2.0...v0.2.1) (2026-07-28)
 
 
