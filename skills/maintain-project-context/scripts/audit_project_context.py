@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import string
 import subprocess
 import sys
 from collections import Counter, defaultdict
@@ -91,6 +92,9 @@ MARKDOWN_REFERENCE_DEFINITION_TARGET_RE = re.compile(
 )
 MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE = re.compile(
     r"^[ ]{1,3}(?:<([^>\r\n]+)>|([^ \t\r\n]+))"
+)
+MARKDOWN_CHARACTER_REFERENCE_RE = re.compile(
+    r"&(?:#[xX][0-9A-Fa-f]{1,8}|#[0-9]{1,8}|[A-Za-z][A-Za-z0-9]{1,31});"
 )
 MARKDOWN_HTML_COMMENT_BLOCK_START_RE = re.compile(r"^[ ]{0,3}<!--")
 MARKDOWN_RAW_HTML_TAG_RE = re.compile(
@@ -486,7 +490,30 @@ def markdown_multiline_inline_links(
 
 
 def normalize_reference_label(raw: str) -> str:
-    return " ".join(raw.split()).casefold()
+    decoded: List[str] = []
+    cursor = 0
+    while cursor < len(raw):
+        character = raw[cursor]
+        if (
+            character == "\\"
+            and cursor + 1 < len(raw)
+            and raw[cursor + 1] in string.punctuation
+        ):
+            decoded.append(raw[cursor + 1])
+            cursor += 2
+            continue
+        if character == "&":
+            entity = MARKDOWN_CHARACTER_REFERENCE_RE.match(raw, cursor)
+            if entity:
+                token = entity.group(0)
+                replacement = html_unescape(token)
+                if replacement != token:
+                    decoded.append(replacement)
+                    cursor = entity.end()
+                    continue
+        decoded.append(character)
+        cursor += 1
+    return " ".join("".join(decoded).split()).casefold()
 
 
 def markdown_indentation_columns(line: str) -> int:
