@@ -863,6 +863,51 @@ missing.md
                 candidate_by_path["memory/source.md"]["review_hints"],
             )
 
+    def test_multiline_inline_link_stops_at_heading_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+[Guide](
+# "TASK_123 completed")
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 2)
+            self.assertEqual(largest["task_headings"], 1)
+            self.assertEqual(largest["task_ids"], ["TASK_123"])
+            self.assertEqual(largest["completed_markers"], 1)
+
     def test_ordered_list_paragraph_continuation_is_not_indented_code(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -1051,6 +1096,51 @@ Active paragraph.
                 "mixed_lifecycle_signal",
                 report["candidates"][0]["review_hints"],
             )
+
+    def test_list_indent_preserves_residual_tab_columns(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+- Canonical fact
+\t  ## TASK_123 completed
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["markdown_headings"], 1)
+            self.assertEqual(largest["task_headings"], 0)
+            self.assertEqual(largest["task_id_count"], 0)
+            self.assertEqual(largest["completed_markers"], 0)
 
     def test_type_7_html_block_starts_after_entering_new_container(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -1371,6 +1461,9 @@ Visible text <!-- unclosed comment
 
 ## TASK_123 completed
 
+Visible text <!-- unclosed comment
+## TASK_456 completed
+
 TODO blocked
 """,
                 encoding="utf-8",
@@ -1402,10 +1495,10 @@ TODO blocked
             self.assertEqual(result.returncode, 0, result.stderr)
             report = json.loads(result.stdout)
             largest = report["largest_files"][0]
-            self.assertEqual(largest["markdown_headings"], 2)
-            self.assertEqual(largest["task_headings"], 1)
-            self.assertEqual(largest["task_ids"], ["TASK_123"])
-            self.assertEqual(largest["completed_markers"], 1)
+            self.assertEqual(largest["markdown_headings"], 3)
+            self.assertEqual(largest["task_headings"], 2)
+            self.assertEqual(largest["task_ids"], ["TASK_123", "TASK_456"])
+            self.assertEqual(largest["completed_markers"], 2)
             self.assertEqual(largest["unresolved_markers"], 2)
 
     def test_reference_definitions_inside_block_quote_feed_link_metrics(self) -> None:

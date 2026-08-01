@@ -419,7 +419,11 @@ def markdown_multiline_inline_links(
         future_line = markdown_paragraph_continuation(
             lines[future_index], container_tokens
         )
-        if future_line is None or not future_line.strip():
+        if (
+            future_line is None
+            or not future_line.strip()
+            or markdown_line_interrupts_paragraph(future_line)
+        ):
             break
         segment_start = len(combined)
         combined += future_line
@@ -501,10 +505,6 @@ def markdown_list_item_prefix(line: str) -> Optional[Tuple[int, int]]:
     return end, markdown_text_columns(line[:end])
 
 
-def markdown_container_paragraph_content(line: str) -> str:
-    return markdown_container_details(line)[0]
-
-
 def strip_indentation_columns(line: str, required_columns: int) -> Optional[str]:
     columns = 0
     cursor = 0
@@ -517,7 +517,9 @@ def strip_indentation_columns(line: str, required_columns: int) -> Optional[str]
         else:
             return None
         cursor += 1
-    return line[cursor:] if columns >= required_columns else None
+    if columns < required_columns:
+        return None
+    return " " * (columns - required_columns) + line[cursor:]
 
 
 def markdown_one_block_quote_content(line: str) -> Optional[str]:
@@ -597,18 +599,39 @@ def markdown_paragraph_continuation(
             and markdown_indentation_columns(current_content) < 4
         )
         return current_content if lazy_container_continuation else None
-    _, nested_tokens = markdown_container_details(content)
-    if not nested_tokens:
-        return content
-    list_match = MARKDOWN_LIST_ITEM_RE.match(content)
-    if list_match:
-        marker = list_match.group("marker")
-        list_item = markdown_list_item_prefix(content)
-        item_content = content[list_item[0] :] if list_item is not None else ""
-        ordered_starts_at_one = not marker[0].isdigit() or int(marker[:-1]) == 1
-        if not ordered_starts_at_one or not item_content.strip():
-            return content
-    return None
+    if markdown_line_interrupts_paragraph(content):
+        return None
+    if (
+        any(kind == "list" for kind, _ in tokens)
+        and markdown_indentation_columns(content) >= 4
+    ):
+        return None
+    return content
+
+
+def markdown_list_interrupts_paragraph(line: str) -> bool:
+    list_match = MARKDOWN_LIST_ITEM_RE.match(line)
+    if not list_match:
+        return False
+    marker = list_match.group("marker")
+    list_item = markdown_list_item_prefix(line)
+    item_content = line[list_item[0] :] if list_item is not None else ""
+    ordered_starts_at_one = not marker[0].isdigit() or int(marker[:-1]) == 1
+    return ordered_starts_at_one and bool(item_content.strip())
+
+
+def markdown_line_interrupts_paragraph(line: str) -> bool:
+    return bool(
+        MARKDOWN_HEADING_RE.match(line)
+        or markdown_fence_opens(line)
+        or MARKDOWN_SETEXT_RE.match(line)
+        or MARKDOWN_THEMATIC_BREAK_RE.match(line)
+        or markdown_html_block_start(line, allow_type_7=False) is not None
+        or MARKDOWN_HTML_COMMENT_BLOCK_START_RE.match(line)
+        or MARKDOWN_REFERENCE_DEFINITION_RE.match(line)
+        or markdown_one_block_quote_content(line) is not None
+        or markdown_list_interrupts_paragraph(line)
+    )
 
 
 def matching_backtick_run_end(
@@ -1061,6 +1084,12 @@ def inspect_text(
                     if paragraph_active
                     else None
                 )
+                if (
+                    html_comment_open
+                    and not html_comment_block_open
+                    and paragraph_continuation_line is None
+                ):
+                    html_comment_open = False
                 if front_matter_end is not None and line_count <= front_matter_end:
                     paragraph_active = False
                     previous_setext_candidate = None
