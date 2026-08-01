@@ -1935,9 +1935,9 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
         if not reference_roots:
             link_coverage_status = "scoped_only_incomplete"
         elif reference_scan_incomplete:
-            link_coverage_status = "configured_reference_roots_with_skips_incomplete"
+            link_coverage_status = "declared_reference_roots_with_skips_incomplete"
         else:
-            link_coverage_status = "configured_reference_roots"
+            link_coverage_status = "declared_reference_roots"
         for item in files:
             item.incoming_link_count = incoming[item.absolute_path.resolve(strict=False)]
             item.incoming_link_coverage = link_coverage_status
@@ -2007,8 +2007,9 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
         "scopes": [scope.relative_to(root).as_posix() or "." for scope in scopes],
         "link_coverage": {
             "status": link_coverage_status,
-            "complete_for_configured_roots": link_coverage_status
-            == "configured_reference_roots",
+            "complete_for_declared_roots": link_coverage_status
+            == "declared_reference_roots",
+            "configuration_match": "not_checked_by_script",
             "reference_roots": [
                 path.relative_to(root).as_posix() or "." for path in reference_roots
             ],

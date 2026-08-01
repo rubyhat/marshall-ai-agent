@@ -289,7 +289,7 @@ completed"
                 scoped_target["incoming_links_coverage"], "scoped_only_incomplete"
             )
             self.assertFalse(
-                scoped_report["link_coverage"]["complete_for_configured_roots"]
+                scoped_report["link_coverage"]["complete_for_declared_roots"]
             )
 
             self.assertEqual(configured_result.returncode, 0, configured_result.stderr)
@@ -303,10 +303,14 @@ completed"
             self.assertEqual(configured_target["incoming_links"], 1)
             self.assertEqual(
                 configured_target["incoming_links_coverage"],
-                "configured_reference_roots",
+                "declared_reference_roots",
             )
             self.assertTrue(
-                configured_report["link_coverage"]["complete_for_configured_roots"]
+                configured_report["link_coverage"]["complete_for_declared_roots"]
+            )
+            self.assertEqual(
+                configured_report["link_coverage"]["configuration_match"],
+                "not_checked_by_script",
             )
             self.assertEqual(
                 configured_report["link_coverage"]["external_source_files_scanned"],

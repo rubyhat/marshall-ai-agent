@@ -97,9 +97,11 @@ For each surfaced candidate:
 2. Resolve the canonical owner and any replacement.
 3. Check active blockers and unresolved markers in context.
 4. Check incoming references, maps, configured paths, and external spec links.
-   Do not treat zero incoming links as manifest evidence unless coverage is
-   complete for all configured reference roots and the audit reports no skipped
-   reference sources.
+   The script validates only its declared roots and explicitly does not compare
+   them with project configuration. Do not treat zero incoming links as manifest
+   evidence unless the report's exact root list matches the configuration,
+   coverage is complete for those declared roots, and no reference source was
+   skipped.
 5. Check whether Git provides a committed recovery source.
 6. Apply the retention policy classification.
 

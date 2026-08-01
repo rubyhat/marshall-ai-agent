@@ -360,6 +360,15 @@ def validate_semantics(
 
     context_maintenance = memory_mapping.get("context_maintenance")
     if (
+        "maintain-project-context" in selected
+        and isinstance(context_maintenance, dict)
+        and "reference_roots" not in context_maintenance
+    ):
+        errors.append(
+            "memory.context_maintenance.reference_roots is required by "
+            "maintain-project-context"
+        )
+    if (
         isinstance(context_maintenance, dict)
         and "reference_roots" in context_maintenance
     ):

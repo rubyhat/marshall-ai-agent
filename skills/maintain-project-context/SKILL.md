@@ -111,13 +111,15 @@ python3 scripts/audit_project_context.py \
 ```
 
 Repeat path flags as needed. Pass every configured reference-bearing root even
-when auditing only one logical layer; otherwise the report marks incoming-link
-counts as incomplete and they must not be used to omit `update_reference`
-operations from a cleanup manifest. Pass the project's configured Task ID
-validation regex when one exists; without it, the script omits Task-ID counts and
-task-chronology signals instead of guessing from hyphenated words. Use `--format
-json` when structured output is useful. The script accepts no mutation flags
-and prints no file contents.
+when auditing only one logical layer. The script proves coverage only for the
+declared CLI roots; compare the report's exact `reference_roots` list with the
+project configuration before treating it as complete. A mismatch, no declared
+roots, or skipped sources makes incoming-link counts insufficient to omit
+`update_reference` operations from a cleanup manifest. Pass the project's
+configured Task ID validation regex when one exists; without it, the script
+omits Task-ID counts and task-chronology signals instead of guessing from
+hyphenated words. Use `--format json` when structured output is useful. The
+script accepts no mutation flags and prints no file contents.
 
 If Python 3.9+ is unavailable, follow the bounded macOS/Linux fallback in [audit-project-context.md](references/audit-project-context.md). Do not install Python or packages automatically.
 

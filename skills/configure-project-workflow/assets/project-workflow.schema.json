@@ -152,7 +152,8 @@
             "audit_before_cleanup",
             "exact_manifest_approval_required",
             "section_level_compaction_for_mixed_canonical",
-            "diagnostic_metrics_are_not_retention_rules"
+            "diagnostic_metrics_are_not_retention_rules",
+            "reference_roots"
           ],
           "properties": {
             "manual_only": {"const": true},

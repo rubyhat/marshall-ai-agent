@@ -482,6 +482,11 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                 ] = reference_roots
                 self.assert_invalid(config)
 
+    def test_context_reference_roots_are_required_for_maintenance(self) -> None:
+        config = rendered_config()
+        del config["memory"]["context_maintenance"]["reference_roots"]
+        self.assert_invalid(config)
+
     def test_each_context_conditional_has_positive_and_negative_coverage(self) -> None:
         policy_by_module = {
             "load-project-context": "context_loading",
