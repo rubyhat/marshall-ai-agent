@@ -81,12 +81,7 @@ MARKDOWN_REFERENCE_SHORTCUT_RE = re.compile(
 MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(
     r"^[ ]{0,3}\[((?:\\.|[^\]\\])+)\]:"
 )
-MARKDOWN_REFERENCE_DEFINITION_TARGET_RE = re.compile(
-    r"^[ ]{0,3}\[((?:\\.|[^\]\\])+)\]:[ \t]*(?:<([^>\r\n]*)>|([^ \t\r\n]+))"
-)
-MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE = re.compile(
-    r"^[ ]{1,3}(?:<([^>\r\n]*)>|([^ \t\r\n]+))"
-)
+MARKDOWN_REFERENCE_CONTINUATION_PREFIX_RE = re.compile(r"^[ ]{1,3}")
 MARKDOWN_CHARACTER_REFERENCE_RE = re.compile(
     r"&(?:#[xX][0-9A-Fa-f]{1,8}|#[0-9]{1,8}|[A-Za-z][A-Za-z0-9]{1,31});"
 )
@@ -156,6 +151,20 @@ class AuditFile:
     incoming_link_coverage: str = "not_checked"
     duplicate_group: Optional[str] = None
     fingerprint: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class MarkdownReferenceTargetMatch:
+    """Small match-compatible value for parsed reference destinations."""
+
+    groups: Tuple[Optional[str], ...]
+    end_position: int
+
+    def group(self, index: int) -> Optional[str]:
+        return self.groups[index - 1]
+
+    def end(self) -> int:
+        return self.end_position
 
 
 def fail(message: str, code: int = 2) -> None:
@@ -395,6 +404,67 @@ def markdown_reference_links(
         )
         cursor = reference_end + 1
     return links
+
+
+def markdown_reference_destination_target(
+    line: str, start: int
+) -> Optional[Tuple[Optional[str], Optional[str], int]]:
+    """Parse one reference destination while honoring backslash escapes."""
+    cursor = start
+    while cursor < len(line) and line[cursor] in " \t":
+        cursor += 1
+    if cursor >= len(line):
+        return None
+    if line[cursor] == "<":
+        destination_start = cursor + 1
+        cursor += 1
+        while cursor < len(line):
+            if line[cursor] == "\\":
+                cursor += 2
+                continue
+            if line[cursor] == ">":
+                return line[destination_start:cursor], None, cursor + 1
+            if line[cursor] in "\r\n<":
+                return None
+            cursor += 1
+        return None
+    destination_start = cursor
+    while cursor < len(line) and line[cursor] not in " \t\r\n":
+        if line[cursor] == "\\":
+            cursor += 2
+        else:
+            cursor += 1
+    if destination_start == cursor:
+        return None
+    return None, line[destination_start:cursor], cursor
+
+
+def markdown_reference_definition_target(
+    line: str,
+) -> Optional[MarkdownReferenceTargetMatch]:
+    prefix = MARKDOWN_REFERENCE_DEFINITION_RE.match(line)
+    if prefix is None:
+        return None
+    destination = markdown_reference_destination_target(line, prefix.end())
+    if destination is None:
+        return None
+    angle_target, bare_target, end = destination
+    return MarkdownReferenceTargetMatch(
+        (prefix.group(1), angle_target, bare_target), end
+    )
+
+
+def markdown_reference_continuation_target(
+    line: str,
+) -> Optional[MarkdownReferenceTargetMatch]:
+    prefix = MARKDOWN_REFERENCE_CONTINUATION_PREFIX_RE.match(line)
+    if prefix is None:
+        return None
+    destination = markdown_reference_destination_target(line, prefix.end())
+    if destination is None:
+        return None
+    angle_target, bare_target, end = destination
+    return MarkdownReferenceTargetMatch((angle_target, bare_target), end)
 
 
 def markdown_link_title_close(line: str, cursor: int) -> Optional[int]:
@@ -1214,8 +1284,6 @@ def git_inventory(root: Path) -> Tuple[bool, Set[str], Dict[str, str]]:
 
 def normalize_link_target(root: Path, source: Path, raw_target: str) -> Optional[Path]:
     target = decode_markdown_escapes_and_entities(raw_target.strip())
-    if target.startswith("<") and ">" in target:
-        target = target[1 : target.index(">")]
     target = unquote(target.split("#", 1)[0].split("?", 1)[0].strip())
     if (
         not target
@@ -1223,7 +1291,7 @@ def normalize_link_target(root: Path, source: Path, raw_target: str) -> Optional
         or URI_SCHEME_RE.match(target)
     ):
         return None
-    if any(token in target for token in ("<", ">", "{", "}", "$")):
+    if any(token in target for token in ("{", "}", "$")):
         return None
     candidate = root / target.lstrip("/") if target.startswith("/") else source.parent / target
     candidate = candidate.resolve(strict=False)
@@ -1575,7 +1643,7 @@ def inspect_text(
             ):
                 definition_prefix_match = None
             definition_match = (
-                MARKDOWN_REFERENCE_DEFINITION_TARGET_RE.match(reference_line)
+                markdown_reference_definition_target(reference_line)
                 if markdown and paragraph_continuation_line is None
                 else None
             )
@@ -1662,7 +1730,7 @@ def inspect_text(
                                 consumed_title_lines
                             )
             continuation_match = (
-                MARKDOWN_REFERENCE_CONTINUATION_TARGET_RE.match(reference_line)
+                markdown_reference_continuation_target(reference_line)
                 if reference_container_continues
                 else None
             )
