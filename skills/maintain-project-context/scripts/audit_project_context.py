@@ -200,7 +200,50 @@ def markdown_visible_signal_text(line: str) -> str:
     )
 
 
-def sanitize_markdown_inline(line: str, in_comment: bool) -> Tuple[str, bool]:
+def matching_backtick_run_end(
+    line: str, start: int, run_length: int
+) -> Optional[int]:
+    search = start
+    while search < len(line):
+        close = line.find("`", search)
+        if close < 0:
+            return None
+        close_end = close
+        while close_end < len(line) and line[close_end] == "`":
+            close_end += 1
+        if close_end - close == run_length:
+            return close_end
+        search = close_end
+    return None
+
+
+def future_paragraph_has_backtick_run(
+    lines: Sequence[str], start_index: int, run_length: int
+) -> bool:
+    for line_index in range(start_index, len(lines)):
+        future_line = lines[line_index]
+        if (
+            not future_line.strip()
+            or MARKDOWN_HEADING_RE.match(future_line)
+            or MARKDOWN_FENCE_RE.match(future_line)
+            or MARKDOWN_SETEXT_RE.match(future_line)
+            or MARKDOWN_REFERENCE_DEFINITION_RE.match(future_line)
+            or MARKDOWN_NON_PARAGRAPH_PREFIX_RE.match(future_line)
+            or future_line.startswith(("\t", "    "))
+        ):
+            return False
+        if matching_backtick_run_end(future_line, 0, run_length) is not None:
+            return True
+    return False
+
+
+def sanitize_markdown_inline(
+    line: str,
+    in_comment: bool,
+    code_span_length: int,
+    lines: Sequence[str],
+    next_line_index: int,
+) -> Tuple[str, bool, int]:
     """Mask code spans and remove comments in their lexical order."""
     result: List[str] = []
     cursor = 0
@@ -215,10 +258,21 @@ def sanitize_markdown_inline(line: str, in_comment: bool) -> Tuple[str, bool]:
         return backslashes % 2 == 1
 
     while cursor < length:
+        if code_span_length:
+            closing_end = matching_backtick_run_end(
+                line, cursor, code_span_length
+            )
+            if closing_end is None:
+                result.append(" " * (length - cursor))
+                return "".join(result), in_comment, code_span_length
+            result.append(" " * (closing_end - cursor))
+            cursor = closing_end
+            code_span_length = 0
+            continue
         if in_comment:
             comment_end = line.find("-->", cursor)
             if comment_end < 0:
-                return "".join(result), True
+                return "".join(result), True, code_span_length
             cursor = comment_end + 3
             in_comment = False
             continue
@@ -242,29 +296,21 @@ def sanitize_markdown_inline(line: str, in_comment: bool) -> Tuple[str, bool]:
         while opening_end < length and line[opening_end] == "`":
             opening_end += 1
         run_length = opening_end - start
-        search = opening_end
-        closing_end: Optional[int] = None
-        while search < length:
-            close = line.find("`", search)
-            if close < 0:
-                break
-            close_end = close
-            while close_end < length and line[close_end] == "`":
-                close_end += 1
-            # Once a code span is open, backslashes are literal content and do
-            # not escape a matching closing backtick run.
-            if close_end - close == run_length:
-                closing_end = close_end
-                break
-            search = close_end
+        closing_end = matching_backtick_run_end(line, opening_end, run_length)
         if closing_end is None:
+            if future_paragraph_has_backtick_run(
+                lines, next_line_index, run_length
+            ):
+                result.append(line[cursor:start])
+                result.append(" " * (length - start))
+                return "".join(result), in_comment, run_length
             result.append(line[cursor:opening_end])
             cursor = opening_end
             continue
         result.append(line[cursor:start])
         result.append(" " * (closing_end - start))
         cursor = closing_end
-    return "".join(result), in_comment
+    return "".join(result), in_comment, code_span_length
 
 
 def resolve_inside(root: Path, raw: str, label: str, require_exists: bool) -> Path:
@@ -465,6 +511,7 @@ def inspect_text(
     fence_character: Optional[str] = None
     fence_length = 0
     html_comment_open = False
+    inline_code_span_length = 0
     previous_setext_candidate: Optional[Tuple[int, str, Set[str]]] = None
 
     def register_heading(
@@ -501,7 +548,8 @@ def inspect_text(
             item.task_heading_count += 1
 
     with item.absolute_path.open("r", encoding="utf-8", errors="replace") as handle:
-        for line in handle:
+        lines = handle.readlines()
+        for line_index, line in enumerate(lines):
             line_count += 1
             if line.strip():
                 nonblank += 1
@@ -515,8 +563,14 @@ def inspect_text(
                         fence_length = 0
                     previous_setext_candidate = None
                     continue
-                line, html_comment_open = sanitize_markdown_inline(
-                    line, html_comment_open
+                line, html_comment_open, inline_code_span_length = (
+                    sanitize_markdown_inline(
+                        line,
+                        html_comment_open,
+                        inline_code_span_length,
+                        lines,
+                        line_index + 1,
+                    )
                 )
                 if not line.strip():
                     previous_setext_candidate = None

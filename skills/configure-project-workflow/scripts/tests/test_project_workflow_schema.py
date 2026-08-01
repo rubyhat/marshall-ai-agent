@@ -313,6 +313,13 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         config["architecture_decisions"]["filename_pattern"] = "decision.md"
         self.assert_invalid(config)
 
+    def test_adr_filename_pattern_must_stay_inside_root(self) -> None:
+        for pattern in ("../<ID>.md", "/tmp/<ID>.md", r"C:\\temp\\<ID>.md"):
+            with self.subTest(pattern=pattern):
+                config = rendered_config()
+                config["architecture_decisions"]["filename_pattern"] = pattern
+                self.assert_invalid(config)
+
     def test_adr_authority_and_trigger_entries_must_not_be_blank(self) -> None:
         cases = (
             ("decision_authority",),

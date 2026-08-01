@@ -7,7 +7,7 @@ import argparse
 import json
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 
@@ -137,6 +137,19 @@ def validate_semantics(
             errors.append(
                 "architecture_decisions.filename_pattern must contain <ID>"
             )
+        if isinstance(filename_pattern, str):
+            posix_filename = PurePosixPath(filename_pattern)
+            windows_filename = PureWindowsPath(filename_pattern)
+            if (
+                posix_filename.is_absolute()
+                or windows_filename.is_absolute()
+                or ".." in posix_filename.parts
+                or ".." in windows_filename.parts
+            ):
+                errors.append(
+                    "architecture_decisions.filename_pattern must stay inside "
+                    "architecture_decisions.root"
+                )
         statuses = adr.get("statuses")
         if not isinstance(statuses, dict):
             errors.append("architecture_decisions.statuses must be a mapping")
