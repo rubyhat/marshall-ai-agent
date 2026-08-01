@@ -733,17 +733,20 @@ Canonical fact.
             source = memory / "source.md"
             target = docs / "a(b).md"
             spaced_target = docs / "user guide.md"
+            entity_target = docs / "target&one.md"
             source.write_text(
                 """# Source
 
 [Existing guide](../docs/a(b).md?view=full#current)
 [Spaced guide](<../docs/user guide.md>)
+[Entity guide](../docs/target&amp;one.md)
 [Missing guide](../docs/missing(c).md)
 """,
                 encoding="utf-8",
             )
             target.write_text("# Target\n", encoding="utf-8")
             spaced_target.write_text("# Spaced target\n", encoding="utf-8")
+            entity_target.write_text("# Entity target\n", encoding="utf-8")
 
             result = subprocess.run(
                 [
@@ -783,6 +786,7 @@ Canonical fact.
             )
             self.assertEqual(by_path["docs/a(b).md"]["incoming_links"], 1)
             self.assertEqual(by_path["docs/user guide.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["docs/target&one.md"]["incoming_links"], 1)
 
     def test_nested_inline_link_prefers_rendered_inner_link(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

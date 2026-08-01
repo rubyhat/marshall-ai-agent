@@ -11,6 +11,7 @@ import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from html import unescape as html_unescape
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 from urllib.parse import unquote
@@ -1000,7 +1001,7 @@ def git_inventory(root: Path) -> Tuple[bool, Set[str], Dict[str, str]]:
 
 
 def normalize_link_target(root: Path, source: Path, raw_target: str) -> Optional[Path]:
-    target = raw_target.strip()
+    target = html_unescape(raw_target.strip())
     if target.startswith("<") and ">" in target:
         target = target[1 : target.index(">")]
     target = unquote(target.split("#", 1)[0].split("?", 1)[0].strip())
