@@ -324,6 +324,56 @@ completed"
                 report["candidates"][0]["review_hints"],
             )
 
+    def test_multiline_reference_title_stops_at_heading_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "source.md"
+            source.write_text(
+                """# Source
+
+[Guide][guide]
+
+[guide]: missing.md "TODO
+## TASK_123 completed"
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory",
+                    "--task-id-regex",
+                    r"TASK_[0-9]+",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["broken_targets"], [])
+            self.assertEqual(largest["markdown_headings"], 2)
+            self.assertEqual(largest["task_headings"], 1)
+            self.assertEqual(largest["task_ids"], ["TASK_123"])
+            self.assertEqual(largest["unresolved_markers"], 1)
+            self.assertEqual(largest["completed_markers"], 1)
+
     def test_html_comment_block_closing_line_stays_non_structural(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -2432,6 +2482,51 @@ Canonical fact.
             self.assertEqual(largest["task_id_count"], 0)
             self.assertEqual(largest["completed_markers"], 0)
             self.assertEqual(largest["unresolved_markers"], 0)
+
+    def test_escaped_html_comment_opener_stays_visible(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            source.write_text(
+                """# Service memory
+
+\\<!-- TODO completed -->
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/service.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["unresolved_markers"], 1)
+            self.assertEqual(largest["completed_markers"], 1)
+            self.assertIn(
+                "mixed_lifecycle_signal",
+                report["candidates"][0]["review_hints"],
+            )
             self.assertEqual(largest["broken_targets"], [])
 
     def test_unmatched_leading_thematic_break_does_not_hide_document(self) -> None:

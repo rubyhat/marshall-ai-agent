@@ -673,7 +673,7 @@ def markdown_multiline_reference_title_lines(
         if future_line is None or not future_line.strip():
             break
         _, nested_tokens = markdown_container_details(future_line)
-        if nested_tokens:
+        if nested_tokens or markdown_line_interrupts_paragraph(future_line):
             break
         combined += "\n" + future_line.rstrip("\r\n")
         consumed_lines.add(future_index)
@@ -805,6 +805,8 @@ def sanitize_markdown_inline(
             continue
 
         comment_start = line.find("<!--", cursor)
+        while comment_start >= 0 and escaped(comment_start):
+            comment_start = line.find("<!--", comment_start + 1)
         code_start = line.find("`", cursor)
         while code_start >= 0 and escaped(code_start):
             code_start = line.find("`", code_start + 1)
