@@ -2450,6 +2450,12 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
             if item.absolute_path.suffix.lower() in STRUCTURED_TEXT_EXTENSIONS:
                 skipped["reference_unparsed_structured_source"] += 1
                 reference_scan_incomplete = True
+            elif item.absolute_path.suffix.lower() == ".mdx":
+                skipped["reference_unparsed_mdx_source"] += 1
+                reference_scan_incomplete = True
+            elif item.absolute_path.suffix.lower() == ".txt":
+                skipped["reference_unparsed_plain_text_source"] += 1
+                reference_scan_incomplete = True
             try:
                 targets = inspect_text(item, root, task_id_pattern)
             except (OSError, PermissionError):
