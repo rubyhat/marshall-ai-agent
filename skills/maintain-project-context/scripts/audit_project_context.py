@@ -1512,6 +1512,12 @@ def inspect_text(
     front_matter_end = (
         markdown_front_matter_end(item.absolute_path) if markdown else None
     )
+    # Front matter is intentionally excluded from rendered-content signals, but
+    # it can still contain native repository paths (for example `related:`).
+    # Until those metadata formats are parsed explicitly, never claim complete
+    # incoming-link coverage for a Markdown source that contains front matter.
+    if front_matter_end is not None:
+        item.link_parse_incomplete = True
     root_block_start: Optional[int] = (
         front_matter_end + 1
         if front_matter_end is not None

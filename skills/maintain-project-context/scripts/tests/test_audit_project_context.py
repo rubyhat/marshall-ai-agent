@@ -4429,6 +4429,60 @@ Canonical fact.
             hints = report["candidates"][0]["review_hints"] if report["candidates"] else []
             self.assertNotIn("task_chronology_signal", hints)
 
+    def test_markdown_front_matter_marks_link_coverage_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            docs = root / "docs"
+            memory.mkdir()
+            docs.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (docs / "source.md").write_text(
+                """---
+related: ../memory/target.md
+---
+
+# Source
+
+No rendered link to the target.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "docs",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["path"], "memory/target.md")
+            self.assertEqual(target["incoming_links"], 0)
+            self.assertEqual(
+                target["incoming_links_coverage"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertEqual(
+                report["summary"]["skipped"]["reference_parse_incomplete"], 1
+            )
+
     def test_configured_task_id_inside_markdown_link_counts_as_task_heading(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
