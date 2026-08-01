@@ -58,6 +58,7 @@ Natural-language запрос проходит тот же capability gate, чт
 ```text
 --planning-session
   → --shape-work <идея>
+  → --adr-review <ADR или task anchor> либо --record-adr <decision anchor>, если применимо
   → --shape-roadmap <idea или feature anchor>
   → отдельное подтверждение точного roadmap mutation preview
   → --prepare-spec <Task ID>
@@ -89,8 +90,8 @@ Domain-команды подключаются только при примен�
 Это workflow profile, а не переключатель системного Plan mode Codex. Профиль
 является sticky constraint и действует до конца текущего разговора.
 
-Planning, roadmap, frontend-design, reference-analysis, task-check и
-specification aliases могут разрешить только свои bounded
+Planning, roadmap, frontend-design, reference-analysis, architecture-decision,
+task-check и specification aliases могут разрешить только свои bounded
 non-implementation workflows. `--execute-task`, `--deliver-task` и
 эквивалентные natural-language запросы не отменяют профиль. Агент
 останавливается до mutations и требует новую сессию.
@@ -237,6 +238,50 @@ Read-only проверка identity, hierarchy, tracker fields, status и links 
 Запускает только read-only context audit. Cleanup требует отдельного exact
 manifest и подтверждения.
 
+Для oversized или mixed canonical artifact аудит сначала строит bounded
+structure inventory. Консолидация выполняется только по одному явно выбранному
+разделу или домену и только после отдельного exact manifest approval.
+
+## Architecture decisions
+
+### `--adr-review <ADR или task anchor>`
+
+Запускает read-only applicability review через
+`record-architecture-decision`.
+
+Агент проверяет status, scope, assumptions, decision drivers, review triggers,
+supersession links, current architecture и минимально необходимое code/task
+evidence. Результат — один из verdicts:
+
+- `ADR applicable`;
+- `ADR review required`;
+- `ADR not applicable`;
+- `ADR applicability unclear`.
+
+Alias не изменяет ADR, task-spec, Issue, architecture или код. При `ADR review
+required` и `ADR applicability unclear` downstream specification и
+implementation останавливаются до разрешения архитектурного решения.
+
+### `--record-adr <decision anchor>`
+
+Запускает guided создание, acceptance, rejection, clarification, deprecation
+или supersession одного ADR decision. Alias не принимает и не отклоняет решение
+автоматически: необходимы согласованные scope, drivers, assumptions, options,
+consequences, review triggers и configured decision authority.
+
+Для создания, acceptance, rejection, clarification и deprecation alias
+разрешает изменить только один exact project-local ADR и его index entry. Для
+supersession разрешены только exact replacement ADR, lifecycle status и backlink
+заменяемого ADR, а также обе index entries.
+`proposed` можно сохранить только если этот state включён, запрос явно требует
+сохранить нерешённое предложение, а ADR прямо говорит, что решение не принято.
+Persisted proposal после acceptance или rejection configured authority меняет
+state на месте с сохранением ADR ID и обновлением index; duplicate ADR не
+создаётся. Rejected ADR сохраняет явный outcome и rationale. Alias не разрешает
+Task/Issue mutations, implementation, delivery, deploy или production actions.
+Материальное изменение accepted ADR создаёт новый ADR, а старый сохраняет
+rationale и получает ссылку `Superseded by`.
+
 ## Domain workflows
 
 ### `--design-flow <идея или task anchor>`
@@ -356,6 +401,8 @@ Reusable aliases сохраняют одинаковый смысл, но кон
 - Task ID и hierarchy policy;
 - task tracker, fields и statuses;
 - spec templates и readiness gates;
+- ADR root, index, statuses, decision authority, review triggers и
+  supersession policy;
 - worktree, branch, test и delivery policy;
 - production, security, privacy и domain restrictions.
 
@@ -363,20 +410,49 @@ Alias, owning skill или dependency, не включённые в project conf
 считаются недоступными. Агент должен предложить `--workflow-setup` или другой
 явный способ конфигурации, а не имитировать отсутствующий workflow.
 
+## Переход project workflow config с schema v2 на v3
+
+Workflow config v3 добавляет обязательные safety policies для выбранных context
+modules и optional ADR module. Проект с `.codex/project-workflow.yaml` schema v2
+должен запустить `--workflow-setup` в режиме reconfigure и подтвердить exact
+manifest, который:
+
+- меняет только project workflow config `schema_version` на `3`;
+- добавляет `memory.context_loading`, `memory.context_recording` и
+  `memory.context_maintenance` только для реально выбранных владельцев;
+- при включении ADR module добавляет distinct semantic status mapping, authority,
+  filename/materiality rules, applicability review, supersession,
+  bounded-exception и retrospective-recording policies;
+- сохраняет project-specific paths, aliases, restrictions и пользовательский
+  контент вне managed scope;
+- повторно валидирует module graph, configuration и representative routes.
+
+До подтверждённой миграции новая версия skill не должна считать отсутствующие
+v3-поля доказательством того, что прежняя project configuration небезопасна:
+она должна предложить bounded reconfiguration, а не молча переписать файл.
+`project-workflow.setup.json` остаётся отдельным artifact со schema v2.
+
 ## Переход с workflow schema v1
 
-Релиз с guarded aliases использует `schema_version: 2`. Проект на schema v1
-должен запустить `--workflow-setup` в режиме reconfigure и подтвердить manifest,
-который:
+Project workflow config на schema v1 должен мигрировать сразу на текущую
+`schema_version: 3`, а не останавливаться на промежуточной v2. Для этого нужно
+запустить `--workflow-setup` в режиме reconfigure и подтвердить manifest,
+который объединяет требования обеих миграций:
 
-- меняет `schema_version` на `2`;
+- меняет `schema_version` на `3`;
 - добавляет обязательный `commands.sequence_guard`;
 - включает только aliases выбранных modules;
-- устанавливает `shape-project-work` как dependency для `write-task-spec`.
+- устанавливает `shape-project-work` как dependency для `write-task-spec`;
+- добавляет обязательные v3 memory policies только для выбранных context
+  modules;
+- при включении ADR module добавляет его v3 configuration contract.
 
-До завершения migration нельзя считать новые aliases полностью настроенными.
+До завершения migration нельзя считать новые aliases и v3 policies полностью
+настроенными. Не создавать project workflow config с `schema_version: 2`,
+поскольку current schema его уже не принимает.
 
 Незавершённый `.codex/project-workflow.setup.json` schema v1 также требует
 явной migration preview: сохранить подтверждённые ответы, добавить точный
 `modules.enabled_aliases` и только после подтверждения изменить его
-`schema_version` на `2`.
+`schema_version` на `2`. Это версия setup-state artifact, а не итогового
+`.codex/project-workflow.yaml`.

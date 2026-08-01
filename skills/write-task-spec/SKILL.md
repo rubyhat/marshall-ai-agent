@@ -43,6 +43,7 @@ Read the project workflow configuration and resolve:
 - project-local full and lightweight templates;
 - bundled-template fallback policy;
 - selection rules for spec depth and annexes;
+- applicable architecture sources, ADR index, and ADR review policy;
 - required impacts and domain workflows;
 - readiness labels and operational status mapping;
 - recording and task-management handoffs.
@@ -62,6 +63,16 @@ When project policy requires a stable Task ID or tracker item, use `manage-proje
 Require stable outcome, scope, decisions, ownership, and dependency direction. If a new product decision, material scope change, or conflict is discovered, return it to `shape-project-work` rather than deciding silently inside the spec.
 
 Do not hide a blocker in placeholder prose. Create an incomplete draft only with explicit draft authority.
+
+Resolve every ADR named by the shaped task, architecture source, or exact
+affected domain. When the task conflicts with an accepted ADR or provides
+credible evidence that its assumptions changed, use
+`record-architecture-decision` for applicability review. Do not adapt the
+specification around a disputed ADR. Continue only with `ADR applicable`,
+`ADR not applicable`, or an accepted replacement decision.
+
+If that module is not configured, stop and report the missing decision owner;
+do not resolve the architectural conflict inside the specification.
 
 ### 3. Select depth and template
 
@@ -112,6 +123,7 @@ Check that:
 - task identity, title, owner, tracker, parent, and path agree;
 - current and desired behavior do not conflict;
 - plan stays within scope and respects architecture;
+- every constraining ADR is applicable or has an accepted linked replacement;
 - every requirement has acceptance coverage;
 - every critical criterion has a test or verification path;
 - contracts, errors, permissions, states, and data semantics agree across sections;

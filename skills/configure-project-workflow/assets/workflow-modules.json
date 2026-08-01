@@ -5,6 +5,7 @@
       "configure-project-workflow",
       "load-project-context",
       "record-project-context",
+      "record-architecture-decision",
       "maintain-project-context",
       "manage-project-work",
       "shape-project-work",
@@ -19,6 +20,7 @@
       "configure-project-workflow",
       "load-project-context",
       "record-project-context",
+      "record-architecture-decision",
       "maintain-project-context",
       "shape-project-work",
       "write-task-spec",
@@ -29,6 +31,7 @@
       "configure-project-workflow",
       "load-project-context",
       "record-project-context",
+      "record-architecture-decision",
       "shape-project-work",
       "design-frontend-flow",
       "analyze-product-reference"
@@ -69,6 +72,19 @@
       "question_stages": ["context"]
     },
     {
+      "name": "record-architecture-decision",
+      "group": "architecture",
+      "config_section": "architecture_decisions",
+      "requires": ["record-project-context"],
+      "recommended_with": [
+        "load-project-context",
+        "shape-project-work",
+        "write-task-spec"
+      ],
+      "aliases": ["--adr-review", "--record-adr"],
+      "question_stages": ["architecture_decisions"]
+    },
+    {
       "name": "maintain-project-context",
       "group": "context",
       "config_section": "memory.context_maintenance",
@@ -91,7 +107,11 @@
       "group": "work_definition",
       "config_section": "work_shaping",
       "requires": [],
-      "recommended_with": ["load-project-context", "write-task-spec"],
+      "recommended_with": [
+        "load-project-context",
+        "record-architecture-decision",
+        "write-task-spec"
+      ],
       "aliases": ["--planning-session", "--shape-work", "--shape-roadmap", "--accept-recommended"],
       "conditional_aliases": [
         {
@@ -110,7 +130,11 @@
       "group": "work_definition",
       "config_section": "task_specs",
       "requires": ["record-project-context", "shape-project-work"],
-      "recommended_with": ["shape-project-work", "manage-project-work"],
+      "recommended_with": [
+        "shape-project-work",
+        "record-architecture-decision",
+        "manage-project-work"
+      ],
       "aliases": ["--spec-check"],
       "question_stages": ["shaping_and_specs"]
     },
@@ -119,7 +143,11 @@
       "group": "implementation",
       "config_section": "implementation",
       "requires": ["write-task-spec"],
-      "recommended_with": ["manage-project-work", "deliver-reviewed-change"],
+      "recommended_with": [
+        "manage-project-work",
+        "record-architecture-decision",
+        "deliver-reviewed-change"
+      ],
       "aliases": ["--execute-task"],
       "question_stages": ["implementation"]
     },

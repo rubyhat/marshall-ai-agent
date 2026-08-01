@@ -56,6 +56,40 @@ Include only selected modules. Record:
 - persistent artifact destinations and exact output-form precedence;
 - applicable task, spec, implementation, delivery, context, and domain sections.
 
+When context modules are selected, create `memory` and include only the exact
+child policy owned by each selected module:
+
+- `load-project-context` -> large or mixed artifact preflight,
+  section-targeted loading, and full reads only for an identified semantic need
+  that bounded reads cannot answer;
+- `record-project-context` -> canonical current-state-only recording,
+  update-before-create behavior, and exclusion of task chronology, completion
+  logs, and duplicated tracker state from canonical memory;
+- `maintain-project-context` -> manual-only maintenance,
+  audit-before-cleanup, exact manifest approval, section-level compaction for
+  mixed canonical artifacts, and diagnostic-only size or chronology metrics.
+
+Removing a context module removes its child policy from generated
+configuration after the approved reconfiguration manifest; it does not remove
+other selected context policies or historical project artifacts.
+
+When `record-architecture-decision` is selected, generate one
+`architecture_decisions` section containing:
+
+- canonical ADR root and index;
+- ID and filename convention;
+- distinct semantic lifecycle-status mapping and decision authority;
+- project-specific materiality and review triggers;
+- mandatory applicability review before forcing task conformance;
+- new-ADR supersession policy that preserves old accepted rationale;
+- bounded-exception and retrospective-recording policy.
+
+Reuse a coherent existing decision library. When none exists, create the ADR
+index from the owning skill's `assets/adr-index-template.md`; do not create an
+empty folder or a speculative ADR. Add the ADR index as a conditional route in
+the context map without making the complete decision library part of default
+loading.
+
 Generate only aliases listed in the approved
 `modules.enabled_aliases` setup-state field. For every ordinary alias, require
 its owning module to be selected. For every conditional alias, additionally
@@ -122,8 +156,14 @@ When planning-session behavior is enabled, show an explicit new-conversation
 boundary before implementation and delivery. Do not describe a later
 implementation or delivery alias as an implicit release of a sticky planning
 profile.
+When the ADR module is selected, allow its read-only applicability review and
+its exact lifecycle artifact set and index persistence inside planning. Do not
+let that bounded document mutation expand into task, code, delivery,
+deployment, or production authority.
 
 Use assets from owning skills for task-spec or reference templates. Do not duplicate those assets in this skill.
+Use the owning `record-architecture-decision` assets for ADR and index
+templates. Do not copy their contents into setup references.
 
 ## Reread and verify
 

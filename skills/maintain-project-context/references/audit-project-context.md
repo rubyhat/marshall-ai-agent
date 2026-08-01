@@ -39,7 +39,9 @@ Useful optional flags:
 - `--top 20` for largest-file and duplicate summaries;
 - `--candidate-limit 50`, or `0` for all detected candidates;
 - repeatable `--exclude-dir <name>` for project-specific generated directories.
-- `--task-id-regex <regex>` to filter neutral identifier tokens through the project's configured validation pattern.
+- `--task-id-regex <regex>` to enable Task-ID counts and chronology signals
+  through the project's configured validation pattern; without it those
+  metrics remain empty rather than guessing from hyphenated words.
 
 Numbers are report controls and discovery filters, not retention thresholds.
 
@@ -47,6 +49,8 @@ The script reports:
 
 - file and byte totals;
 - optional line totals and bounded content signals;
+- heading counts, task-linked heading counts, largest section size, and
+  lifecycle-mixing signals for text artifacts;
 - age distribution;
 - largest files;
 - location-state hints;
@@ -82,6 +86,11 @@ For each surfaced candidate:
 4. Check incoming references, maps, configured paths, and external spec links.
 5. Check whether Git provides a committed recovery source.
 6. Apply the retention policy classification.
+
+For an oversized canonical artifact, do not assign one action to the whole file
+unless its role and content are genuinely uniform. Use
+[compact-oversized-canonical-context.md](compact-oversized-canonical-context.md)
+to choose one section or domain and prepare a section-level manifest.
 
 Read only candidate files needed for this decision. Do not read all historical notes merely because they share a directory.
 

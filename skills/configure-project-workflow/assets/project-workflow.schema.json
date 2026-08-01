@@ -16,7 +16,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": 2
+      "const": 3
     },
     "workflow_kit": {
       "type": "object",
@@ -107,6 +107,173 @@
             "handoff_default": {"enum": ["chat", "file"]},
             "incident_default": {"enum": ["chat", "file"]},
             "file_response": {"enum": ["concise_link_or_path", "path_only"]}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "memory": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "context_loading": {
+          "type": "object",
+          "required": [
+            "preflight_large_or_mixed_artifacts",
+            "section_targeting_required_when_available",
+            "full_read_requires_identified_semantic_need"
+          ],
+          "properties": {
+            "preflight_large_or_mixed_artifacts": {"const": true},
+            "section_targeting_required_when_available": {"const": true},
+            "full_read_requires_identified_semantic_need": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "context_recording": {
+          "type": "object",
+          "required": [
+            "canonical_current_state_only",
+            "task_chronology_in_canonical_forbidden",
+            "update_existing_owner_before_create"
+          ],
+          "properties": {
+            "canonical_current_state_only": {"const": true},
+            "task_chronology_in_canonical_forbidden": {"const": true},
+            "update_existing_owner_before_create": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "context_maintenance": {
+          "type": "object",
+          "required": [
+            "manual_only",
+            "audit_before_cleanup",
+            "exact_manifest_approval_required",
+            "section_level_compaction_for_mixed_canonical",
+            "diagnostic_metrics_are_not_retention_rules"
+          ],
+          "properties": {
+            "manual_only": {"const": true},
+            "audit_before_cleanup": {"const": true},
+            "exact_manifest_approval_required": {"const": true},
+            "section_level_compaction_for_mixed_canonical": {"const": true},
+            "diagnostic_metrics_are_not_retention_rules": {"const": true}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "architecture_decisions": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "root",
+        "index",
+        "id_pattern",
+        "filename_pattern",
+        "statuses",
+        "decision_authority",
+        "materiality_triggers",
+        "supersession",
+        "applicability_review",
+        "bounded_exceptions",
+        "retrospective_recording"
+      ],
+      "properties": {
+        "enabled": {"const": true},
+        "root": {"type": "string", "minLength": 1},
+        "index": {"type": "string", "minLength": 1},
+        "id_pattern": {"type": "string", "minLength": 1},
+        "filename_pattern": {"type": "string", "minLength": 1},
+        "statuses": {
+          "type": "object",
+          "$comment": "Distinct project labels are enforced by scripts/validate_project_workflow_config.py because standard JSON Schema cannot compare sibling property values.",
+          "required": ["accepted", "superseded", "deprecated", "rejected"],
+          "properties": {
+            "proposed": {
+              "anyOf": [
+                {"type": "string", "minLength": 1},
+                {"type": "null"}
+              ]
+            },
+            "accepted": {"type": "string", "minLength": 1},
+            "superseded": {"type": "string", "minLength": 1},
+            "deprecated": {"type": "string", "minLength": 1},
+            "rejected": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "decision_authority": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "materiality_triggers": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "supersession": {
+          "type": "object",
+          "required": ["material_change_creates_new_adr", "preserve_old_rationale"],
+          "properties": {
+            "material_change_creates_new_adr": {"const": true},
+            "preserve_old_rationale": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "applicability_review": {
+          "type": "object",
+          "required": [
+            "before_forcing_task_conformance",
+            "stop_on_unclear_or_review_required",
+            "review_triggers"
+          ],
+          "properties": {
+            "before_forcing_task_conformance": {"const": true},
+            "stop_on_unclear_or_review_required": {"const": true},
+            "review_triggers": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 1},
+              "uniqueItems": true,
+              "minItems": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "bounded_exceptions": {
+          "type": "object",
+          "required": [
+            "allowed",
+            "owner_required",
+            "expiry_or_review_trigger_required"
+          ],
+          "properties": {
+            "allowed": {"type": "boolean"},
+            "owner_required": {"const": true},
+            "expiry_or_review_trigger_required": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "retrospective_recording": {
+          "type": "object",
+          "required": [
+            "allowed",
+            "requires_verifiable_rationale",
+            "bulk_creation_forbidden"
+          ],
+          "properties": {
+            "allowed": {"type": "boolean"},
+            "requires_verifiable_rationale": {"const": true},
+            "bulk_creation_forbidden": {"const": true}
           },
           "additionalProperties": true
         }
@@ -207,5 +374,85 @@
       "additionalProperties": true
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "workflow_kit": {
+            "properties": {
+              "selected_modules": {"contains": {"const": "load-project-context"}}
+            }
+          }
+        }
+      },
+      "then": {
+        "required": ["memory"],
+        "properties": {"memory": {"required": ["context_loading"]}}
+      },
+      "else": {
+        "not": {
+          "required": ["memory"],
+          "properties": {"memory": {"required": ["context_loading"]}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "workflow_kit": {
+            "properties": {
+              "selected_modules": {"contains": {"const": "record-project-context"}}
+            }
+          }
+        }
+      },
+      "then": {
+        "required": ["memory"],
+        "properties": {"memory": {"required": ["context_recording"]}}
+      },
+      "else": {
+        "not": {
+          "required": ["memory"],
+          "properties": {"memory": {"required": ["context_recording"]}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "workflow_kit": {
+            "properties": {
+              "selected_modules": {"contains": {"const": "maintain-project-context"}}
+            }
+          }
+        }
+      },
+      "then": {
+        "required": ["memory"],
+        "properties": {"memory": {"required": ["context_maintenance"]}}
+      },
+      "else": {
+        "not": {
+          "required": ["memory"],
+          "properties": {"memory": {"required": ["context_maintenance"]}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "workflow_kit": {
+            "properties": {
+              "selected_modules": {
+                "contains": {"const": "record-architecture-decision"}
+              }
+            }
+          }
+        }
+      },
+      "then": {"required": ["architecture_decisions"]},
+      "else": {"not": {"required": ["architecture_decisions"]}}
+    }
+  ],
   "additionalProperties": true
 }

@@ -2,7 +2,10 @@
 
 Личная библиотека reusable skills для Codex. Набор описывает не продуктовую логику конкретного проекта, а переносимые рабочие процессы: от загрузки контекста и формирования задачи до реализации, review, delivery и обслуживания проектной документации.
 
-Сейчас в репозитории находятся 12 reusable skills, включая интерактивный `configure-project-workflow` для безопасной первоначальной настройки и последующей проверки проекта. Набор версионируется и выпускается как единый совместимый workflow kit.
+Сейчас в репозитории находятся 13 reusable skills, включая интерактивный
+`configure-project-workflow` для безопасной первоначальной настройки,
+`record-architecture-decision` для lifecycle ADR и отдельный контекстный слой.
+Набор версионируется и выпускается как единый совместимый workflow kit.
 
 ## Основная идея
 
@@ -21,7 +24,7 @@ workflow kit, но не разрабатывает сам `marshall-ai-agent`.
 
 Не клонируйте этот репозиторий внутрь продуктового проекта. Установите только
 bootstrap skill через системный `skill-installer` по exact release tag. Для
-версии, выпускаемой этим изменением:
+текущей опубликованной версии:
 
 ```bash
 python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/install-skill-from-github.py" \
@@ -56,7 +59,7 @@ $configure-project-workflow
 2. Проводит bounded read-only inspection папок, инструкций, безопасных manifests, repository metadata и существующей документации.
 3. Создаёт только временный tracker `.codex/project-workflow.setup.json`.
 4. Рекомендует workflow profile и применимые skills.
-5. Проводит staged interview: по 7–10 вопросов на активный этап, сохраняя ответы и возвращаясь к незавершённым вопросам после любых detours.
+5. Проводит staged interview: по 7–10 вопросов на активный этап, сохраняя ответы и возвращаясь к незавершённым вопросам после любых detours; при включённом ADR-модуле отдельно настраивает decision authority, applicability review и supersession.
 6. Показывает точный mutation manifest: устанавливаемые skills, создаваемые и изменяемые файлы, aliases, templates и validation plan.
 7. Только после подтверждения manifest устанавливает выбранные skills и создаёт project-specific configuration, instructions, компактную карту топологии и нужные docs.
 8. Проверяет module dependencies, paths, topology coverage, aliases, managed instructions, active copies и representative dry-run routes.
@@ -82,7 +85,10 @@ skill directory. Другим разработчикам не нужно под�
 ```mermaid
 flowchart LR
     A["Загрузить контекст"] --> B["Сформировать outcome и scope"]
-    B --> C{"Нужен frontend-flow?"}
+    B --> R{"Есть material architecture decision?"}
+    R -- "Да" --> Q["Проверить или записать ADR"]
+    R -- "Нет" --> C{"Нужен frontend-flow?"}
+    Q --> C
     C -- "Да" --> D["Спроектировать interaction flow"]
     C -- "Нет" --> E["Создать task identity и tracker anchors"]
     D --> E
@@ -98,11 +104,12 @@ flowchart LR
 
 1. `load-project-context` — загрузить минимально достаточный контекст.
 2. `shape-project-work` — согласовать outcome, scope, решения, риски и декомпозицию.
-3. `design-frontend-flow` — при необходимости определить frontend interaction contract.
-4. `manage-project-work` — создать или сверить Task ID, Issue, hierarchy и Project state.
-5. `write-task-spec` — создать implementation-ready спецификацию.
-6. `execute-project-task` — выполнить одну явно разрешённую задачу и подготовить незакоммиченные изменения к local review.
-7. `deliver-reviewed-change` — провести independent review, PR, bounded review cycle, merge и cleanup в пределах разрешённого endpoint.
+3. `record-architecture-decision` — при material architecture choice проверить применимость существующего ADR или зафиксировать принятое решение.
+4. `design-frontend-flow` — при необходимости определить frontend interaction contract.
+5. `manage-project-work` — создать или сверить Task ID, Issue, hierarchy и Project state.
+6. `write-task-spec` — создать implementation-ready спецификацию.
+7. `execute-project-task` — выполнить одну явно разрешённую задачу и подготовить незакоммиченные изменения к local review.
+8. `deliver-reviewed-change` — провести independent review, PR, bounded review cycle, merge и cleanup в пределах разрешённого endpoint.
 
 `record-project-context` применяется в durable checkpoints по всему flow, а не только в конце. Готовая спецификация сама по себе не разрешает implementation, а выполненная implementation-задача сама по себе не разрешает commit, push или merge.
 
@@ -138,11 +145,22 @@ analyze-product-reference
 
 ### Project context
 
-- `load-project-context` — частая read-only ориентация перед новой или возобновлённой задачей.
+- `load-project-context` — частая read-only ориентация перед новой или возобновлённой задачей; большие canonical artifacts читаются через map, headings и bounded sections, а не целиком.
 - `record-project-context` — точечная запись durable или active knowledge через `skip → link → update → create`.
-- `maintain-project-context` — редкий ручной аудит и отдельно подтверждённая cleanup-фаза по точному manifest.
+- `maintain-project-context` — редкий ручной аудит и отдельно подтверждённая cleanup-фаза по точному manifest; mixed canonical files консолидируются по одному разделу или домену.
 
 Обычное завершение задачи не запускает broad context cleanup.
+
+### Architecture decisions
+
+`record-architecture-decision` хранит не вечную истину, а принятое решение в
+явном scope и при зафиксированных предпосылках. Перед тем как заставить новую
+задачу соответствовать ADR, агент проверяет status, scope, assumptions,
+decision drivers, review triggers и current evidence.
+
+Материальное изменение принятого решения создаёт новый ADR, который
+supersedes старый. Старое rationale не переписывается, а implementation status
+остаётся в Issues, specs и PR.
 
 ## Каталог skills
 
@@ -151,6 +169,7 @@ analyze-product-reference
 | `configure-project-workflow` | Безопасно исследует проект, проводит resumable interview, создаёт project topology, устанавливает выбранные modules и формирует project workflow. |
 | `load-project-context` | Загружает только контекст, необходимый для текущей содержательной задачи. |
 | `record-project-context` | Сохраняет durable project knowledge без дублирования источников истины. |
+| `record-architecture-decision` | Создаёт, проверяет и проводит lifecycle material architecture decisions, не превращая accepted ADR в догму. |
 | `maintain-project-context` | Аудирует, консолидирует и безопасно очищает project memory/documentation через двухфазный процесс. |
 | `manage-project-work` | Управляет Task ID, hierarchy, GitHub Issues/Projects, статусами и связями task/spec/PR. |
 | `shape-project-work` | Превращает идею или проблему в согласованный outcome, scope и conceptual work breakdown. |
@@ -172,6 +191,8 @@ analyze-product-reference
 | `--workflow-setup` | Начать, продолжить или изменить guided project setup. |
 | `--workflow-check` | Провести read-only audit текущей project workflow configuration. |
 | `--context-audit [scope]` | Запустить только read-only аудит project context. |
+| `--adr-review <ADR или task anchor>` | Проверить применимость ADR без mutations. |
+| `--record-adr <decision anchor>` | Провести guided создание или lifecycle transition одного ADR decision. |
 | `--task-check <Task ID или Issue URL>` | Проверить согласованность одной задачи. |
 | `--task-status <Task ID или Issue URL> <status>` | Изменить только статус одной точной задачи. |
 | `--planning-session [scope]` | Зафиксировать sticky discussion/shaping профиль до конца текущей сессии. |
@@ -254,6 +275,7 @@ Release Please поддерживает один Release PR:
   dependencies и deploy boundaries;
 - project instructions и critical safety invariants;
 - расположение memory, docs, task specs и templates;
+- ADR root, index, decision authority, review triggers и supersession policy;
 - Task ID, hierarchy, Issue и Project policy;
 - lifecycle statuses и разрешённые transitions;
 - worktree, branch, review, merge и cleanup policy;
@@ -293,6 +315,7 @@ marshall-ai-agent/
 │   ├── load-project-context/
 │   ├── maintain-project-context/
 │   ├── manage-project-work/
+│   ├── record-architecture-decision/
 │   ├── record-project-context/
 │   ├── shape-project-work/
 │   ├── triage-frontend-qa/

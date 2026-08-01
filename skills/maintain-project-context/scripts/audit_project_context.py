@@ -46,6 +46,7 @@ GENERIC_TASK_ID_TOKEN_RE = re.compile(
     r"\b[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+\b"
 )
 DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
+MARKDOWN_HEADING_RE = re.compile(r"^\s*(#{1,6})\s+\S")
 UNRESOLVED_RE = re.compile(
     r"\b(?:TODO|FIXME|BLOCKED|UNRESOLVED|OPEN QUESTION|PENDING)\b|"
     r"\b(?:блокер|заблокирован|нереш[её]н|открыт(?:ый|ые)? вопрос)\w*",
@@ -62,6 +63,18 @@ STATUS_RE = re.compile(
     re.I,
 )
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+SUPERSESSION_FIELD_RE = re.compile(
+    r"^\s*(?:[-*]\s*)?superseded by\s*:\s*(.*?)\s*$",
+    re.I,
+)
+EMPTY_SUPERSESSION_VALUES = {
+    "",
+    "none",
+    "n/a",
+    "na",
+    "not applicable",
+    "adr link or none",
+}
 
 
 @dataclass
@@ -78,9 +91,14 @@ class AuditFile:
     git_state: str = "not_checked"
     line_count: Optional[int] = None
     nonblank_lines: Optional[int] = None
+    markdown_heading_count: int = 0
+    task_heading_count: int = 0
+    task_id_count: int = 0
+    max_section_lines: int = 0
     dated_heading_count: int = 0
     unresolved_marker_count: int = 0
-    superseded_signal: bool = False
+    superseded_marker_count: int = 0
+    completed_marker_count: int = 0
     status_only_signal: bool = False
     task_ids: List[str] = field(default_factory=list)
     broken_targets: List[str] = field(default_factory=list)
@@ -201,12 +219,15 @@ def location_state(
     historical_roots: Sequence[Path],
     archive_roots: Sequence[Path],
 ) -> str:
-    if contains(path, protected_roots):
-        return "protected"
+    # Canonical and active are the primary lifecycle roles. Safety remains
+    # independently visible through AuditFile.protected, so an overlapping
+    # protected root must not hide lifecycle-specific diagnostic signals.
     if contains(path, canonical_roots):
         return "canonical"
     if contains(path, active_roots):
         return "active"
+    if contains(path, protected_roots):
+        return "protected"
     if contains(path, archive_roots):
         return "archive"
     if contains(path, historical_roots):
@@ -296,29 +317,67 @@ def inspect_text(
     task_ids: Set[str] = set()
     line_count = 0
     nonblank = 0
-    status_found = False
+    open_sections: List[Tuple[int, int]] = []
+    markdown = item.absolute_path.suffix.lower() in {".md", ".markdown", ".mdx"}
     with item.absolute_path.open("r", encoding="utf-8", errors="replace") as handle:
         for line in handle:
             line_count += 1
             if line.strip():
                 nonblank += 1
+            line_task_ids = (
+                {
+                    token
+                    for token in GENERIC_TASK_ID_TOKEN_RE.findall(line)
+                    if task_id_pattern.fullmatch(token)
+                }
+                if task_id_pattern is not None
+                else set()
+            )
+            task_ids.update(line_task_ids)
+            heading_match = MARKDOWN_HEADING_RE.search(line) if markdown else None
+            if heading_match:
+                heading_level = len(heading_match.group(1))
+                while open_sections and open_sections[-1][0] >= heading_level:
+                    _, section_start = open_sections.pop()
+                    item.max_section_lines = max(
+                        item.max_section_lines, line_count - section_start
+                    )
+                # Treat H1 as the document title/root. H2+ sections include
+                # their nested descendants without degenerating the metric
+                # into the full document length for every normal Markdown file.
+                if heading_level >= 2:
+                    open_sections.append((heading_level, line_count))
+                item.markdown_heading_count += 1
+                # A generic hyphenated token is useful for bounded discovery,
+                # but only a project-validated identifier can prove that a
+                # heading belongs to task chronology.
+                if task_id_pattern is not None and line_task_ids:
+                    item.task_heading_count += 1
             if DATED_HEADING_RE.search(line):
                 item.dated_heading_count += 1
             item.unresolved_marker_count += len(UNRESOLVED_RE.findall(line))
-            if SUPERSEDED_RE.search(line):
-                item.superseded_signal = True
-            if STATUS_RE.search(line):
-                status_found = True
-            for token in GENERIC_TASK_ID_TOKEN_RE.findall(line):
-                if task_id_pattern is None or task_id_pattern.fullmatch(token):
-                    task_ids.add(token)
+            supersession_field = SUPERSESSION_FIELD_RE.match(line)
+            if supersession_field:
+                value = supersession_field.group(1).strip().strip("`<>").strip().lower()
+                if value not in EMPTY_SUPERSESSION_VALUES:
+                    item.superseded_marker_count += 1
+            else:
+                item.superseded_marker_count += len(SUPERSEDED_RE.findall(line))
+            item.completed_marker_count += len(STATUS_RE.findall(line))
             for raw_target in MARKDOWN_LINK_RE.findall(line):
                 normalized = normalize_link_target(root, item.absolute_path, raw_target)
                 if normalized is not None:
                     links.add(normalized)
+    for _, section_start in open_sections:
+        item.max_section_lines = max(
+            item.max_section_lines, line_count - section_start + 1
+        )
+    if item.markdown_heading_count and not item.max_section_lines:
+        item.max_section_lines = line_count
     item.line_count = line_count
     item.nonblank_lines = nonblank
-    item.status_only_signal = bool(status_found and nonblank <= 40)
+    item.status_only_signal = bool(item.completed_marker_count and nonblank <= 40)
+    item.task_id_count = len(task_ids)
     item.task_ids = sorted(task_ids)[:20]
     return links
 
@@ -357,8 +416,22 @@ def candidate_hints(item: AuditFile) -> List[str]:
         hints.append("possible_broken_reference")
     if item.status_only_signal:
         hints.append("status_only_signal")
-    if item.superseded_signal:
+    if item.superseded_marker_count:
         hints.append("superseded_signal")
+    if item.task_heading_count and item.location_state in {"active", "canonical"}:
+        hints.append("task_chronology_signal")
+    if item.dated_heading_count >= 2 and item.location_state in {"active", "canonical"}:
+        hints.append("dated_chronology_signal")
+    lifecycle_categories = sum(
+        bool(value)
+        for value in (
+            item.unresolved_marker_count,
+            item.superseded_marker_count,
+            item.completed_marker_count,
+        )
+    )
+    if lifecycle_categories >= 2 and item.location_state in {"active", "canonical"}:
+        hints.append("mixed_lifecycle_signal")
     if hints and item.unresolved_marker_count:
         hints.append("unresolved_markers_present")
     if hints and item.location_state in {"active", "canonical", "protected"}:
@@ -385,8 +458,19 @@ def file_summary(item: AuditFile, hints: Optional[List[str]] = None) -> Dict[str
         data.update(
             {
                 "lines": item.line_count,
+                "markdown_headings": item.markdown_heading_count,
+                "task_headings": item.task_heading_count,
+                "task_heading_ratio": (
+                    round(item.task_heading_count / item.markdown_heading_count, 4)
+                    if item.markdown_heading_count
+                    else 0.0
+                ),
+                "max_section_lines": item.max_section_lines,
                 "dated_headings": item.dated_heading_count,
                 "unresolved_markers": item.unresolved_marker_count,
+                "superseded_markers": item.superseded_marker_count,
+                "completed_markers": item.completed_marker_count,
+                "task_id_count": item.task_id_count,
                 "task_ids": item.task_ids,
                 "incoming_links": item.incoming_link_count,
                 "broken_targets": item.broken_targets,
@@ -554,7 +638,7 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
     shown_duplicates = duplicate_groups[: args.top]
 
     report: Dict[str, object] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": now.isoformat(),
         "read_only": True,
         "root": str(root),
@@ -628,7 +712,14 @@ def print_text(report: Dict[str, object]) -> None:
 
     print("Largest files:")
     for item in report["largest_files"]:
-        print(f"  {format_bytes(item['bytes']):>10}  {item['path']}")
+        structure = ""
+        if "markdown_headings" in item:
+            structure = (
+                f" [headings={item['markdown_headings']}, "
+                f"task_headings={item['task_headings']}, "
+                f"max_section_lines={item['max_section_lines']}]"
+            )
+        print(f"  {format_bytes(item['bytes']):>10}  {item['path']}{structure}")
 
     print("Exact duplicate groups:")
     groups = report["exact_duplicate_groups"]

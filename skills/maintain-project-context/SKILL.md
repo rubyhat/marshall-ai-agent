@@ -41,15 +41,19 @@ Use this phase for `--context-audit`, health checks, stale-context review, dupli
 3. Inspect metadata across the configured or requested scope.
 4. Use `scripts/audit_project_context.py` when Python 3.9+ is available.
 5. Read candidate contents only after the metadata pass, and only where semantic classification requires it.
-6. Classify reviewed artifacts as:
+6. For an oversized or mixed canonical artifact, read
+   [compact-oversized-canonical-context.md](references/compact-oversized-canonical-context.md)
+   and classify bounded sections rather than the whole file as one cleanup
+   candidate.
+7. Classify reviewed artifacts as:
    - `retain`;
    - `consolidate`;
    - `archive`;
    - `delete_candidate`;
    - `needs_human_decision`;
    - `broken_reference`.
-7. Return a compact report with evidence, protected items, uncertain items, and a proposed next step.
-8. State explicitly that no files were changed, then stop.
+8. Return a compact report with evidence, protected items, uncertain items, and a proposed next step.
+9. State explicitly that no files were changed, then stop.
 
 Do not save a report in the repository by default. If the user chooses to pursue cleanup, prepare one rolling exact manifest at the configured location; do not create per-audit reports.
 
@@ -102,7 +106,11 @@ python3 scripts/audit_project_context.py \
   --format text
 ```
 
-Repeat path flags as needed. Pass the project's configured Task ID validation regex when one exists; the script applies it to generic identifier tokens and otherwise uses neutral discovery. Use `--format json` when structured output is useful. The script accepts no mutation flags and prints no file contents.
+Repeat path flags as needed. Pass the project's configured Task ID validation
+regex when one exists; without it, the script omits Task-ID counts and
+task-chronology signals instead of guessing from hyphenated words. Use `--format
+json` when structured output is useful. The script accepts no mutation flags
+and prints no file contents.
 
 If Python 3.9+ is unavailable, follow the bounded macOS/Linux fallback in [audit-project-context.md](references/audit-project-context.md). Do not install Python or packages automatically.
 
@@ -111,4 +119,6 @@ If Python 3.9+ is unavailable, follow the bounded macOS/Linux fallback in [audit
 - Use `load-project-context` for ordinary task orientation, not this skill.
 - Use `record-project-context` when consolidation must update canonical memory or a rolling manifest.
 - Keep broad audit, retention judgment, archive selection, and cleanup ownership in this skill.
-- Let task, ADR, incident, security, legal, and production workflows continue to own their substantive artifacts.
+- Let task, incident, security, legal, and production workflows continue to own
+  their substantive artifacts. Let `record-architecture-decision` own ADR
+  applicability, meaning, and lifecycle.

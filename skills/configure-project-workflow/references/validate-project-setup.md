@@ -38,6 +38,16 @@ Validate the configured workflow without executing ordinary project work.
   task, or operational sources of truth.
 - Verify persistent report types have a configured destination and that
   file/link/path-only output rules do not conflict.
+- When architecture decisions are selected, verify one canonical ADR root and
+  index, a complete semantic mapping for required lifecycle states, explicit
+  filename convention, decision authority, materiality triggers,
+  material-change supersession, review triggers, applicability review before
+  task conformance, bounded-exception policy, and retrospective-recording
+  policy.
+- Run `scripts/validate_project_workflow_config.py --config <path>` when the
+  generated config can be parsed safely. It supplements JSON Schema with
+  cross-field checks for module dependencies, conditional policy ownership,
+  and distinct project labels for ADR lifecycle states.
 
 Do not install a parser or dependency automatically. If no YAML parser is safely available, validate the approved setup state, generated text structure, and a full agent readback, then report the parser limitation.
 
@@ -45,6 +55,8 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
 
 - Validate required dependencies from `assets/workflow-modules.json`.
 - Confirm selected modules match configuration and `AGENTS.md` routing.
+- Confirm each `memory.context_*` policy exists only when its catalog owner is
+  selected and contains every required safety invariant.
 - Confirm disabled or removed modules have no active alias or generated routing.
 - Confirm domain handoffs target installed modules.
 
@@ -91,6 +103,9 @@ Evaluate representative prompts without performing their mutations:
   mutations and require the configured release action;
 - planning session then request a specification -> permit only the bounded
   specification workflow;
+- planning session then record an ADR -> permit only the exact lifecycle
+  artifacts owned by `record-architecture-decision`; keep implementation and
+  delivery blocked;
 - natural-language current-session no-code constraint then request
   implementation -> stop as for the equivalent alias;
 - request a transferable handoff report -> use the configured persistent
@@ -102,6 +117,16 @@ Evaluate representative prompts without performing their mutations:
   owning sources for affected components;
 - report a frontend defect when QA is selected;
 - request external reference analysis when selected;
+- review an ADR against a conflicting task -> read-only applicability verdict
+  before any task or ADR mutation;
+- record an accepted architecture decision -> one indexed ADR with no task
+  chronology and no implementation authority;
+- accept or reject a persisted proposal -> preserve its ADR ID, update its
+  status and index entry, and require configured authority;
+- supersede an accepted decision -> mutate only the replacement ADR, the
+  replaced ADR's lifecycle status and backlink, and both index entries;
+- challenge an ADR during implementation -> stop and return to shaping until
+  applicability or replacement is resolved;
 - run `--workflow-check` -> read-only audit.
 
 For `--workflow-check`, compare the bounded inspector's component candidates

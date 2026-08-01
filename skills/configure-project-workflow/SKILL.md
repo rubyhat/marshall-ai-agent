@@ -9,7 +9,10 @@ Bootstrap or reconcile one project workflow without copying another project's as
 
 ## Keep the responsibility bounded
 
-- Own safe project inspection, workflow-module selection, staged configuration interview, setup-state tracking, mutation preview, approved generation, installation reconciliation, and setup validation.
+- Own safe project inspection, workflow-module selection, staged configuration
+  interview, setup-state tracking, mutation preview, approved generation,
+  installation reconciliation, and setup validation, including optional
+  architecture-decision routing and lifecycle policy.
 - Configure selected reusable skills; do not execute their ordinary product, task, QA, review, or delivery workflows during setup.
 - Treat the central workflow-kit repository as reusable source, the active Codex skill directory as installation, and the target repository as owner of project-specific configuration and documentation.
 - Preserve existing project conventions when they are coherent. Recommend `docs_ai` and `local_memory_ai` only when no better project structure exists.
@@ -119,7 +122,7 @@ Apply operations idempotently:
 
 Read [validate-project-setup.md](references/validate-project-setup.md).
 
-Validate configuration structure, module dependencies, skill paths, active-copy identity, managed instruction routing, project-topology coverage and routing, aliases, sticky session constraints, capability gates, artifact output contracts, links, placeholders, safety policy, preservation of user content, and representative dry-run routes. Do not run project builds, tests, migrations, services, or network workflows as setup validation unless separately requested and authorized.
+Validate configuration structure, module dependencies, skill paths, active-copy identity, managed instruction routing, project-topology coverage and routing, aliases, sticky session constraints, capability gates, artifact output contracts, links, placeholders, safety policy, preservation of user content, and representative dry-run routes. When the generated config can be parsed safely, run `scripts/validate_project_workflow_config.py --config <path>` to enforce cross-field module ownership and distinct ADR lifecycle labels in addition to the JSON Schema. Do not install a parser automatically. Do not run project builds, tests, migrations, services, or network workflows as setup validation unless separately requested and authorized.
 
 ### 8. Close or preserve setup state
 
@@ -151,5 +154,7 @@ Do not edit the central workflow kit during project setup.
 
 - Use the system skill installer or an equivalent configured installer only during an approved installation phase.
 - Use `record-project-context` for durable project documentation produced by the approved setup.
+- Use `record-architecture-decision` assets and policy when the ADR module is
+  selected; setup configures the destination but does not invent decisions.
 - Use `maintain-project-context` only for a separately requested audit or cleanup of pre-existing context.
 - Hand ordinary work to the configured runtime skills only after setup closes.

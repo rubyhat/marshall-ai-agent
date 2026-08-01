@@ -1,4 +1,4 @@
-schema_version: 2
+schema_version: 3
 
 workflow_kit:
   source: "{{WORKFLOW_KIT_SOURCE}}"
@@ -44,6 +44,61 @@ artifacts:
     handoff_default: file
     incident_default: file
     file_response: concise_link_or_path
+
+# Keep `memory` only when at least one context module is selected. Keep each
+# child policy only with the exact module named in its comment.
+memory:
+  # load-project-context
+  context_loading:
+    preflight_large_or_mixed_artifacts: true
+    section_targeting_required_when_available: true
+    full_read_requires_identified_semantic_need: true
+  # record-project-context
+  context_recording:
+    canonical_current_state_only: true
+    task_chronology_in_canonical_forbidden: true
+    update_existing_owner_before_create: true
+  # maintain-project-context
+  context_maintenance:
+    manual_only: true
+    audit_before_cleanup: true
+    exact_manifest_approval_required: true
+    section_level_compaction_for_mixed_canonical: true
+    diagnostic_metrics_are_not_retention_rules: true
+
+# Keep this section only when record-architecture-decision is selected.
+architecture_decisions:
+  enabled: true
+  root: "{{ADR_ROOT}}"
+  index: "{{ADR_INDEX_PATH}}"
+  id_pattern: "{{ADR_ID_PATTERN}}"
+  filename_pattern: "{{ADR_FILENAME_PATTERN}}"
+  statuses:
+    proposed: proposed
+    accepted: accepted
+    superseded: superseded
+    deprecated: deprecated
+    rejected: rejected
+  decision_authority:
+    - "{{ADR_DECISION_AUTHORITY}}"
+  materiality_triggers:
+    - "{{ADR_MATERIALITY_TRIGGER}}"
+  supersession:
+    material_change_creates_new_adr: true
+    preserve_old_rationale: true
+  applicability_review:
+    before_forcing_task_conformance: true
+    stop_on_unclear_or_review_required: true
+    review_triggers:
+      - "{{ADR_REVIEW_TRIGGER}}"
+  bounded_exceptions:
+    allowed: false
+    owner_required: true
+    expiry_or_review_trigger_required: true
+  retrospective_recording:
+    allowed: true
+    requires_verifiable_rationale: true
+    bulk_creation_forbidden: true
 
 skills:
   active: {}

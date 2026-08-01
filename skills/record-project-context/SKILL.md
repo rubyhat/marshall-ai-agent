@@ -10,7 +10,9 @@ Apply a recording gate before writing project context. Preserve only information
 ## Keep the responsibility narrow
 
 - Route and persist knowledge supplied by the current task or an owning workflow.
-- Let domain workflows define the substantive content of specs, ADRs, reports, and product decisions.
+- Let domain workflows define the substantive content of specs, reports, and
+  product decisions. Let `record-architecture-decision` own ADR necessity,
+  applicability, content, and lifecycle.
 - Keep operational task status in the configured issue or project system.
 - Keep implementation truth in code, schema, and runtime configuration.
 - Do not perform broad discovery, health audits, historical consolidation, or bulk deletion.
@@ -106,6 +108,12 @@ Search the likely canonical destination before creating a file or section. Do no
 - Link to detailed specs, ADRs, reports, issues, pull requests, code, or external documentation instead of copying them.
 - Follow the configured language policy.
 
+Before recording architectural rationale, hand the exact decision to
+`record-architecture-decision`. Do not treat a generic recording request as
+authority to accept, reject, rewrite, deprecate, or supersede an ADR.
+If that module is not configured, report the missing decision owner and do not
+improvise an ADR lifecycle inside this skill.
+
 Read [update-canonical-context.md](references/update-canonical-context.md) when changing stable memory, runbooks, configuration, architecture, known issues, or a context map.
 
 For a verified structural topology change, update the canonical topology map
@@ -153,3 +161,11 @@ At task completion:
 6. Keep the note only when unresolved task state remains; do not retain it as a completion log.
 
 Treat legacy session notes and unrelated context as out of scope. Hand their audit and cleanup to the maintenance workflow.
+
+## Coordinate with architecture decisions
+
+- Route important architectural rationale to `record-architecture-decision`.
+- Persist only the ADR action that workflow authorized and verified.
+- Keep current architecture in its owning current-state source and cross-link
+  the ADR instead of duplicating rationale.
+- Never append task completion or implementation progress to an ADR.

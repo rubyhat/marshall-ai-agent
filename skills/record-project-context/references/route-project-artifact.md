@@ -69,7 +69,8 @@ Do not create a document merely to prove that work occurred.
 - Repository-specific fact: repository memory.
 - Verified repeatable procedure: runbook.
 - Cross-repository invariant: shared architecture.
-- Important decision rationale: ADR.
+- Important architectural decision rationale: ADR through
+  `record-architecture-decision`.
 - Current unresolved risk or discrepancy: known-issues registry.
 - Planned task scope and acceptance criteria: task spec.
 - Human-facing analysis, report, or guide: project documentation.
@@ -99,7 +100,10 @@ role.
 
 ## Respect content ownership
 
-Let the owning domain workflow decide what a spec, ADR, report, or plan should say. Apply this skill to routing, duplication control, persistence, and consistency.
+Let the owning domain workflow decide what a spec, report, or plan should say.
+Let `record-architecture-decision` decide what an ADR should say and whether it
+should be created, accepted, rejected, clarified, deprecated, or superseded.
+Apply this skill to routing, duplication control, persistence, and consistency.
 
 Ask only when two plausible destinations would create competing sources of truth. Otherwise choose the configured owner and proceed.
 

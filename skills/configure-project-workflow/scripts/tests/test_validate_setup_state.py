@@ -147,6 +147,32 @@ class ValidateSetupStateTest(unittest.TestCase):
         errors, _ = self.module.validate(state, self.catalog)
         self.assertIn("modules.enabled_aliases is required", errors)
 
+    def test_architecture_decision_aliases_require_the_selected_module(self):
+        state = self.valid_state()
+        state["modules"]["enabled_aliases"] = ["--adr-review", "--record-adr"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn(
+            "Alias --adr-review requires owning module record-architecture-decision",
+            errors,
+        )
+        self.assertIn(
+            "Alias --record-adr requires owning module record-architecture-decision",
+            errors,
+        )
+
+    def test_architecture_decision_module_requires_recording(self):
+        state = self.valid_state()
+        state["modules"]["selected"] = [
+            "configure-project-workflow",
+            "record-architecture-decision",
+        ]
+        state["modules"]["enabled_aliases"] = ["--adr-review", "--record-adr"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn(
+            "Module record-architecture-decision requires record-project-context",
+            errors,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

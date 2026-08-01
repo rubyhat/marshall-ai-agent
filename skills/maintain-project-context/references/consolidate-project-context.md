@@ -9,7 +9,7 @@ For each fact, identify one owner:
 - code, schema, or runtime configuration for implementation truth;
 - Issue or Project for operational task state;
 - task spec for detailed implementation scope;
-- ADR for an architectural decision;
+- ADR through `record-architecture-decision` for an architectural decision;
 - incident, security, legal, migration, backup, or restore artifact for governed evidence;
 - canonical memory or runbook for compact reusable current knowledge;
 - rolling active note for unresolved task-local state.

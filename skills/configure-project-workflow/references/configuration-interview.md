@@ -9,13 +9,14 @@ Use this staged catalog to obtain complete setup information without presenting 
 3. Stage 2 — project identity and repositories
 4. Stage 3 — instructions and source-of-truth boundaries
 5. Stage 4 — context and documentation
-6. Stage 5 — shaping and specifications
-7. Stage 6 — task management
-8. Stage 7 — implementation
-9. Stage 8 — review and delivery
-10. Stage 9 — domain modules
-11. Stage 10 — installation and customization
-12. Final review
+6. Stage 4A — architecture decisions
+7. Stage 5 — shaping and specifications
+8. Stage 6 — task management
+9. Stage 7 — implementation
+10. Stage 8 — review and delivery
+11. Stage 9 — domain modules
+12. Stage 10 — installation and customization
+13. Final review
 
 ## Interview rules
 
@@ -95,12 +96,37 @@ Ask 7–10 prompts covering:
 4. context map and progressive-disclosure routing from topology to the owning
    component's instructions, architecture, memory, and runbooks;
 5. active task note policy;
-6. session-note and historical-context policy;
-7. recording language and provenance requirements;
-8. retention, archive, manual cleanup, and categories that must not be created;
+6. session-note, historical-context, canonical current-state-only, and
+   task-chronology exclusion policy;
+7. recording language, provenance, and update-existing-before-create rules;
+8. retention, archive, manual cleanup, section-level oversized canonical
+   compaction, and categories that must not be created;
 9. human-facing report root and chat, file, handoff, incident, link, and
    path-only output policy;
 10. whether `load`, `record`, and `maintain` modules are applicable.
+
+## Stage 4A — architecture decisions
+
+Activate only when `record-architecture-decision` is selected.
+
+Purpose: define how material architecture choices are recorded and revisited
+without turning accepted ADRs into permanent dogma.
+
+Ask 7–10 prompts covering:
+
+1. existing ADR or decision artifacts and their current authority;
+2. canonical ADR root, index, ID, filename, and document language;
+3. distinct project labels mapped to the `accepted`, `superseded`, `deprecated`,
+   and `rejected` semantic states, plus whether an optional distinct `proposed`
+   state is useful;
+4. roles or people authorized to accept an architecture decision;
+5. project-specific domains and materiality triggers that require an ADR;
+6. current architecture sources and the boundary between architecture, ADR,
+   code, task specification, and task tracking;
+7. assumptions, decision drivers, and review triggers required in each ADR;
+8. mandatory applicability review before forcing a task to conform;
+9. supersession, deprecation, bounded-exception, and retrospective-ADR policy;
+10. whether `--adr-review` and `--record-adr` should be enabled.
 
 ## Stage 5 — shaping and specifications
 

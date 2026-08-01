@@ -82,6 +82,10 @@ Continue only when:
 - the proposal is corrected; or
 - the user explicitly accepts the described material trade-off and has authority to do so.
 
-If the new decision supersedes durable project truth, update the canonical decision through `record-project-context` before downstream work relies on it.
+If the new decision may supersede an architectural decision, use
+`record-architecture-decision` for applicability review and supersession, then
+use `record-project-context` to persist the accepted result before downstream
+work relies on it. Route other superseded durable truth through
+`record-project-context`.
 
 Explicit acceptance cannot override higher-priority instructions, permissions, legal constraints, or non-waivable safety requirements.

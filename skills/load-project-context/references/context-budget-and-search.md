@@ -45,10 +45,15 @@ Quote paths and search terms when they contain spaces or shell metacharacters. U
 - Search exact task IDs before general domain words.
 - Prefer one coherent range over many disconnected matches.
 - Avoid printing entire directories, logs, histories, specs, or memory files.
+- Never full-read an oversized or mixed-era canonical artifact when a map,
+  heading, exact anchor, or bounded section can answer the question.
 - Avoid rereading content already present in the current conversation.
 - Summarize evidence instead of repeating source text.
 
-Do not hide a necessary source merely because it is large. Narrow the read to the relevant section, then widen only if surrounding context changes the meaning.
+Do not hide a necessary source merely because it is large. Narrow the read to
+the relevant section, then widen only if surrounding context changes the
+meaning. When section routing is missing, report that context-health gap rather
+than compensating with an unbounded read.
 
 ## Reassess after each pass
 

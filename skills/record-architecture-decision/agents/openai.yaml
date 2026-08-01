@@ -1,0 +1,4 @@
+interface:
+  display_name: "Record Architecture Decision"
+  short_description: "Создаёт и пересматривает архитектурные решения"
+  default_prompt: "Use $record-architecture-decision to decide whether this architectural choice needs an ADR and record or review it safely."

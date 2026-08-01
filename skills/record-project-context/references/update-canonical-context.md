@@ -15,6 +15,12 @@ Treat canonical context as a description of the current project, not a chronolog
 
 Do not append a dated task or merge entry when the durable result can be expressed as current state.
 
+Before adding a new section, check whether the candidate can replace or merge
+into an existing owning section. Treat repeated task-ID headings, dated
+completion entries, merge reports, and resolved status summaries as a
+canonical-growth warning. Record the resulting current fact or link, not the
+event narrative.
+
 ## Type the statement
 
 Make the status explicit when ambiguity matters:
@@ -52,7 +58,10 @@ Record only commands and sequences that were verified or whose unverified status
 
 ### Architecture or ADR
 
-Keep current invariants in architecture. Keep alternatives, reasoning, and consequences in an ADR. Cross-link rather than duplicate.
+Keep current invariants in architecture. Keep alternatives, reasoning,
+assumptions, consequences, and review triggers in an ADR. Use
+`record-architecture-decision` for ADR applicability and lifecycle. Cross-link
+rather than duplicate.
 
 ### Known issues
 
@@ -81,4 +90,6 @@ routine releases, dependency upgrades, task status, or deployment history.
 - Ensure that another artifact does not now compete as canonical.
 - Ensure that links resolve.
 - Ensure that project language policy is respected.
+- Ensure that the edited canonical artifact did not gain task chronology that
+  belongs to a spec, Issue, pull request, report, or archive.
 - Keep cleanup outside the directly edited scope for the maintenance workflow.

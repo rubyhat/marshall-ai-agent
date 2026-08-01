@@ -7,8 +7,13 @@ Build one coherent implementation contract from the shaped task and verified tec
 - Keep roadmap priority and operational status in the configured task system.
 - Keep detailed intended behavior and implementation constraints in the spec.
 - Keep runtime truth in code, schemas, and configuration.
-- Keep durable architecture decisions in their canonical decision artifact.
+- Keep durable architecture decisions in their canonical ADR and use
+  `record-architecture-decision` before changing their meaning or lifecycle.
 - Link rather than copy large research reports, parent specs, or external contracts.
+
+An accepted ADR is a reviewable decision, not permanent truth. If current task
+evidence challenges its scope, assumptions, drivers, or consequences, stop and
+obtain an applicability verdict instead of making the task silently conform.
 
 The specification may summarize those sources only to make the exact task executable.
 

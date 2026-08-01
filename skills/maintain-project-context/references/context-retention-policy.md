@@ -11,6 +11,11 @@ Use this policy to make semantic retention decisions after the metadata audit. A
 
 History may grow. Active and canonical context must remain compact.
 
+Canonical status protects information from automatic deletion; it does not
+justify unlimited growth or full-file loading. When a canonical artifact mixes
+current and historical roles, retain it during audit and compact it only
+through an approved section-level consolidation.
+
 ## Classification vocabulary
 
 - `retain`: keep in place; the artifact is active, canonical, protected, or uniquely valuable.
@@ -70,6 +75,12 @@ Review, but do not automatically delete:
 - a closed rolling note after durable-fact promotion.
 
 Consolidate before considering deletion when several notes contain partially current facts, repeated repository gotchas, dated entries inside canonical memory, or a sequence of architecture findings.
+
+For oversized mixed canonical files, apply
+[compact-oversized-canonical-context.md](compact-oversized-canonical-context.md).
+Size, heading count, and chronology ratios are diagnostic signals only. They
+may prioritize review but never authorize archival, deletion, or semantic
+rewriting.
 
 ## Archive policy
 

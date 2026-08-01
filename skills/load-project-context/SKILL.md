@@ -63,7 +63,8 @@ Prefer sources in this order:
 
 1. Direct task anchors: the named spec, issue, pull request, file, or active task pointer.
 2. Applicable constraints: project instructions, safety rules, repository instructions, and required workflows.
-3. Canonical domain context: the relevant architecture, engineering rule, repository memory, or known issue section.
+3. Canonical domain context: the relevant architecture, applicable accepted
+   ADR, engineering rule, repository memory, or known issue section.
 4. Operational context: a runbook, template, environment note, or test/deploy instruction required by the next action.
 5. Cold history: completed specs, reports, session notes, progress logs, and archives.
 
@@ -80,6 +81,11 @@ Inspect candidate context documents before opening them:
 - search exact identifiers, paths, symbols, domains, and decision terms;
 - select relevant ranges;
 - keep command output bounded to the evidence needed.
+
+An artifact being canonical does not justify a full read. For a large or mixed
+canonical source, use its map, index, headings, exact decision or task anchors,
+and section ranges. Do not print the full file merely to determine which part
+is current.
 
 Use semantic sufficiency rather than numeric read or output limits. Expand reading only to answer an identified question. Read [context-budget-and-search.md](references/context-budget-and-search.md) for the detailed runbook.
 
