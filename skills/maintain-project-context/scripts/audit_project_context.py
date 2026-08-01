@@ -319,6 +319,7 @@ def inspect_text(
     nonblank = 0
     open_sections: List[Tuple[int, int]] = []
     markdown = item.absolute_path.suffix.lower() in {".md", ".markdown", ".mdx"}
+    root_preamble_open = markdown
     with item.absolute_path.open("r", encoding="utf-8", errors="replace") as handle:
         for line in handle:
             line_count += 1
@@ -346,6 +347,11 @@ def inspect_text(
                 # their nested descendants without degenerating the metric
                 # into the full document length for every normal Markdown file.
                 if heading_level >= 2:
+                    if root_preamble_open:
+                        item.max_section_lines = max(
+                            item.max_section_lines, line_count - 1
+                        )
+                        root_preamble_open = False
                     open_sections.append((heading_level, line_count))
                 item.markdown_heading_count += 1
                 # A generic hyphenated token is useful for bounded discovery,
@@ -372,6 +378,8 @@ def inspect_text(
         item.max_section_lines = max(
             item.max_section_lines, line_count - section_start + 1
         )
+    if root_preamble_open and line_count:
+        item.max_section_lines = max(item.max_section_lines, line_count)
     if item.markdown_heading_count and not item.max_section_lines:
         item.max_section_lines = line_count
     item.line_count = line_count

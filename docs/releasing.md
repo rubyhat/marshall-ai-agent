@@ -60,12 +60,18 @@ token позволяет Release PR пройти ту же обязательн�
    - SemVer bump;
    - `version.txt`;
    - `.release-please-manifest.json`;
+   - exact install ref и release link в `README.md`, обновлённые до proposed tag;
    - полноту и понятность `CHANGELOG.md`;
    - breaking и migration notes;
    - зелёный `Validate / Skills`.
 5. Merge Release PR является явным разрешением выпустить версию.
 6. Release Please создаёт tag `vX.Y.Z` и опубликованный GitHub Release.
 7. Проверьте, что tag, GitHub Release, `version.txt` и manifest совпадают.
+
+README должен называть текущую опубликованную версию до появления Release PR.
+Обновляйте его exact install ref и release link внутри Release PR перед merge,
+чтобы feature branches не рекомендовали ещё несуществующий tag, а новый release
+не оставлял bootstrap на предыдущей версии.
 
 Не создавайте tag или GitHub Release вручную поверх незамерженного Release PR.
 Релиз не запускает deployment и не изменяет активные копии в `~/.codex/skills`
