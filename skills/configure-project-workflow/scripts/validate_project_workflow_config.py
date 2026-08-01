@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -99,6 +100,14 @@ def validate_semantics(
         errors.append(f"architecture_decisions is forbidden without {ADR_MODULE}")
 
     if isinstance(adr, dict):
+        id_pattern = adr.get("id_pattern")
+        if isinstance(id_pattern, str) and id_pattern:
+            try:
+                re.compile(id_pattern)
+            except re.error as error:
+                errors.append(
+                    f"architecture_decisions.id_pattern is invalid: {error}"
+                )
         statuses = adr.get("statuses")
         if not isinstance(statuses, dict):
             errors.append("architecture_decisions.statuses must be a mapping")

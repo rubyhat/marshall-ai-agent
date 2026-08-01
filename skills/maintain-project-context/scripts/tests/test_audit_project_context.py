@@ -16,6 +16,53 @@ SCRIPT = Path(__file__).resolve().parents[1] / "audit_project_context.py"
 
 
 class AuditProjectContextTest(unittest.TestCase):
+    def test_link_destination_does_not_create_lifecycle_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "service.md"
+            target = memory / "completed.md"
+            target.write_text("# Rollout notes\n", encoding="utf-8")
+            source.write_text(
+                """# Current behavior
+
+TODO: verify the current boundary.
+
+[Rollout notes](completed.md)
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory/service.md",
+                    "--canonical",
+                    "memory/service.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            largest = report["largest_files"][0]
+            self.assertEqual(largest["unresolved_markers"], 1)
+            self.assertEqual(largest["completed_markers"], 0)
+            hints = report["candidates"][0]["review_hints"] if report["candidates"] else []
+            self.assertNotIn("mixed_lifecycle_signal", hints)
+
     def test_reference_style_task_link_counts_as_task_heading(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

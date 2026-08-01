@@ -70,6 +70,7 @@ STATUS_RE = re.compile(
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 MARKDOWN_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\([^)]+\)")
 MARKDOWN_REFERENCE_LINK_LABEL_RE = re.compile(r"!?\[([^\]]+)\]\[[^\]]*\]")
+MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(r"^[ ]{0,3}\[[^\]]+\]:")
 SUPERSESSION_FIELD_RE = re.compile(
     r"^\s*(?:[-*]\s*)?superseded by\s*:\s*(.*?)\s*$",
     re.I,
@@ -186,6 +187,16 @@ def markdown_fence_closes(line: str, character: str, minimum_length: int) -> boo
         and match.group(1)[0] == character
         and set(match.group(1)) == {character}
         and len(match.group(1)) >= minimum_length
+    )
+
+
+def markdown_visible_signal_text(line: str) -> str:
+    """Keep rendered link labels while removing non-rendered destinations."""
+    if MARKDOWN_REFERENCE_DEFINITION_RE.match(line):
+        return ""
+    visible = MARKDOWN_LINK_LABEL_RE.sub(lambda match: match.group(1), line)
+    return MARKDOWN_REFERENCE_LINK_LABEL_RE.sub(
+        lambda match: match.group(1), visible
     )
 
 
@@ -490,15 +501,16 @@ def inspect_text(
                     item.dated_heading_count += 1
             if heading_match and DATED_HEADING_RE.search(line):
                 item.dated_heading_count += 1
-            item.unresolved_marker_count += len(UNRESOLVED_RE.findall(line))
-            supersession_field = SUPERSESSION_FIELD_RE.match(line)
+            signal_line = markdown_visible_signal_text(line) if markdown else line
+            item.unresolved_marker_count += len(UNRESOLVED_RE.findall(signal_line))
+            supersession_field = SUPERSESSION_FIELD_RE.match(signal_line)
             if supersession_field:
                 value = supersession_field.group(1).strip().strip("`<>").strip().lower()
                 if value not in EMPTY_SUPERSESSION_VALUES:
                     item.superseded_marker_count += 1
             else:
-                item.superseded_marker_count += len(SUPERSEDED_RE.findall(line))
-            item.completed_marker_count += len(STATUS_RE.findall(line))
+                item.superseded_marker_count += len(SUPERSEDED_RE.findall(signal_line))
+            item.completed_marker_count += len(STATUS_RE.findall(signal_line))
             for raw_target in MARKDOWN_LINK_RE.findall(line):
                 normalized = normalize_link_target(root, item.absolute_path, raw_target)
                 if normalized is not None:

@@ -296,6 +296,11 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         config["architecture_decisions"]["statuses"]["accepted"] = "   "
         self.assert_invalid(config)
 
+    def test_adr_identifier_pattern_must_compile(self) -> None:
+        config = rendered_config()
+        config["architecture_decisions"]["id_pattern"] = "["
+        self.assert_invalid(config)
+
     def test_each_context_conditional_has_positive_and_negative_coverage(self) -> None:
         policy_by_module = {
             "load-project-context": "context_loading",
