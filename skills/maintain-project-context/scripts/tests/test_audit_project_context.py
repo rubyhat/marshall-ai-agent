@@ -707,6 +707,108 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 0)
             self.assertEqual(by_path["memory/source.md"]["completed_markers"], 0)
 
+    def test_raw_text_html_block_body_does_not_create_incoming_links(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "script.md").write_text("# Script\n", encoding="utf-8")
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                (
+                    '<script src="../context/script.md">const template = '
+                    "'<a href=\"../context/target.md\">';</script>\n"
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["context/script.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["context/target.md"]["incoming_links"], 0)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
+    def test_comment_inside_ordinary_html_block_is_opaque(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                """<div>
+<!-- <a href="../context/target.md">TODO completed</a> -->
+</div>
+
+Visible content.
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--scope",
+                    "references",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["context/target.md"]["incoming_links"], 0)
+            self.assertEqual(
+                by_path["references/source.md"]["unresolved_markers"], 0
+            )
+            self.assertEqual(
+                by_path["references/source.md"]["completed_markers"], 0
+            )
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_duplicate_raw_html_resource_attribute_uses_first_target(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -278,6 +278,34 @@ def html_visible_signal_text(raw: str) -> str:
     return html_unescape("".join(pieces))
 
 
+def strip_html_comments(raw: str, in_comment: bool = False) -> Tuple[str, bool]:
+    """Mask HTML comments, preserving enough state for multiline blocks."""
+    pieces: List[str] = []
+    cursor = 0
+    while cursor < len(raw):
+        if in_comment:
+            closing = raw.find("-->", cursor)
+            if closing < 0:
+                pieces.append(" " * (len(raw) - cursor))
+                return "".join(pieces), True
+            pieces.append(" " * (closing + 3 - cursor))
+            cursor = closing + 3
+            in_comment = False
+            continue
+        opening = raw.find("<!--", cursor)
+        if opening < 0:
+            pieces.append(raw[cursor:])
+            break
+        pieces.append(raw[cursor:opening])
+        closing = raw.find("-->", opening + 4)
+        if closing < 0:
+            pieces.append(" " * (len(raw) - opening))
+            return "".join(pieces), True
+        pieces.append(" " * (closing + 3 - opening))
+        cursor = closing + 3
+    return "".join(pieces), in_comment
+
+
 def fail(message: str, code: int = 2) -> None:
     print(f"error: {message}", file=sys.stderr)
     raise SystemExit(code)
@@ -1614,6 +1642,7 @@ def inspect_text(
     html_block_end_token: Optional[str] = None
     html_block_until_blank = False
     html_block_container_tokens: Tuple[Tuple[str, int], ...] = ()
+    html_block_comment_open = False
     html_comment_open = False
     html_comment_block_open = False
     html_comment_container_tokens: Tuple[Tuple[str, int], ...] = ()
@@ -1762,8 +1791,8 @@ def inspect_text(
                         html_block_end_token = None
                         html_block_until_blank = False
                         html_block_container_tokens = ()
+                        html_block_comment_open = False
                     elif html_block_end_token is not None:
-                        register_html_fragment(html_container_line)
                         if html_block_end_token in html_container_line.lower():
                             html_block_end_token = None
                             html_block_container_tokens = ()
@@ -1771,12 +1800,18 @@ def inspect_text(
                         previous_setext_candidate = None
                         continue
                     else:
-                        register_html_fragment(html_container_line)
-                        if html_container_line.strip():
-                            signal_lines.append(html_container_line)
+                        sanitized_html_line, html_block_comment_open = (
+                            strip_html_comments(
+                                html_container_line, html_block_comment_open
+                            )
+                        )
+                        register_html_fragment(sanitized_html_line)
+                        if sanitized_html_line.strip():
+                            signal_lines.append(sanitized_html_line)
                         if not html_container_line.strip():
                             html_block_until_blank = False
                             html_block_container_tokens = ()
+                            html_block_comment_open = False
                         paragraph_active = False
                         previous_setext_candidate = None
                         continue
@@ -1817,9 +1852,19 @@ def inspect_text(
                 )
                 if html_block_start is not None:
                     end_token, until_blank = html_block_start
-                    register_html_fragment(container_line)
-                    if until_blank and container_line.strip():
-                        signal_lines.append(container_line)
+                    if end_token is not None:
+                        raw_text_tag = end_token[2:-1] if end_token.startswith("</") else None
+                        if raw_text_tag in {"pre", "script", "style", "textarea"}:
+                            tokens = markdown_complete_html_tokens(container_line)
+                            if tokens:
+                                register_html_fragment(tokens[0])
+                    elif until_blank:
+                        sanitized_html_line, html_block_comment_open = (
+                            strip_html_comments(container_line)
+                        )
+                        register_html_fragment(sanitized_html_line)
+                        if sanitized_html_line.strip():
+                            signal_lines.append(sanitized_html_line)
                     if (
                         end_token is not None
                         and end_token not in container_line.lower()
