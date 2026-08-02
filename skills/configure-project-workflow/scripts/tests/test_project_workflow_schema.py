@@ -545,6 +545,13 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         unbounded["architecture_decisions"]["slug_max_bytes"] = 2
         self.assert_invalid(unbounded)
 
+        repeated = rendered_config()
+        repeated["architecture_decisions"][
+            "filename_pattern"
+        ] = "<slug>O<slug>/<ID>.md"
+        repeated["architecture_decisions"]["slug_max_bytes"] = 1
+        self.assert_valid(repeated)
+
     def test_adr_slug_budget_bounds_index_collision_feasibility(self) -> None:
         bounded = rendered_config()
         bounded["architecture_decisions"][
@@ -565,6 +572,16 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         ] = "docs_ai/adr/folder-ab/ADR-0001.md"
         colliding["architecture_decisions"]["slug_max_bytes"] = 2
         self.assert_invalid(colliding)
+
+        repeated = rendered_config()
+        repeated["architecture_decisions"][
+            "filename_pattern"
+        ] = "folder-<slug>/<slug>-<ID>.md"
+        repeated["architecture_decisions"][
+            "index"
+        ] = "docs_ai/adr/folder-a/b-ADR-0001.md"
+        repeated["architecture_decisions"]["slug_max_bytes"] = 1
+        self.assert_valid(repeated)
 
     def test_prefixed_windows_device_identifier_is_portable(self) -> None:
         config = rendered_config()

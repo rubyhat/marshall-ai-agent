@@ -278,14 +278,19 @@ def template_identifier_matches(
     def rendered_pattern(identifier: Optional[str]) -> str:
         pieces: List[str] = []
         cursor = 0
+        slug_seen = False
         for placeholder in placeholders:
             pieces.append(re.escape(template[cursor : placeholder.start()]))
             if placeholder.group(0) == "<ID>" and identifier is not None:
                 pieces.append(re.escape(identifier))
             elif placeholder.group(0) == "<slug>":
-                pieces.append(
-                    rf"[A-Za-z0-9_-]{{1,{slug_max_bytes}}}"
-                )
+                if slug_seen:
+                    pieces.append(r"(?P=slug)")
+                else:
+                    pieces.append(
+                        rf"(?P<slug>[A-Za-z0-9_-]{{1,{slug_max_bytes}}})"
+                    )
+                    slug_seen = True
             else:
                 pieces.append(ADR_TEMPLATE_VALUE_PATTERN)
             cursor = placeholder.end()
