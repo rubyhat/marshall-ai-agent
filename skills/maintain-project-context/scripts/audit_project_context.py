@@ -140,35 +140,52 @@ LIFECYCLE_OPAQUE_HTML_ELEMENTS = {
     "template",
     "title",
 }
-HTML_P_IMPLIED_END_START_TAGS = {
-    "address",
-    "article",
-    "aside",
-    "blockquote",
-    "div",
-    "dl",
-    "fieldset",
-    "footer",
-    "form",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "header",
-    "hgroup",
-    "hr",
-    "main",
-    "menu",
-    "nav",
-    "ol",
-    "p",
-    "pre",
-    "search",
-    "section",
-    "table",
-    "ul",
+HTML_IMPLIED_END_START_TAGS = {
+    "dd": {"dd", "dt"},
+    "dt": {"dd", "dt"},
+    "li": {"li"},
+    "optgroup": {"optgroup"},
+    "option": {"optgroup", "option"},
+    "p": {
+        "address",
+        "article",
+        "aside",
+        "blockquote",
+        "div",
+        "dl",
+        "fieldset",
+        "footer",
+        "form",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "header",
+        "hgroup",
+        "hr",
+        "main",
+        "menu",
+        "nav",
+        "ol",
+        "p",
+        "pre",
+        "search",
+        "section",
+        "table",
+        "ul",
+    },
+    "rb": {"rb", "rp", "rt", "rtc"},
+    "rp": {"rb", "rp", "rt", "rtc"},
+    "rt": {"rb", "rp", "rt", "rtc"},
+    "rtc": {"rb", "rp", "rt", "rtc"},
+    "tbody": {"tbody", "tfoot", "thead"},
+    "td": {"td", "th"},
+    "tfoot": {"tbody", "tfoot", "thead"},
+    "th": {"td", "th"},
+    "thead": {"tbody", "tfoot", "thead"},
+    "tr": {"tr"},
 }
 DETAILS_SUMMARY_PENDING = "details_summary_pending"
 DETAILS_SUMMARY_VISIBLE = "details_summary_visible"
@@ -927,11 +944,13 @@ def html_visible_signal_text_with_state(
                     if (
                         details_summary_phase == DETAILS_SUMMARY_PENDING
                         and raw_text_depth == 1
+                        and not template_foreign_stack
                         and normalized_opening == "summary"
                     ):
                         details_summary_phase = DETAILS_SUMMARY_VISIBLE
                     elif (
                         details_summary_phase == DETAILS_SUMMARY_VISIBLE
+                        and not template_foreign_stack
                         and normalized_closing == "summary"
                     ):
                         details_summary_phase = DETAILS_SUMMARY_COMPLETE
@@ -943,6 +962,24 @@ def html_visible_signal_text_with_state(
                             cursor = candidate_end
                             raw_text_state = None
                             break
+                    elif (
+                        normalized_opening is not None
+                        and normalized_opening not in HTML_VOID_ELEMENTS
+                        and not re.search(r"/[ \t]*>$", token)
+                    ):
+                        template_foreign_stack += (normalized_opening,)
+                    elif (
+                        normalized_closing is not None
+                        and normalized_closing in template_foreign_stack
+                    ):
+                        matching_index = len(template_foreign_stack) - 1 - (
+                            template_foreign_stack[::-1].index(
+                                normalized_closing
+                            )
+                        )
+                        template_foreign_stack = template_foreign_stack[
+                            :matching_index
+                        ]
                     cursor = candidate_end
                     raw_text_state = (
                         raw_text_tag,
@@ -978,8 +1015,8 @@ def html_visible_signal_text_with_state(
                         else None
                     )
                     if (
-                        raw_text_tag == "p"
-                        and normalized_opening in HTML_P_IMPLIED_END_START_TAGS
+                        normalized_opening
+                        in HTML_IMPLIED_END_START_TAGS.get(raw_text_tag, set())
                     ):
                         cursor = candidate
                         raw_text_state = None

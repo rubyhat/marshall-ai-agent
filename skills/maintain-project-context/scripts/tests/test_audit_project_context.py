@@ -1589,13 +1589,18 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             self.assertEqual(source["completed_markers"], 2)
             self.assertEqual(source["unresolved_markers"], 1)
 
-    def test_hidden_paragraph_stops_at_implied_end_tag(self) -> None:
+    def test_hidden_subtrees_stop_at_applicable_implied_end_tags(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             memory = root / "memory"
             memory.mkdir()
             (memory / "source.md").write_text(
-                "Completed <p hidden><div>TODO</div>\n",
+                (
+                    "Completed <p hidden><div>TODO</div>\n"
+                    "Completed <li hidden>FIXME<li>TODO\n"
+                    "Completed <dt hidden>FIXME<dd>TODO\n"
+                    "Completed <option hidden>FIXME<option>TODO\n"
+                ),
                 encoding="utf-8",
             )
 
@@ -1622,8 +1627,8 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
 
             self.assertEqual(result.returncode, 0, result.stderr)
             source = json.loads(result.stdout)["largest_files"][0]
-            self.assertEqual(source["completed_markers"], 1)
-            self.assertEqual(source["unresolved_markers"], 1)
+            self.assertEqual(source["completed_markers"], 4)
+            self.assertEqual(source["unresolved_markers"], 4)
 
     def test_details_lifecycle_signals_follow_open_and_summary_state(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -1634,6 +1639,7 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                 (
                     "Completed <details>TODO</details>\n"
                     "Completed <details><summary>TODO</summary>FIXME</details>\n"
+                    "Completed <details><div><summary>TODO</summary></div></details>\n"
                     "Completed <details open>TODO</details>\n"
                 ),
                 encoding="utf-8",
@@ -1662,7 +1668,7 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
 
             self.assertEqual(result.returncode, 0, result.stderr)
             source = json.loads(result.stdout)["largest_files"][0]
-            self.assertEqual(source["completed_markers"], 3)
+            self.assertEqual(source["completed_markers"], 4)
             self.assertEqual(source["unresolved_markers"], 2)
 
     def test_raw_text_self_closing_end_tag_restores_visible_signals(self) -> None:
