@@ -2351,6 +2351,57 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                 report["link_coverage"]["complete_for_declared_roots"]
             )
 
+    def test_attributed_raw_text_closer_downgrades_reference_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                (
+                    "<script>\n"
+                    '</script foo><a href="../context/target.md">target</a>\n'
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            self.assertFalse(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+            self.assertEqual(
+                report["link_coverage"]["status"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertEqual(
+                report["summary"]["skipped"]["reference_parse_incomplete"],
+                1,
+            )
+
     def test_multiline_script_body_does_not_create_incoming_reference(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

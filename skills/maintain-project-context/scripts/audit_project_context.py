@@ -586,6 +586,27 @@ def html_raw_text_closing_suffix(raw: str, tag: str) -> Optional[str]:
         search_cursor = candidate + 2
 
 
+def html_raw_text_has_non_commonmark_closer(raw: str, tag: str) -> bool:
+    """Detect a browser-significant closer that CommonMark keeps in a raw block."""
+    closing_prefix = f"</{tag}"
+    search_cursor = 0
+    lowered = raw.casefold()
+    while True:
+        candidate = lowered.find(closing_prefix, search_cursor)
+        if candidate < 0:
+            return False
+        boundary = candidate + len(closing_prefix)
+        if boundary >= len(raw):
+            return True
+        boundary_character = raw[boundary]
+        if boundary_character == ">":
+            search_cursor = boundary + 1
+            continue
+        if boundary_character in " \t\r\n\f/":
+            return True
+        search_cursor = candidate + 2
+
+
 def html_visible_signal_text_with_state(
     raw: str,
     raw_text_state: Optional[Tuple[str, int, Optional[str]]] = None,
@@ -2400,6 +2421,23 @@ def inspect_text(
                         html_block_comment_open = False
                     elif html_block_end_token is not None:
                         lowered_html_line = html_container_line.lower()
+                        raw_text_tag = (
+                            html_block_end_token[2:-1]
+                            if html_block_end_token.startswith("</")
+                            else None
+                        )
+                        if (
+                            raw_text_tag in {"script", "style", "textarea"}
+                            and html_raw_text_has_non_commonmark_closer(
+                                html_container_line, raw_text_tag
+                            )
+                        ):
+                            # CommonMark keeps the type-1 raw block open until
+                            # an exact end token, while a browser can close the
+                            # raw-text element on an attributed or whitespace-
+                            # separated end tag. Do not certify link coverage
+                            # when those two parsers diverge.
+                            item.link_parse_incomplete = True
                         closing_position = lowered_html_line.find(
                             html_block_end_token
                         )
@@ -2477,6 +2515,13 @@ def inspect_text(
                     if end_token is not None:
                         raw_text_tag = end_token[2:-1] if end_token.startswith("</") else None
                         if raw_text_tag in {"pre", "script", "style", "textarea"}:
+                            if (
+                                raw_text_tag != "pre"
+                                and html_raw_text_has_non_commonmark_closer(
+                                    container_line, raw_text_tag
+                                )
+                            ):
+                                item.link_parse_incomplete = True
                             tokens = markdown_complete_html_tokens(container_line)
                             closing_position = container_line.lower().find(end_token)
                             if tokens:
