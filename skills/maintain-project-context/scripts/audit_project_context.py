@@ -580,14 +580,15 @@ def html_raw_text_closing_suffix(raw: str, tag: str) -> Optional[str]:
 
 
 def html_visible_signal_text_with_state(
-    raw: str, raw_text_state: Optional[Tuple[str, int]] = None
-) -> Tuple[str, Optional[Tuple[str, int]]]:
+    raw: str,
+    raw_text_state: Optional[Tuple[str, int, Optional[str]]] = None,
+) -> Tuple[str, Optional[Tuple[str, int, Optional[str]]]]:
     """Strip raw HTML while keeping inline raw-text element bodies opaque."""
     pieces: List[str] = []
     cursor = 0
     while cursor < len(raw):
         if raw_text_state is not None:
-            raw_text_tag, raw_text_depth = raw_text_state
+            raw_text_tag, raw_text_depth, template_raw_text_tag = raw_text_state
             if raw_text_tag == "template":
                 search_cursor = cursor
                 while True:
@@ -599,17 +600,54 @@ def html_visible_signal_text_with_state(
                         search_cursor = candidate + 1
                         continue
                     token = raw[candidate:candidate_end]
-                    if re.fullmatch(r"</template[ \t]*>", token, re.I):
+                    if template_raw_text_tag is not None:
+                        if re.fullmatch(
+                            rf"</{re.escape(template_raw_text_tag)}[ \t]*>",
+                            token,
+                            re.I,
+                        ):
+                            template_raw_text_tag = None
+                            raw_text_state = (
+                                raw_text_tag,
+                                raw_text_depth,
+                                template_raw_text_tag,
+                            )
+                    elif re.fullmatch(r"</template[ \t]*>", token, re.I):
                         raw_text_depth -= 1
                         cursor = candidate_end
                         if raw_text_depth == 0:
                             raw_text_state = None
                             break
-                        raw_text_state = (raw_text_tag, raw_text_depth)
+                        raw_text_state = (
+                            raw_text_tag,
+                            raw_text_depth,
+                            template_raw_text_tag,
+                        )
                     elif re.match(r"<template(?:[ \t/>]|$)", token, re.I):
                         # HTML ignores a self-closing slash on template.
                         raw_text_depth += 1
-                        raw_text_state = (raw_text_tag, raw_text_depth)
+                        raw_text_state = (
+                            raw_text_tag,
+                            raw_text_depth,
+                            template_raw_text_tag,
+                        )
+                    else:
+                        opening_tag = re.match(
+                            r"<([A-Za-z][A-Za-z0-9-]*)", token
+                        )
+                        if (
+                            opening_tag is not None
+                            and opening_tag.group(1).casefold()
+                            in HTML_RAW_TEXT_ELEMENTS
+                        ):
+                            template_raw_text_tag = (
+                                opening_tag.group(1).casefold()
+                            )
+                            raw_text_state = (
+                                raw_text_tag,
+                                raw_text_depth,
+                                template_raw_text_tag,
+                            )
                     search_cursor = candidate_end
                 continue
             closing_prefix = f"</{raw_text_tag}"
@@ -664,7 +702,7 @@ def html_visible_signal_text_with_state(
                 and html_template_is_declarative_shadow_root(token)
             )
         ):
-            raw_text_state = (opening_tag.group(1).casefold(), 1)
+            raw_text_state = (opening_tag.group(1).casefold(), 1, None)
         cursor = html_end
     return html_unescape("".join(pieces)), raw_text_state
 
@@ -2904,7 +2942,7 @@ def inspect_text(
             for heading_line in heading_signal_lines
         )
     prepared_signal_lines: List[Tuple[int, str, str, str]] = []
-    inline_raw_text_state: Optional[Tuple[str, int]] = None
+    inline_raw_text_state: Optional[Tuple[str, int, Optional[str]]] = None
     for signal_line_number, raw_signal_line in signal_lines:
         markdown_signal_line = (
             markdown_visible_signal_text(raw_signal_line, defined_labels)
