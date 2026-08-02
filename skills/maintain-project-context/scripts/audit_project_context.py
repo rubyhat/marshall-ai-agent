@@ -1372,6 +1372,35 @@ def markdown_html_block_start(
     return None
 
 
+def markdown_inline_comment_is_valid(
+    line: str,
+    comment_start: int,
+    lines: Sequence[str],
+    current_line_index: int,
+) -> bool:
+    """Validate one complete CommonMark inline HTML comment before masking it."""
+    fragments = [line[comment_start + 4 :]]
+    scanned = len(fragments[0])
+    for future_index in range(current_line_index + 1, len(lines)):
+        if "-->" in fragments[-1]:
+            break
+        fragment = lines[future_index]
+        scanned += len(fragment)
+        if scanned > MAX_MULTILINE_LINK_SCAN_CHARS:
+            return False
+        fragments.append(fragment)
+    remainder = "".join(fragments)
+    closing = remainder.find("-->")
+    if closing < 0:
+        return False
+    content = remainder[:closing]
+    return bool(
+        not content.startswith((">", "->"))
+        and "--" not in content
+        and not content.endswith("-")
+    )
+
+
 def sanitize_markdown_inline(
     line: str,
     in_comment: bool,
@@ -1413,7 +1442,15 @@ def sanitize_markdown_inline(
             continue
 
         comment_start = line.find("<!--", cursor)
-        while comment_start >= 0 and escaped(comment_start):
+        while comment_start >= 0 and (
+            escaped(comment_start)
+            or not markdown_inline_comment_is_valid(
+                line,
+                comment_start,
+                lines,
+                next_line_index - 1,
+            )
+        ):
             comment_start = line.find("<!--", comment_start + 1)
         code_start = line.find("`", cursor)
         while code_start >= 0 and escaped(code_start):

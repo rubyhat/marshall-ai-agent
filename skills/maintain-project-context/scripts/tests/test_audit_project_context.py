@@ -1068,6 +1068,39 @@ Visible content.
             largest = json.loads(result.stdout)["largest_files"][0]
             self.assertEqual(largest["unresolved_markers"], 1)
 
+    def test_invalid_inline_comment_opener_remains_visible_to_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "source.md").write_text(
+                "# Source\n\nNotes <!--> TODO\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/source.md",
+                    "--include-content-signals",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            largest = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(largest["unresolved_markers"], 1)
+
     def test_inline_html_bracket_does_not_close_markdown_link_label(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
