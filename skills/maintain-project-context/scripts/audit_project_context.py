@@ -383,6 +383,12 @@ class MarkdownHtmlTargetParser(HTMLParser):
         if self.template_depth:
             if self.template_raw_text_tag is not None:
                 return
+            if normalized_tag in {"math", "svg"}:
+                # Namespace-aware tree construction inside inert templates is
+                # intentionally outside this bounded reference parser. Do not
+                # certify coverage when foreign content can change whether a
+                # nested template token is HTML or foreign.
+                self.resource_parse_incomplete = True
             if normalized_tag == "template":
                 self.template_depth += 1
             elif normalized_tag in HTML_RAW_TEXT_ELEMENTS:
