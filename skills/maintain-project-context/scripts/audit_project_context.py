@@ -115,7 +115,7 @@ STATUS_RE = re.compile(
     re.I,
 )
 MARKDOWN_REFERENCE_SHORTCUT_RE = re.compile(
-    r"(?<!!)!?\[((?:\\.|[^\]\\])+)\](?![\[(:])"
+    r"(?<!!)!?\[((?:\\.|[^\]\\])+)\](?![\[(])"
 )
 MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(
     r"^[ ]{0,3}\[((?:\\.|[^\]\\])+)\]:"

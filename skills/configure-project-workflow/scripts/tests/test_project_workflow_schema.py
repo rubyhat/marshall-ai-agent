@@ -373,6 +373,16 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                 config["architecture_decisions"][field] = path
                 self.assert_invalid(config)
 
+    def test_adr_root_and_index_components_must_fit_portable_limit(self) -> None:
+        for field, path in (
+            ("root", "docs/" + ("a" * 256)),
+            ("index", "docs/" + ("é" * 127) + ".md"),
+        ):
+            with self.subTest(field=field):
+                config = rendered_config()
+                config["architecture_decisions"][field] = path
+                self.assert_invalid(config)
+
     def test_adr_index_must_be_distinct_from_root(self) -> None:
         for root, index in (
             ("docs/adr", "docs/adr"),

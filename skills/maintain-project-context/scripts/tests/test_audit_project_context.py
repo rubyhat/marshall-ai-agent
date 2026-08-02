@@ -3533,6 +3533,48 @@ TODO: verify current behavior.
                 report["link_coverage"]["complete_for_declared_roots"]
             )
 
+    def test_shortcut_reference_before_colon_counts_as_incoming(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                "See [target]: details\n\n[target]: target.md\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_mixed_space_tab_indentation_is_code(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -233,7 +233,11 @@ def adr_filename_components_fit_max_id(
 
 
 def windows_component_is_portable(component: str) -> bool:
-    if not component or component.rstrip(" .") != component:
+    if (
+        not component
+        or component.rstrip(" .") != component
+        or len(component.encode("utf-8")) > PORTABLE_FILENAME_COMPONENT_MAX_BYTES
+    ):
         return False
     if any(
         ord(character) < 32 or character in WINDOWS_FORBIDDEN_COMPONENT_CHARACTERS
