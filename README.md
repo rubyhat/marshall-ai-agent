@@ -170,6 +170,11 @@ shape/spec/implementation decision boundary
 workflow, но не позволяет агенту самостоятельно принять неутверждённое
 решение.
 
+Core contract использует безопасный fixed-width decimal ID, например
+`ADR-[0-9]{4}`, и точный filename pattern `<ID>.md`. Другие identifier или
+filename conventions требуют отдельного изменения workflow kit, а не
+ослабления project setup.
+
 ## Каталог skills
 
 | Skill | Назначение |

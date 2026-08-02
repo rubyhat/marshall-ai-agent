@@ -51,6 +51,10 @@ Before any mutation, resolve:
 If ownership, identity, status meaning, or decision authority is ambiguous,
 stop before writing.
 
+Read [validate-adr-configuration.md](references/validate-adr-configuration.md)
+before every ADR mutation. Stop when the configured convention or the concrete
+rendered paths fail its bounded safety checks.
+
 ## Run the ADR workflow
 
 ### 1. Test materiality

@@ -110,7 +110,8 @@ Activate only when `record-architecture-decision` is selected.
 Ask 7–10 prompts covering:
 
 1. canonical ADR root and index path;
-2. ADR identifier and filename conventions;
+2. the bounded fixed-width decimal ADR identifier convention and exact
+   `<ID>.md` filename pattern;
 3. semantic lifecycle states and their project-specific labels;
 4. required sections, relative-link policy, and index-entry contract;
 5. materiality threshold and when applicability review gates downstream work;
@@ -121,6 +122,12 @@ Ask 7–10 prompts covering:
    supersession;
 9. links to architecture, tasks, specifications, and supporting evidence;
 10. existing ADRs or status vocabularies that must be preserved or reconciled.
+
+Reject a requested convention that cannot preserve project containment,
+artifact identity, distinct lifecycle labels, or non-blank authority. Route a
+project that requires another ID or filename format to an explicit workflow-kit
+contract change instead of expanding the setup interview into a generic pattern
+validator.
 
 ## Stage 6 — shaping and specifications
 

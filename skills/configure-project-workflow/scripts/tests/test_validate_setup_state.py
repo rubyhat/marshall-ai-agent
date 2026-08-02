@@ -191,21 +191,73 @@ class ValidateSetupStateTest(unittest.TestCase):
             "architecture_decisions"
         ]["properties"]
 
-        for field in ("root", "index"):
+        valid_paths = {
+            "root": "docs/architecture/decisions",
+            "index": "docs/architecture/decisions/README.md",
+        }
+        for field, valid_path in valid_paths.items():
             pattern = adr_properties[field]["pattern"]
-            self.assertIsNotNone(re.fullmatch(pattern, "docs/architecture/decisions"))
+            self.assertIsNotNone(re.search(pattern, valid_path))
             for unsafe_path in (
                 "/tmp/decisions",
                 "../outside.md",
                 "docs/../outside.md",
+                "docs/./decisions.md",
+                "docs/decisions/",
                 "C:decisions",
                 "C:\\outside\\decisions",
                 "docs\\..\\outside.md",
+                "docs/decisions.md\n",
+                "docs/decisions\t/index.md",
             ):
                 self.assertIsNone(
-                    re.fullmatch(pattern, unsafe_path),
+                    re.search(pattern, unsafe_path),
                     f"{field} accepted unsafe path {unsafe_path!r}",
                 )
+
+        index_pattern = adr_properties["index"]["pattern"]
+        self.assertIsNone(re.search(index_pattern, "docs/architecture/index"))
+
+    def test_adr_identifier_and_filename_contract_is_bounded(self):
+        adr_properties = self.project_schema["properties"][
+            "architecture_decisions"
+        ]["properties"]
+        id_pattern = adr_properties["id_pattern"]["pattern"]
+
+        for value in ("ADR-[0-9]{4}", "DECISION-LOG-[0-9]{3}", "[0-9]{4}"):
+            self.assertIsNotNone(re.search(id_pattern, value))
+        for value in (
+            "[",
+            "../[A-Z]+",
+            "ADR-[0-9]+",
+            "[A-Z]{4}",
+            "(?i:k+)",
+            "ADR-[0-9]{12}",
+            "ADR-[0-9]{4}\n",
+        ):
+            self.assertIsNone(re.search(id_pattern, value))
+
+        self.assertEqual(adr_properties["filename_pattern"]["const"], "<ID>.md")
+
+    def test_adr_required_text_rejects_whitespace_only_values(self):
+        adr_properties = self.project_schema["properties"][
+            "architecture_decisions"
+        ]["properties"]
+        text_schemas = [
+            adr_properties["materiality_policy"],
+            adr_properties["applicability_policy"]["properties"][
+                "review_triggers"
+            ]["items"],
+            adr_properties["required_sections"]["items"],
+            *adr_properties["status_mapping"]["properties"].values(),
+            *adr_properties["decision_authority"]["properties"].values(),
+        ]
+        for schema in text_schemas:
+            self.assertIsNone(re.search(schema["pattern"], "   \t"))
+            self.assertIsNotNone(re.search(schema["pattern"], "configured value"))
+
+        self.assertFalse(adr_properties["status_mapping"]["additionalProperties"])
+        self.assertFalse(adr_properties["decision_authority"]["additionalProperties"])
 
     def test_enabled_aliases_field_is_required(self):
         state = self.valid_state()

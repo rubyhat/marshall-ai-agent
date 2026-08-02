@@ -59,8 +59,9 @@ Include only selected modules. Record:
 When `record-architecture-decision` is selected, generate an
 `architecture_decisions` section containing:
 
-- project-relative ADR root and index paths;
-- ADR identifier and filename patterns;
+- a project-relative ADR root and Markdown index path inside that root;
+- a bounded fixed-width decimal ADR identifier pattern, such as
+  `ADR-[0-9]{4}`, and the exact core filename pattern `<ID>.md`;
 - a mapping from the semantic `proposed`, `accepted`, `rejected`, `deprecated`,
   and `superseded` states to project labels;
 - the approved `materiality_policy` used to distinguish an ADR from a
@@ -74,6 +75,12 @@ When `record-architecture-decision` is selected, generate an
 - mutation-preview and separate-confirmation policy;
 - the invariant that a material change to an accepted ADR requires
   supersession.
+
+Trim required ADR text values before generation. Require pairwise-distinct
+normalized lifecycle labels and non-blank materiality, review-trigger,
+required-section, and authority values. Reject ambiguous or unsupported
+identifier and filename conventions instead of persisting them as free-form
+strings.
 
 Do not enable either ADR alias or generate ADR routing without the owning
 module and its required `record-project-context` dependency. Do not create an

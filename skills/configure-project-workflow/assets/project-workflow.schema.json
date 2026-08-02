@@ -132,15 +132,18 @@
         "root": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^(?![A-Za-z]:)(?![\\\\/])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+          "pattern": "^(?!.*[\\x00-\\x1F\\x7F])(?![A-Za-z]:)(?![\\\\/])(?!.*(?:^|[\\\\/])\\.\\.?(?:[\\\\/]|$))(?!.*[\\\\/]$).+$"
         },
         "index": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^(?![A-Za-z]:)(?![\\\\/])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+          "pattern": "^(?!.*[\\x00-\\x1F\\x7F])(?![A-Za-z]:)(?![\\\\/])(?!.*(?:^|[\\\\/])\\.\\.?(?:[\\\\/]|$))(?!.*[\\\\/]$).+\\.md$"
         },
-        "id_pattern": {"type": "string", "minLength": 1},
-        "filename_pattern": {"type": "string", "minLength": 1},
+        "id_pattern": {
+          "type": "string",
+          "pattern": "^(?!.*[\\r\\n])(?:[A-Za-z][A-Za-z0-9_-]{0,30}-)?\\[0-9\\]\\{[1-9]\\}$"
+        },
+        "filename_pattern": {"const": "<ID>.md"},
         "status_mapping": {
           "type": "object",
           "required": [
@@ -151,22 +154,22 @@
             "superseded"
           ],
           "properties": {
-            "proposed": {"type": "string", "minLength": 1},
-            "accepted": {"type": "string", "minLength": 1},
-            "rejected": {"type": "string", "minLength": 1},
-            "deprecated": {"type": "string", "minLength": 1},
-            "superseded": {"type": "string", "minLength": 1}
+            "proposed": {"type": "string", "pattern": "\\S"},
+            "accepted": {"type": "string", "pattern": "\\S"},
+            "rejected": {"type": "string", "pattern": "\\S"},
+            "deprecated": {"type": "string", "pattern": "\\S"},
+            "superseded": {"type": "string", "pattern": "\\S"}
           },
-          "additionalProperties": {"type": "string", "minLength": 1}
+          "additionalProperties": false
         },
-        "materiality_policy": {"type": "string", "minLength": 1},
+        "materiality_policy": {"type": "string", "pattern": "\\S"},
         "applicability_policy": {
           "type": "object",
           "required": ["review_triggers", "blocking_results"],
           "properties": {
             "review_triggers": {
               "type": "array",
-              "items": {"type": "string", "minLength": 1},
+              "items": {"type": "string", "pattern": "\\S"},
               "uniqueItems": true,
               "minItems": 1
             },
@@ -182,7 +185,7 @@
         },
         "required_sections": {
           "type": "array",
-          "items": {"type": "string", "minLength": 1},
+          "items": {"type": "string", "pattern": "\\S"},
           "uniqueItems": true,
           "minItems": 1
         },
@@ -206,14 +209,14 @@
             "supersede"
           ],
           "properties": {
-            "propose": {"type": "string", "minLength": 1},
-            "accept": {"type": "string", "minLength": 1},
-            "reject": {"type": "string", "minLength": 1},
-            "clarify": {"type": "string", "minLength": 1},
-            "deprecate": {"type": "string", "minLength": 1},
-            "supersede": {"type": "string", "minLength": 1}
+            "propose": {"type": "string", "pattern": "\\S"},
+            "accept": {"type": "string", "pattern": "\\S"},
+            "reject": {"type": "string", "pattern": "\\S"},
+            "clarify": {"type": "string", "pattern": "\\S"},
+            "deprecate": {"type": "string", "pattern": "\\S"},
+            "supersede": {"type": "string", "pattern": "\\S"}
           },
-          "additionalProperties": true
+          "additionalProperties": false
         },
         "mutation_policy": {
           "type": "object",

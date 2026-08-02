@@ -38,12 +38,19 @@ Validate the configured workflow without executing ordinary project work.
   task, or operational sources of truth.
 - Verify persistent report types have a configured destination and that
   file/link/path-only output rules do not conflict.
-- When ADR recording is selected, verify its root and index stay within the
-  project, ID and filename patterns are present, every portable semantic state
-  maps to a project label, materiality and applicability policies preserve the
-  approved interview decisions, required sections and link policy are
-  explicit, lifecycle authority is complete, and material accepted changes
-  require supersession.
+- When ADR recording is selected, verify its root and Markdown index stay
+  within the project and the index resolves inside the ADR root; reject
+  absolute, drive-relative, dot-segment, trailing-separator, directory-valued,
+  or conflicting destinations, including an index stem accepted as an ADR ID.
+  Require the bounded fixed-width decimal ID convention and exact `<ID>.md`
+  filename pattern. Verify every portable semantic state has one non-blank,
+  normalized, pairwise-distinct project label; materiality, review triggers,
+  required sections, and every lifecycle authority value are non-blank; and
+  material accepted changes require supersession.
+- Dry-run one representative ADR ID through the complete filename and confirm
+  the concrete output stays under the ADR root, cannot collide with the index,
+  and cannot overwrite another ADR. Do not expand this check into a generic
+  template or filesystem portability proof.
 
 Do not install a parser or dependency automatically. If no YAML parser is safely available, validate the approved setup state, generated text structure, and a full agent readback, then report the parser limitation.
 
