@@ -68,7 +68,10 @@ HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     "source": {"src", "srcset"},
     "track": {"src"},
     "video": {"poster", "src"},
+}
+SVG_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     # SVG2 uses href; xlink:href remains common in existing documentation.
+    "a": {"href", "xlink:href"},
     "animate": {"href", "xlink:href"},
     "animatemotion": {"href", "xlink:href"},
     "animatetransform": {"href", "xlink:href"},
@@ -79,10 +82,28 @@ HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     "mpath": {"href", "xlink:href"},
     "pattern": {"href", "xlink:href"},
     "radialgradient": {"href", "xlink:href"},
+    "script": {"href", "xlink:href"},
     "set": {"href", "xlink:href"},
     "textpath": {"href", "xlink:href"},
     "use": {"href", "xlink:href"},
 }
+HTML_VOID_ELEMENTS = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+}
+SVG_HTML_INTEGRATION_POINTS = {"desc", "foreignobject", "title"}
 TASK_ID_TOKEN_WRAPPERS = "`*_[](){}<>.,:;!?\"'"
 DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
 MARKDOWN_HEADING_RE = re.compile(r"^[ ]{0,3}(#{1,6})(?:[ \t]+|$)")
@@ -218,17 +239,42 @@ class MarkdownHtmlTargetParser(HTMLParser):
         base_href: Optional[str] = None,
         base_seen: bool = False,
         template_depth: int = 0,
+        element_stack: Optional[Sequence[Tuple[str, str]]] = None,
     ) -> None:
         super().__init__(convert_charrefs=True)
         self.targets: Set[Tuple[str, Optional[str]]] = set()
         self.base_href = base_href
         self.base_seen = base_seen
         self.template_depth = template_depth
+        self.element_stack = list(element_stack or ())
         self.resource_parse_incomplete = False
         self.declarative_shadow_template_seen = False
 
-    def handle_starttag(
-        self, tag: str, attrs: List[Tuple[str, Optional[str]]]
+    def child_namespace(self) -> str:
+        if not self.element_stack:
+            return "html"
+        parent_tag, parent_namespace = self.element_stack[-1]
+        if (
+            parent_namespace == "svg"
+            and parent_tag in SVG_HTML_INTEGRATION_POINTS
+        ):
+            return "html"
+        return parent_namespace
+
+    def element_namespace(self, normalized_tag: str) -> str:
+        namespace = self.child_namespace()
+        if namespace == "html" and normalized_tag == "svg":
+            return "svg"
+        if namespace == "html" and normalized_tag == "math":
+            return "mathml"
+        return namespace
+
+    def handle_element(
+        self,
+        tag: str,
+        attrs: List[Tuple[str, Optional[str]]],
+        *,
+        push: bool,
     ) -> None:
         normalized_tag = tag.casefold()
         first_attributes: Dict[str, Optional[str]] = {}
@@ -255,6 +301,7 @@ class MarkdownHtmlTargetParser(HTMLParser):
                 self.declarative_shadow_template_seen = True
             self.template_depth = 1
             return
+        namespace = self.element_namespace(normalized_tag)
         if normalized_tag in {"pre", "style"}:
             # CSS has its own URL grammar, while CommonMark HTML blocks keep
             # nested HTML inside pre outside this bounded parser. Do not
@@ -265,7 +312,23 @@ class MarkdownHtmlTargetParser(HTMLParser):
             # than url(), including image-set() string images. Keep coverage
             # conservative until the full style-attribute grammar is parsed.
             self.resource_parse_incomplete = True
-        resource_attributes = HTML_RESOURCE_ATTRIBUTES.get(normalized_tag, set())
+        namespace_resource_map = (
+            HTML_RESOURCE_ATTRIBUTES
+            if namespace == "html"
+            else SVG_RESOURCE_ATTRIBUTES if namespace == "svg" else {}
+        )
+        resource_attributes = namespace_resource_map.get(normalized_tag, set())
+        all_known_resource_attributes = (
+            HTML_RESOURCE_ATTRIBUTES.get(normalized_tag, set())
+            | SVG_RESOURCE_ATTRIBUTES.get(normalized_tag, set())
+        )
+        if any(
+            first_attributes.get(attribute)
+            for attribute in all_known_resource_attributes - resource_attributes
+        ):
+            # A known HTML/SVG resource-shaped element appeared in another
+            # namespace. Do not invent an incoming edge or certify coverage.
+            self.resource_parse_incomplete = True
         seen_resource_attributes: Set[str] = set()
         for name, value in attrs:
             normalized_name = name.casefold()
@@ -276,13 +339,18 @@ class MarkdownHtmlTargetParser(HTMLParser):
                 self.resource_parse_incomplete = True
             if (
                 normalized_tag == "script"
+                and namespace == "html"
                 and normalized_name in {"href", "xlink:href"}
                 and value
             ):
                 # Without carrying HTML/SVG namespaces, do not treat SVG-only
                 # script references as valid in an HTML script context.
                 self.resource_parse_incomplete = True
-            if normalized_tag == "base" and normalized_name == "href":
+            if (
+                namespace == "html"
+                and normalized_tag == "base"
+                and normalized_name == "href"
+            ):
                 if not self.base_seen:
                     self.base_seen = True
                     self.base_href = value or ""
@@ -303,6 +371,15 @@ class MarkdownHtmlTargetParser(HTMLParser):
                 )
             else:
                 self.targets.add((value, self.base_href))
+        if push and not (
+            namespace == "html" and normalized_tag in HTML_VOID_ELEMENTS
+        ):
+            self.element_stack.append((normalized_tag, namespace))
+
+    def handle_starttag(
+        self, tag: str, attrs: List[Tuple[str, Optional[str]]]
+    ) -> None:
+        self.handle_element(tag, attrs, push=True)
 
     def handle_startendtag(
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
@@ -313,11 +390,21 @@ class MarkdownHtmlTargetParser(HTMLParser):
             return
         if self.template_depth:
             return
-        self.handle_starttag(tag, attrs)
+        normalized_tag = tag.casefold()
+        namespace = self.element_namespace(normalized_tag)
+        # HTML ignores the XML-style slash for non-void elements; foreign
+        # content honors it.
+        self.handle_element(tag, attrs, push=namespace == "html")
 
     def handle_endtag(self, tag: str) -> None:
-        if tag.casefold() == "template" and self.template_depth:
+        normalized_tag = tag.casefold()
+        if normalized_tag == "template" and self.template_depth:
             self.template_depth -= 1
+            return
+        for index in range(len(self.element_stack) - 1, -1, -1):
+            if self.element_stack[index][0] == normalized_tag:
+                del self.element_stack[index:]
+                return
 
 
 def html_template_is_declarative_shadow_root(token: str) -> bool:
@@ -1915,6 +2002,7 @@ def inspect_text(
     html_base_href: Optional[str] = None
     html_base_seen = False
     html_template_depth = 0
+    html_element_stack: List[Tuple[str, str]] = []
     front_matter_end = (
         markdown_front_matter_end(item.absolute_path) if markdown else None
     )
@@ -1960,8 +2048,12 @@ def inspect_text(
 
     def register_html_fragment(fragment: str) -> None:
         nonlocal html_base_href, html_base_seen, html_template_depth
+        nonlocal html_element_stack
         parser = MarkdownHtmlTargetParser(
-            html_base_href, html_base_seen, html_template_depth
+            html_base_href,
+            html_base_seen,
+            html_template_depth,
+            html_element_stack,
         )
         parser.feed("".join(markdown_complete_html_tokens(fragment)))
         parser.close()
@@ -1969,6 +2061,7 @@ def inspect_text(
         html_base_href = parser.base_href
         html_base_seen = parser.base_seen
         html_template_depth = parser.template_depth
+        html_element_stack = parser.element_stack
         if parser.resource_parse_incomplete:
             item.link_parse_incomplete = True
         if markdown_has_incomplete_html_token(fragment):
@@ -2666,6 +2759,10 @@ def inspect_text(
     ]
     for _, html_fragment in sorted(html_events, key=lambda event: event[0]):
         register_html_fragment(html_fragment)
+    if any(namespace != "html" for _, namespace in html_element_stack):
+        # An unclosed foreign-content boundary makes later namespace routing
+        # ambiguous, so incoming-reference coverage cannot be certified.
+        item.link_parse_incomplete = True
     for _, raw_signal_line, _, signal_line in prepared_signal_lines:
         item.unresolved_marker_count += len(UNRESOLVED_RE.findall(signal_line))
         supersession_field = SUPERSESSION_FIELD_RE.match(signal_line)
