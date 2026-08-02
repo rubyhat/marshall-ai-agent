@@ -826,6 +826,43 @@ def html_visible_signal_text_with_state(
                             )
                     search_cursor = candidate_end
                 continue
+            if raw_text_tag not in HTML_RAW_TEXT_ELEMENTS:
+                search_cursor = cursor
+                while True:
+                    candidate = raw.find("<", search_cursor)
+                    if candidate < 0:
+                        raw_text_state = (
+                            raw_text_tag,
+                            raw_text_depth,
+                            template_raw_text_tag,
+                            template_foreign_stack,
+                        )
+                        return html_unescape("".join(pieces)), raw_text_state
+                    candidate_end = markdown_inline_html_token_end(raw, candidate)
+                    if candidate_end is None:
+                        search_cursor = candidate + 1
+                        continue
+                    token = raw[candidate:candidate_end]
+                    if re.fullmatch(
+                        rf"</{re.escape(raw_text_tag)}[ \t]*>",
+                        token,
+                        re.I,
+                    ):
+                        raw_text_depth -= 1
+                        if raw_text_depth == 0:
+                            cursor = candidate_end
+                            raw_text_state = None
+                            break
+                    elif re.match(
+                        rf"<{re.escape(raw_text_tag)}(?:[ \t/>]|$)",
+                        token,
+                        re.I,
+                    ):
+                        # HTML ignores the XML-style slash on ordinary
+                        # non-void elements, so it still increases depth.
+                        raw_text_depth += 1
+                    search_cursor = candidate_end
+                continue
             closing_prefix = f"</{raw_text_tag}"
             search_cursor = cursor
             closing_start = -1

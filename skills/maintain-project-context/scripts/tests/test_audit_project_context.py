@@ -1519,6 +1519,7 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                     "Completed <section hidden>\n"
                     "FIXME\n"
                     "</section>\n"
+                    "Completed <div hidden><div></div>TODO</div>\n"
                 ),
                 encoding="utf-8",
             )
@@ -1546,7 +1547,7 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
 
             self.assertEqual(result.returncode, 0, result.stderr)
             source = json.loads(result.stdout)["largest_files"][0]
-            self.assertEqual(source["completed_markers"], 2)
+            self.assertEqual(source["completed_markers"], 3)
             self.assertEqual(source["unresolved_markers"], 0)
 
     def test_inert_template_body_does_not_create_lifecycle_signals(self) -> None:
