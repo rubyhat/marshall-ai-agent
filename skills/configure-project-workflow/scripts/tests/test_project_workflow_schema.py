@@ -334,6 +334,17 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         )
         self.assert_valid(config)
 
+    def test_adr_identifier_pattern_must_fit_filename_component(self) -> None:
+        config = rendered_config()
+        config["architecture_decisions"]["id_pattern"] = r"[A-Z]{1,300}"
+        config["architecture_decisions"]["filename_pattern"] = "<ID>.md"
+        self.assert_invalid(config)
+
+        boundary = rendered_config()
+        boundary["architecture_decisions"]["id_pattern"] = r"A{251}"
+        boundary["architecture_decisions"]["filename_pattern"] = "<ID>.md"
+        self.assert_valid(boundary)
+
     def test_adr_root_and_index_must_stay_inside_project(self) -> None:
         for field, path in (
             ("root", "/tmp/adrs"),

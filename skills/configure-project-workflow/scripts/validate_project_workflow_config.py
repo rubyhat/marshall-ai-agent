@@ -41,6 +41,7 @@ WINDOWS_RESERVED_BASENAMES = {
 WINDOWS_FORBIDDEN_COMPONENT_CHARACTERS = frozenset('<>:"|?*')
 ADR_FILENAME_PLACEHOLDER_RE = re.compile(r"<[^<>]+>")
 ADR_TEMPLATE_VALUE_PATTERN = r"[A-Za-z0-9_-]+"
+PORTABLE_FILENAME_COMPONENT_MAX_BYTES = 255
 
 
 def load_mapping(path: Path) -> Mapping[str, Any]:
@@ -203,6 +204,34 @@ def safe_adr_id_witness(pattern: str) -> Optional[str]:
 
 def regex_matches_only_safe_adr_id_characters(pattern: str) -> bool:
     return safe_adr_id_witness(pattern) is not None
+
+
+def adr_id_max_width(pattern: str) -> Optional[int]:
+    """Return the regex maximum width, including the unbounded sentinel."""
+    try:
+        return int(sre_parse.parse(pattern).getwidth()[1])
+    except re.error:
+        return None
+
+
+def adr_filename_components_fit_max_id(
+    filename_pattern: str, maximum_id_length: int
+) -> bool:
+    """Check ASCII-rendered component sizes for the longest valid ADR ID."""
+    for component in PureWindowsPath(filename_pattern).parts:
+        identifier_slots = component.count("<ID>")
+        if not identifier_slots:
+            continue
+        without_identifiers = component.replace("<ID>", "")
+        fixed_rendered = ADR_FILENAME_PLACEHOLDER_RE.sub(
+            "safe", without_identifiers
+        )
+        rendered_length = len(fixed_rendered) + (
+            identifier_slots * maximum_id_length
+        )
+        if rendered_length > PORTABLE_FILENAME_COMPONENT_MAX_BYTES:
+            return False
+    return True
 
 
 def windows_component_is_portable(component: str) -> bool:
@@ -456,6 +485,18 @@ def validate_semantics(
                 errors.append(
                     "architecture_decisions.filename_pattern must name a file, "
                     "not end with a path separator"
+                )
+            maximum_id_length = (
+                adr_id_max_width(id_pattern)
+                if isinstance(id_pattern, str)
+                else None
+            )
+            if maximum_id_length is not None and not adr_filename_components_fit_max_id(
+                filename_pattern, maximum_id_length
+            ):
+                errors.append(
+                    "architecture_decisions.id_pattern must have a bounded maximum "
+                    "that keeps every rendered filename component within 255 bytes"
                 )
             if not safe_relative_project_path(
                 filename_pattern, require_portable_components=False
