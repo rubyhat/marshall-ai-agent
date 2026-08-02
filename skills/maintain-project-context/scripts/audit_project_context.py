@@ -121,7 +121,13 @@ HTML_RAW_TEXT_ELEMENTS = {
     "title",
     "xmp",
 }
-LIFECYCLE_OPAQUE_HTML_ELEMENTS = {"script", "style", "template", "title"}
+LIFECYCLE_OPAQUE_HTML_ELEMENTS = {
+    "iframe",
+    "script",
+    "style",
+    "template",
+    "title",
+}
 FOREIGN_CONTENT_HTML_BREAKOUT_TAGS = {
     "b",
     "big",
