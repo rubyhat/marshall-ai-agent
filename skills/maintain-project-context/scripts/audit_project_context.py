@@ -303,6 +303,7 @@ class MarkdownHtmlTargetParser(HTMLParser):
         base_seen: bool = False,
         template_depth: int = 0,
         element_stack: Optional[Sequence[Tuple[str, str]]] = None,
+        template_raw_text_tag: Optional[str] = None,
     ) -> None:
         super().__init__(convert_charrefs=True)
         self.targets: Set[Tuple[str, Optional[str]]] = set()
@@ -310,6 +311,7 @@ class MarkdownHtmlTargetParser(HTMLParser):
         self.base_seen = base_seen
         self.template_depth = template_depth
         self.element_stack = list(element_stack or ())
+        self.template_raw_text_tag = template_raw_text_tag
         self.resource_parse_incomplete = False
         self.declarative_shadow_template_seen = False
 
@@ -361,8 +363,12 @@ class MarkdownHtmlTargetParser(HTMLParser):
         for name, value in attrs:
             first_attributes.setdefault(name.casefold(), value)
         if self.template_depth:
+            if self.template_raw_text_tag is not None:
+                return
             if normalized_tag == "template":
                 self.template_depth += 1
+            elif normalized_tag in HTML_RAW_TEXT_ELEMENTS:
+                self.template_raw_text_tag = normalized_tag
             return
         self.apply_foreign_content_breakout(normalized_tag, first_attributes)
         namespace = self.element_namespace(normalized_tag)
@@ -502,6 +508,10 @@ class MarkdownHtmlTargetParser(HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         normalized_tag = tag.casefold()
+        if self.template_depth and self.template_raw_text_tag is not None:
+            if normalized_tag == self.template_raw_text_tag:
+                self.template_raw_text_tag = None
+            return
         if normalized_tag == "template" and self.template_depth:
             self.template_depth -= 1
             return
@@ -2131,6 +2141,7 @@ def inspect_text(
     html_base_seen = False
     html_template_depth = 0
     html_element_stack: List[Tuple[str, str]] = []
+    html_template_raw_text_tag: Optional[str] = None
     front_matter_end = (
         markdown_front_matter_end(item.absolute_path) if markdown else None
     )
@@ -2176,7 +2187,7 @@ def inspect_text(
 
     def register_html_fragment(fragment: str) -> None:
         nonlocal html_base_href, html_base_seen, html_template_depth
-        nonlocal html_element_stack
+        nonlocal html_element_stack, html_template_raw_text_tag
         if html_element_stack:
             raw_text_tag, raw_text_namespace = html_element_stack[-1]
             if (
@@ -2194,6 +2205,7 @@ def inspect_text(
             html_base_seen,
             html_template_depth,
             html_element_stack,
+            html_template_raw_text_tag,
         )
         parser.feed("".join(markdown_complete_html_tokens(fragment)))
         parser.close()
@@ -2202,6 +2214,7 @@ def inspect_text(
         html_base_seen = parser.base_seen
         html_template_depth = parser.template_depth
         html_element_stack = parser.element_stack
+        html_template_raw_text_tag = parser.template_raw_text_tag
         if parser.resource_parse_incomplete:
             item.link_parse_incomplete = True
         if markdown_has_incomplete_html_token(fragment):

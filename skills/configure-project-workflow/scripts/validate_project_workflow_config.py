@@ -543,10 +543,10 @@ def validate_semantics(
                     "architecture_decisions.filename_pattern supports only "
                     "<ID> and <slug> placeholders"
                 )
-            if filename_pattern.endswith(("/", "\\")):
+            if filename_pattern.endswith(("/", "\\", "/.", "\\.")):
                 errors.append(
                     "architecture_decisions.filename_pattern must name a file, "
-                    "not end with a path separator"
+                    "not a directory-valued path"
                 )
             maximum_id_length = (
                 adr_id_max_width(id_pattern)

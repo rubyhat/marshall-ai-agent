@@ -493,7 +493,7 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                 self.assert_invalid(config)
 
     def test_adr_filename_pattern_must_not_end_with_separator(self) -> None:
-        for pattern in ("<ID>/", "<ID>\\"):
+        for pattern in ("<ID>/", "<ID>\\", "<ID>/.", "<ID>\\."):
             with self.subTest(pattern=pattern):
                 config = rendered_config()
                 config["architecture_decisions"]["filename_pattern"] = pattern
