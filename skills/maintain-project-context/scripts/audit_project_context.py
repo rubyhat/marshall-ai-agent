@@ -140,6 +140,39 @@ LIFECYCLE_OPAQUE_HTML_ELEMENTS = {
     "template",
     "title",
 }
+HTML_P_IMPLIED_END_START_TAGS = {
+    "address",
+    "article",
+    "aside",
+    "blockquote",
+    "div",
+    "dl",
+    "fieldset",
+    "footer",
+    "form",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "header",
+    "hgroup",
+    "hr",
+    "main",
+    "menu",
+    "nav",
+    "ol",
+    "p",
+    "pre",
+    "search",
+    "section",
+    "table",
+    "ul",
+}
+DETAILS_SUMMARY_PENDING = "details_summary_pending"
+DETAILS_SUMMARY_VISIBLE = "details_summary_visible"
+DETAILS_SUMMARY_COMPLETE = "details_summary_complete"
 FOREIGN_CONTENT_HTML_BREAKOUT_TAGS = {
     "b",
     "big",
@@ -847,6 +880,78 @@ def html_visible_signal_text_with_state(
                             )
                     search_cursor = candidate_end
                 continue
+            if raw_text_tag == "details" and template_raw_text_tag in {
+                DETAILS_SUMMARY_PENDING,
+                DETAILS_SUMMARY_VISIBLE,
+                DETAILS_SUMMARY_COMPLETE,
+            }:
+                details_summary_phase = template_raw_text_tag
+                search_cursor = cursor
+                while True:
+                    candidate = raw.find("<", search_cursor)
+                    if candidate < 0:
+                        if details_summary_phase == DETAILS_SUMMARY_VISIBLE:
+                            pieces.append(raw[cursor:])
+                        raw_text_state = (
+                            raw_text_tag,
+                            raw_text_depth,
+                            details_summary_phase,
+                            template_foreign_stack,
+                        )
+                        return html_unescape("".join(pieces)), raw_text_state
+                    candidate_end = markdown_inline_html_token_end(raw, candidate)
+                    if candidate_end is None:
+                        search_cursor = candidate + 1
+                        continue
+                    token = raw[candidate:candidate_end]
+                    opening_tag = re.match(
+                        r"<([A-Za-z][A-Za-z0-9-]*)", token
+                    )
+                    closing_tag = re.fullmatch(
+                        r"</([A-Za-z][A-Za-z0-9-]*)[ \t]*>",
+                        token,
+                        re.I,
+                    )
+                    normalized_opening = (
+                        opening_tag.group(1).casefold()
+                        if opening_tag is not None
+                        else None
+                    )
+                    normalized_closing = (
+                        closing_tag.group(1).casefold()
+                        if closing_tag is not None
+                        else None
+                    )
+                    if details_summary_phase == DETAILS_SUMMARY_VISIBLE:
+                        pieces.append(raw[cursor:candidate])
+                    if (
+                        details_summary_phase == DETAILS_SUMMARY_PENDING
+                        and raw_text_depth == 1
+                        and normalized_opening == "summary"
+                    ):
+                        details_summary_phase = DETAILS_SUMMARY_VISIBLE
+                    elif (
+                        details_summary_phase == DETAILS_SUMMARY_VISIBLE
+                        and normalized_closing == "summary"
+                    ):
+                        details_summary_phase = DETAILS_SUMMARY_COMPLETE
+                    elif normalized_opening == "details":
+                        raw_text_depth += 1
+                    elif normalized_closing == "details":
+                        raw_text_depth -= 1
+                        if raw_text_depth == 0:
+                            cursor = candidate_end
+                            raw_text_state = None
+                            break
+                    cursor = candidate_end
+                    raw_text_state = (
+                        raw_text_tag,
+                        raw_text_depth,
+                        details_summary_phase,
+                        template_foreign_stack,
+                    )
+                    search_cursor = candidate_end
+                continue
             if raw_text_tag not in HTML_RAW_TEXT_ELEMENTS:
                 search_cursor = cursor
                 while True:
@@ -864,6 +969,21 @@ def html_visible_signal_text_with_state(
                         search_cursor = candidate + 1
                         continue
                     token = raw[candidate:candidate_end]
+                    opening_tag = re.match(
+                        r"<([A-Za-z][A-Za-z0-9-]*)", token
+                    )
+                    normalized_opening = (
+                        opening_tag.group(1).casefold()
+                        if opening_tag is not None
+                        else None
+                    )
+                    if (
+                        raw_text_tag == "p"
+                        and normalized_opening in HTML_P_IMPLIED_END_START_TAGS
+                    ):
+                        cursor = candidate
+                        raw_text_state = None
+                        break
                     if re.fullmatch(
                         rf"</{re.escape(raw_text_tag)}[ \t]*>",
                         token,
@@ -943,19 +1063,33 @@ def html_visible_signal_text_with_state(
             normalized_opening_tag == "dialog"
             and not html_start_tag_has_attribute(token, "open")
         )
+        closed_details_subtree = bool(
+            normalized_opening_tag == "details"
+            and not html_start_tag_has_attribute(token, "open")
+        )
         if (
             opening_tag is not None
             and (
                 normalized_opening_tag in LIFECYCLE_OPAQUE_HTML_ELEMENTS
                 or hidden_subtree
                 or closed_dialog_subtree
+                or closed_details_subtree
             )
             and not (
                 normalized_opening_tag == "template"
                 and html_template_is_declarative_shadow_root(token)
             )
         ):
-            raw_text_state = (normalized_opening_tag, 1, None, ())
+            raw_text_state = (
+                normalized_opening_tag,
+                1,
+                (
+                    DETAILS_SUMMARY_PENDING
+                    if closed_details_subtree
+                    else None
+                ),
+                (),
+            )
         cursor = html_end
     return html_unescape("".join(pieces)), raw_text_state
 
