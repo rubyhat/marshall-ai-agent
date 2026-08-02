@@ -117,17 +117,22 @@ Ask 7–10 prompts covering:
 5. materiality threshold and when applicability review gates downstream work;
 6. decision authority and acceptable evidence for proposal, acceptance,
    rejection, clarification, deprecation, and supersession;
-7. preview and separate-confirmation requirements for lifecycle mutations;
+7. preview and separate-confirmation requirements plus the exact verified
+   writer-coordination protocol for the complete affected-ADR/index mutation;
 8. the boundary between non-material clarification and mandatory
    supersession;
 9. links to architecture, tasks, specifications, and supporting evidence;
 10. existing ADRs or status vocabularies that must be preserved or reconciled.
 
-Reject a requested convention that cannot preserve project containment,
-artifact identity, distinct lifecycle labels, or non-blank authority. Route a
-project that requires another ID or filename format to an explicit workflow-kit
-contract change instead of expanding the setup interview into a generic pattern
-validator.
+Require either one project-supported exclusive-lock protocol or one atomic
+compare-and-swap protocol. Record its exact project mechanism, require scope
+`all_affected_adrs_and_index`, and stop-before-write behavior on contention or
+an unavailable precondition. Require release on every path and safe rollback or
+an explicit inconsistent-state result after partial failure. Reject a requested
+convention that cannot preserve project containment, artifact identity,
+distinct lifecycle labels, or non-blank authority. Route a project that requires
+another ID or filename format to an explicit workflow-kit contract change
+instead of expanding the setup interview into a generic pattern validator.
 
 ## Stage 6 — shaping and specifications
 

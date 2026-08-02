@@ -71,7 +71,10 @@ When the candidate is architecture rationale or an ADR lifecycle change,
 require an exact content and mutation handoff from
 `record-architecture-decision`. Route and persist that handoff without
 inventing a decision, changing its semantic state, or rewriting accepted
-rationale.
+rationale. Preserve its configured exclusive writer guard or whole-mutation
+transaction precondition, release behavior, and partial-failure policy across
+every affected ADR file and the index; stop before writing if that coordination
+cannot be enforced.
 
 ### 4. Resolve the output contract
 

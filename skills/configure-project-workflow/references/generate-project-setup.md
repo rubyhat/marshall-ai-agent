@@ -73,12 +73,17 @@ When `record-architecture-decision` is selected, generate an
 - decision authority and acceptable approval evidence for every lifecycle
   transition;
 - mutation-preview and separate-confirmation policy;
+- a verified writer-coordination strategy and exact project protocol that
+  serializes or atomically commits every affected ADR file and the index, with
+  stop-before-write behavior when the guard or precondition is unavailable,
+  release on every path, and explicit partial-failure recovery behavior;
 - the invariant that a material change to an accepted ADR requires
   supersession.
 
 Trim required ADR text values before generation. Require pairwise-distinct
 normalized lifecycle labels and non-blank materiality, review-trigger,
-required-section, and authority values. Reject ambiguous or unsupported
+required-section, authority, and writer-protocol values. Require coordination
+scope `all_affected_adrs_and_index` and reject ambiguous or unsupported
 identifier and filename conventions instead of persisting them as free-form
 strings.
 

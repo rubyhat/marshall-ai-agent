@@ -223,7 +223,8 @@
           "required": [
             "preview_required",
             "separate_confirmation_for",
-            "accepted_material_changes_require_supersession"
+            "accepted_material_changes_require_supersession",
+            "writer_coordination"
           ],
           "properties": {
             "preview_required": {"type": "boolean"},
@@ -241,7 +242,31 @@
               },
               "uniqueItems": true
             },
-            "accepted_material_changes_require_supersession": {"const": true}
+            "accepted_material_changes_require_supersession": {"const": true},
+            "writer_coordination": {
+              "type": "object",
+              "required": [
+                "strategy",
+                "protocol",
+                "scope",
+                "contention_policy",
+                "release_policy",
+                "partial_failure_policy"
+              ],
+              "properties": {
+                "strategy": {
+                  "enum": ["exclusive_lock", "atomic_compare_and_swap"]
+                },
+                "protocol": {"type": "string", "pattern": "\\S"},
+                "scope": {"const": "all_affected_adrs_and_index"},
+                "contention_policy": {"const": "stop_before_write"},
+                "release_policy": {"const": "release_on_all_paths"},
+                "partial_failure_policy": {
+                  "const": "rollback_or_report_inconsistent_state"
+                }
+              },
+              "additionalProperties": false
+            }
           },
           "additionalProperties": true
         }

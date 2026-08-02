@@ -46,10 +46,11 @@ Before any mutation, resolve:
 - semantic lifecycle states and their project-specific labels;
 - decision authority and approval evidence;
 - required sections and link policy;
-- whether the requested mutation needs a preview or separate confirmation.
+- whether the requested mutation needs a preview or separate confirmation;
+- configured writer-coordination strategy and its exact project protocol.
 
-If ownership, identity, status meaning, or decision authority is ambiguous,
-stop before writing.
+If ownership, identity, status meaning, decision authority, or writer
+coordination is ambiguous, stop before writing.
 
 Read [validate-adr-configuration.md](references/validate-adr-configuration.md)
 before every ADR mutation. Stop when the configured convention or the concrete
@@ -127,9 +128,10 @@ Show the bounded mutation set before writing when project policy requires it:
 - supersede: replacement ADR, old ADR status/backlink, and both index entries.
 
 Do not broaden the mutation to unrelated ADRs, architecture documents, specs,
-or memory. Hand the approved content to `record-project-context`, reread every
-written file, verify links and semantic states, and confirm that one source
-owns the rationale.
+or memory. Hand the approved content, complete artifact set, and configured
+whole-mutation coordination, cleanup, and partial-failure policy to
+`record-project-context`. Reread every written file, verify links and semantic
+states, and confirm that one source owns the rationale.
 
 ## Coordinate with downstream work
 

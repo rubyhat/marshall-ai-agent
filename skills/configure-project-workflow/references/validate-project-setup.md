@@ -47,6 +47,11 @@ Validate the configured workflow without executing ordinary project work.
   normalized, pairwise-distinct project label; materiality, review triggers,
   required sections, and every lifecycle authority value are non-blank; and
   material accepted changes require supersession.
+- Verify writer coordination selects one exact project-supported exclusive-lock
+  or atomic compare-and-swap protocol, covers all affected ADR files and the
+  index, stops before writing when its guard or precondition is unavailable,
+  releases on every path, and rolls back safely or reports inconsistent state
+  after a partial failure.
 - Dry-run one representative ADR ID through the complete filename and confirm
   the concrete output stays under the ADR root, cannot collide with the index,
   and cannot overwrite another ADR. Do not expand this check into a generic

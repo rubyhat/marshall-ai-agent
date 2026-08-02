@@ -177,6 +177,31 @@ class ValidateSetupStateTest(unittest.TestCase):
         self.assertEqual(blocking["minItems"], 2)
         self.assertEqual(blocking["maxItems"], 2)
 
+        mutation = adr["properties"]["mutation_policy"]
+        self.assertIn("writer_coordination", mutation["required"])
+        coordination = mutation["properties"]["writer_coordination"]
+        self.assertEqual(
+            set(coordination["properties"]["strategy"]["enum"]),
+            {"exclusive_lock", "atomic_compare_and_swap"},
+        )
+        self.assertEqual(
+            coordination["properties"]["scope"]["const"],
+            "all_affected_adrs_and_index",
+        )
+        self.assertEqual(
+            coordination["properties"]["contention_policy"]["const"],
+            "stop_before_write",
+        )
+        self.assertEqual(
+            coordination["properties"]["release_policy"]["const"],
+            "release_on_all_paths",
+        )
+        self.assertEqual(
+            coordination["properties"]["partial_failure_policy"]["const"],
+            "rollback_or_report_inconsistent_state",
+        )
+        self.assertFalse(coordination["additionalProperties"])
+
         conditional = self.project_schema["allOf"][0]
         selected = conditional["if"]["properties"]["workflow_kit"]["properties"][
             "selected_modules"
@@ -249,6 +274,9 @@ class ValidateSetupStateTest(unittest.TestCase):
                 "review_triggers"
             ]["items"],
             adr_properties["required_sections"]["items"],
+            adr_properties["mutation_policy"]["properties"][
+                "writer_coordination"
+            ]["properties"]["protocol"],
             *adr_properties["status_mapping"]["properties"].values(),
             *adr_properties["decision_authority"]["properties"].values(),
         ]

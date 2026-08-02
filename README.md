@@ -173,7 +173,8 @@ workflow, но не позволяет агенту самостоятельно
 Core contract использует безопасный fixed-width decimal ID, например
 `ADR-[0-9]{4}`, и точный filename pattern `<ID>.md`. Другие identifier или
 filename conventions требуют отдельного изменения workflow kit, а не
-ослабления project setup.
+ослабления project setup. Любая mutation сериализует или атомарно коммитит все
+затронутые ADR-файлы вместе с index через настроенный project protocol.
 
 ## Каталог skills
 
