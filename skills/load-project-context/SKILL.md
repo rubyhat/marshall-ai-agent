@@ -63,7 +63,8 @@ Prefer sources in this order:
 
 1. Direct task anchors: the named spec, issue, pull request, file, or active task pointer.
 2. Applicable constraints: project instructions, safety rules, repository instructions, and required workflows.
-3. Canonical domain context: the relevant architecture, engineering rule, repository memory, or known issue section.
+3. Canonical domain context: the relevant architecture, applicable accepted
+   ADR, engineering rule, repository memory, or known issue section.
 4. Operational context: a runbook, template, environment note, or test/deploy instruction required by the next action.
 5. Cold history: completed specs, reports, session notes, progress logs, and archives.
 
@@ -89,6 +90,18 @@ Use task ID, issue, spec path, branch, or active-task pointer before chronology.
 
 Read [recover-previous-task-context.md](references/recover-previous-task-context.md) only when resuming work or when canonical sources do not explain the current state.
 
+When an accepted ADR may govern the task but its status, scope, assumptions,
+or current premises make applicability uncertain, do not resolve that decision
+inside context loading. Hand the exact ADR and task anchor to the configured
+`record-architecture-decision` read-only review and consume its result:
+
+- load it as an active constraint only for `applicable`;
+- omit it as a constraint for `not applicable` while preserving the link;
+- stop the affected task boundary for `review required` or `unclear`.
+
+If the ADR owner is unavailable, report the missing route and stop rather than
+inventing an applicability verdict.
+
 ### 6. Stop at sufficient orientation
 
 Stop loading when all of the following are known well enough for the next action:
@@ -97,6 +110,7 @@ Stop loading when all of the following are known well enough for the next action
 - the owning repository and affected domain;
 - the owning component and relevant dependency boundary;
 - the current source of truth;
+- the semantic state and applicability of any ADR that can change the next action;
 - the applicable hard constraints and safety gates;
 - the next action;
 - any remaining uncertainty that could change that action.

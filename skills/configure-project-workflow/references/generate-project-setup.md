@@ -56,6 +56,30 @@ Include only selected modules. Record:
 - persistent artifact destinations and exact output-form precedence;
 - applicable task, spec, implementation, delivery, context, and domain sections.
 
+When `record-architecture-decision` is selected, generate an
+`architecture_decisions` section containing:
+
+- project-relative ADR root and index paths;
+- ADR identifier and filename patterns;
+- a mapping from the semantic `proposed`, `accepted`, `rejected`, `deprecated`,
+  and `superseded` states to project labels;
+- the approved `materiality_policy` used to distinguish an ADR from a
+  task-local choice;
+- an `applicability_policy` containing the evidence or review triggers that
+  require read-only reassessment and the blocking `review required` and
+  `unclear` results;
+- required ADR sections and relative-link/index policy;
+- decision authority and acceptable approval evidence for every lifecycle
+  transition;
+- mutation-preview and separate-confirmation policy;
+- the invariant that a material change to an accepted ADR requires
+  supersession.
+
+Do not enable either ADR alias or generate ADR routing without the owning
+module and its required `record-project-context` dependency. Do not create an
+ADR directory, index, or placeholder record during setup unless that exact
+artifact is part of the approved manifest.
+
 Generate only aliases listed in the approved
 `modules.enabled_aliases` setup-state field. For every ordinary alias, require
 its owning module to be selected. For every conditional alias, additionally

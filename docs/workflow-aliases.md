@@ -89,7 +89,7 @@ Domain-команды подключаются только при примен�
 Это workflow profile, а не переключатель системного Plan mode Codex. Профиль
 является sticky constraint и действует до конца текущего разговора.
 
-Planning, roadmap, frontend-design, reference-analysis, task-check и
+Planning, roadmap, frontend-design, reference-analysis, ADR, task-check и
 specification aliases могут разрешить только свои bounded
 non-implementation workflows. `--execute-task`, `--deliver-task` и
 эквивалентные natural-language запросы не отменяют профиль. Агент
@@ -237,6 +237,31 @@ Read-only проверка identity, hierarchy, tracker fields, status и links 
 Запускает только read-only context audit. Cleanup требует отдельного exact
 manifest и подтверждения.
 
+## Architecture decisions
+
+### `--adr-review <ADR или task anchor>`
+
+Запускает read-only necessity или applicability review через
+`record-architecture-decision`.
+
+Агент проверяет semantic status, scope, assumptions, decision drivers, review
+triggers и текущие evidence. Результат `review required` или `unclear`
+останавливает зависимую shaping/specification/implementation границу; команда
+не изменяет ADR, index, task или project context.
+
+### `--record-adr <decision anchor>`
+
+Запускает guided lifecycle workflow одного материального архитектурного
+решения. Команда может подготовить proposal, зафиксировать подтверждённое
+accept/reject решение, выполнить non-material clarification, deprecation или
+supersession в пределах project-configured authority.
+
+Alias не означает автоматическое принятие решения. Для material изменения
+accepted ADR создаётся replacement ADR, старый получает semantic state
+`superseded` и backlink, а исходное rationale не переписывается. Persistence
+выполняется через `record-project-context` только для точного ADR/index
+mutation set.
+
 ## Domain workflows
 
 ### `--design-flow <идея или task anchor>`
@@ -279,6 +304,17 @@ approval точного manifest.
 tracker artifacts. Затем каждая implementation task обсуждается через
 `--prepare-spec`, а продолжение уже активной последовательности — через
 `--next-spec`.
+
+### Материальное архитектурное решение
+
+```text
+--adr-review <ADR или task anchor>
+--record-adr <decision anchor>
+```
+
+Первую команду используют для read-only проверки. Вторая требуется только
+когда решение действительно достойно ADR или существующий ADR нужно
+уточнить, отклонить, deprecated либо supersede.
 
 ### Подготовка следующей task-spec
 
@@ -356,6 +392,8 @@ Reusable aliases сохраняют одинаковый смысл, но кон
 - Task ID и hierarchy policy;
 - task tracker, fields и statuses;
 - spec templates и readiness gates;
+- ADR paths, identifiers, semantic status mapping, decision authority и
+  lifecycle policy;
 - worktree, branch, test и delivery policy;
 - production, security, privacy и domain restrictions.
 

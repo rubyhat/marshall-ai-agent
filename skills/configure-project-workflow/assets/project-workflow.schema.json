@@ -113,6 +113,138 @@
       },
       "additionalProperties": true
     },
+    "architecture_decisions": {
+      "type": "object",
+      "required": [
+        "root",
+        "index",
+        "id_pattern",
+        "filename_pattern",
+        "status_mapping",
+        "materiality_policy",
+        "applicability_policy",
+        "required_sections",
+        "link_policy",
+        "decision_authority",
+        "mutation_policy"
+      ],
+      "properties": {
+        "root": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?![A-Za-z]:[\\\\/])(?![\\\\/])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+        },
+        "index": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?![A-Za-z]:[\\\\/])(?![\\\\/])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+        },
+        "id_pattern": {"type": "string", "minLength": 1},
+        "filename_pattern": {"type": "string", "minLength": 1},
+        "status_mapping": {
+          "type": "object",
+          "required": [
+            "proposed",
+            "accepted",
+            "rejected",
+            "deprecated",
+            "superseded"
+          ],
+          "properties": {
+            "proposed": {"type": "string", "minLength": 1},
+            "accepted": {"type": "string", "minLength": 1},
+            "rejected": {"type": "string", "minLength": 1},
+            "deprecated": {"type": "string", "minLength": 1},
+            "superseded": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": {"type": "string", "minLength": 1}
+        },
+        "materiality_policy": {"type": "string", "minLength": 1},
+        "applicability_policy": {
+          "type": "object",
+          "required": ["review_triggers", "blocking_results"],
+          "properties": {
+            "review_triggers": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 1},
+              "uniqueItems": true,
+              "minItems": 1
+            },
+            "blocking_results": {
+              "type": "array",
+              "items": {"enum": ["review required", "unclear"]},
+              "uniqueItems": true,
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "additionalProperties": true
+        },
+        "required_sections": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "link_policy": {
+          "type": "object",
+          "required": ["relative_links", "index_required"],
+          "properties": {
+            "relative_links": {"const": true},
+            "index_required": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "decision_authority": {
+          "type": "object",
+          "required": [
+            "propose",
+            "accept",
+            "reject",
+            "clarify",
+            "deprecate",
+            "supersede"
+          ],
+          "properties": {
+            "propose": {"type": "string", "minLength": 1},
+            "accept": {"type": "string", "minLength": 1},
+            "reject": {"type": "string", "minLength": 1},
+            "clarify": {"type": "string", "minLength": 1},
+            "deprecate": {"type": "string", "minLength": 1},
+            "supersede": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": true
+        },
+        "mutation_policy": {
+          "type": "object",
+          "required": [
+            "preview_required",
+            "separate_confirmation_for",
+            "accepted_material_changes_require_supersession"
+          ],
+          "properties": {
+            "preview_required": {"type": "boolean"},
+            "separate_confirmation_for": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "propose",
+                  "accept",
+                  "reject",
+                  "clarify",
+                  "deprecate",
+                  "supersede"
+                ]
+              },
+              "uniqueItems": true
+            },
+            "accepted_material_changes_require_supersession": {"const": true}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
     "skills": {
       "type": "object",
       "required": ["active"],
@@ -207,5 +339,25 @@
       "additionalProperties": true
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "required": ["workflow_kit"],
+        "properties": {
+          "workflow_kit": {
+            "required": ["selected_modules"],
+            "properties": {
+              "selected_modules": {
+                "contains": {"const": "record-architecture-decision"}
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": ["architecture_decisions"]
+      }
+    }
+  ],
   "additionalProperties": true
 }

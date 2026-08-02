@@ -17,6 +17,8 @@ Keep active project context compact without erasing unique history. Separate dis
 - Require a separately prepared exact manifest and a later explicit approval before changing files.
 - Treat age, size, and count only as discovery metrics. Never use them alone to classify or delete an artifact.
 - Do not commit, push, open a pull request, or mutate an external task system unless separately requested.
+- Do not rewrite ADR rationale, decide applicability, or perform lifecycle
+  transitions during audit, consolidation, or cleanup.
 
 ## Resolve project policy
 
@@ -112,3 +114,5 @@ If Python 3.9+ is unavailable, follow the bounded macOS/Linux fallback in [audit
 - Use `record-project-context` when consolidation must update canonical memory or a rolling manifest.
 - Keep broad audit, retention judgment, archive selection, and cleanup ownership in this skill.
 - Let task, ADR, incident, security, legal, and production workflows continue to own their substantive artifacts.
+- Let `record-architecture-decision` own ADR applicability and lifecycle; this
+  skill may only report broken links, inconsistent metadata, or cleanup risks.

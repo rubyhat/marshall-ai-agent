@@ -1,11 +1,13 @@
 import copy
 import importlib.util
+import re
 import unittest
 from pathlib import Path
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "validate_setup_state.py"
 CATALOG = Path(__file__).resolve().parents[2] / "assets" / "workflow-modules.json"
+PROJECT_SCHEMA = Path(__file__).resolve().parents[2] / "assets" / "project-workflow.schema.json"
 
 
 def load_module():
@@ -21,6 +23,7 @@ class ValidateSetupStateTest(unittest.TestCase):
     def setUpClass(cls):
         cls.module = load_module()
         cls.catalog = cls.module.load_json(CATALOG)
+        cls.project_schema = cls.module.load_json(PROJECT_SCHEMA)
 
     def valid_state(self):
         return {
@@ -140,6 +143,68 @@ class ValidateSetupStateTest(unittest.TestCase):
         self.assertIn(
             "Alias --shape-work requires owning module shape-project-work", errors
         )
+
+    def test_adr_aliases_are_registered_for_selected_module(self):
+        state = self.valid_state()
+        state["modules"]["selected"].append("record-architecture-decision")
+        state["modules"]["enabled_aliases"] = ["--adr-review", "--record-adr"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertEqual(errors, [])
+
+    def test_adr_module_requires_context_recorder(self):
+        state = self.valid_state()
+        state["modules"]["selected"] = [
+            "configure-project-workflow",
+            "record-architecture-decision",
+        ]
+        state["modules"]["enabled_aliases"] = ["--adr-review"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn(
+            "Module record-architecture-decision requires record-project-context",
+            errors,
+        )
+
+    def test_adr_config_contract_persists_policy_fields(self):
+        adr = self.project_schema["properties"]["architecture_decisions"]
+        self.assertIn("materiality_policy", adr["required"])
+        self.assertIn("applicability_policy", adr["required"])
+        blocking = adr["properties"]["applicability_policy"]["properties"][
+            "blocking_results"
+        ]
+        self.assertEqual(
+            set(blocking["items"]["enum"]), {"review required", "unclear"}
+        )
+        self.assertEqual(blocking["minItems"], 2)
+        self.assertEqual(blocking["maxItems"], 2)
+
+        conditional = self.project_schema["allOf"][0]
+        selected = conditional["if"]["properties"]["workflow_kit"]["properties"][
+            "selected_modules"
+        ]
+        self.assertEqual(
+            selected["contains"]["const"], "record-architecture-decision"
+        )
+        self.assertIn("architecture_decisions", conditional["then"]["required"])
+
+    def test_adr_paths_must_stay_project_relative(self):
+        adr_properties = self.project_schema["properties"][
+            "architecture_decisions"
+        ]["properties"]
+
+        for field in ("root", "index"):
+            pattern = adr_properties[field]["pattern"]
+            self.assertIsNotNone(re.fullmatch(pattern, "docs/architecture/decisions"))
+            for unsafe_path in (
+                "/tmp/decisions",
+                "../outside.md",
+                "docs/../outside.md",
+                "C:\\outside\\decisions",
+                "docs\\..\\outside.md",
+            ):
+                self.assertIsNone(
+                    re.fullmatch(pattern, unsafe_path),
+                    f"{field} accepted unsafe path {unsafe_path!r}",
+                )
 
     def test_enabled_aliases_field_is_required(self):
         state = self.valid_state()

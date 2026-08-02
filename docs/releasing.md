@@ -80,7 +80,7 @@ Markdown-заголовка: canonical `# Changelog` создаёт сам Relea
 
 Перед merge первого Release PR:
 
-1. убедитесь, что все 12 skills перечислены в README;
+1. убедитесь, что все skills перечислены в README;
 2. запустите repository validator;
 3. запустите системный `quick_validate.py` для каждого skill;
 4. проверьте setup и update contract `configure-project-workflow`;

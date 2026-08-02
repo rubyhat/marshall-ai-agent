@@ -13,6 +13,8 @@ Turn unclear project intent into an agreed and traceable work definition. Preser
 - Perform only bounded research needed to make a shaping decision. Route a substantial research deliverable to the relevant research or analysis workflow.
 - Let `manage-project-work` allocate Task IDs, validate operational hierarchy, and mutate Issues or Projects.
 - Let `write-task-spec` create, update, or audit full task specifications when that workflow is available.
+- Let `record-architecture-decision` own the necessity, applicability, content,
+  and lifecycle of material architecture decisions.
 - Let domain workflows own detailed frontend flow design, QA reproduction, legal analysis, migrations, or external product-reference analysis.
 - Do not create a local planning document by default. Preserve durable decisions or research only through `record-project-context`.
 
@@ -34,8 +36,9 @@ A planning-session profile is a sticky conversation constraint, not a host
 application mode. It remains active for the current conversation. It does not
 authorize artifacts or tracker mutations by itself, and it blocks
 implementation and delivery capabilities. Later planning, roadmap,
-task-management, frontend-design, reference-analysis, or specification
-requests may authorize only their bounded non-implementation workflows.
+task-management, frontend-design, reference-analysis, architecture-decision,
+or specification requests may authorize only their bounded
+non-implementation workflows.
 Implementation or delivery aliases and equivalent natural-language requests
 never release the profile implicitly. Require a new conversation when project
 policy defines `new_conversation_only` release semantics.
@@ -103,7 +106,7 @@ Stop and state the objection before continuing when:
 - the proposal introduces a credible material risk to security, privacy, tenant isolation, data integrity, legal or billing behavior, reliability, scalability, supportability, or scope integrity;
 - continuing would make a durable mutation based on unresolved ownership or authority.
 
-Name the exact conflict or risk, its likely consequence, supporting source, and the safest correction or alternatives. Continue only after the user corrects the request or explicitly acknowledges and accepts the material trade-off. Update a superseded durable decision through `record-project-context`.
+Name the exact conflict or risk, its likely consequence, supporting source, and the safest correction or alternatives. Continue only after the user corrects the request or explicitly acknowledges and accepts the material trade-off. Route a challenged architecture decision through `record-architecture-decision`; use `record-project-context` to persist other superseded durable knowledge.
 
 Do not use speculative, remote, or trivial risks to block routine reversible choices. User acknowledgement never overrides higher-priority instructions, access boundaries, or non-waivable safety requirements.
 
@@ -129,6 +132,13 @@ Distinguish:
 - accepted material risks and superseded decisions.
 
 Never hide uncertainty inside confident task wording.
+
+When a confirmed choice is a material architecture decision and
+`record-architecture-decision` is configured, use it to test whether an ADR is
+needed and to record the accepted rationale before dependent specifications
+rely on it. If the owner is unavailable, stop at the material decision boundary
+instead of improvising an ADR. If an accepted ADR may no longer apply, request
+an applicability review rather than forcing the new outcome to conform.
 
 ### 5. Decompose the work
 
@@ -173,6 +183,8 @@ Keep the result usable as input to task management without pretending it is a fu
 - For discussion-only work, do not create files, Issues, or Project items.
 - When the user commits the result to backlog or roadmap, pass the agreed work graph to `manage-project-work`; do not perform its mutations inside this skill.
 - Do not create a separate local planning artifact unless the analysis has unique durable value beyond the Issue and future specification.
+- Use `record-architecture-decision` for an approved material architecture
+  decision, then use `record-project-context` for its configured persistence.
 - Use `record-project-context` for an approved durable decision, research result, risk, or active handoff; prefer updating an existing canonical source.
 - If a full specification was explicitly requested, resolve the project's required task anchors. When project policy says that request authorizes their creation, hand the exact shaped task to `manage-project-work`, verify the anchors, and then hand it to `write-task-spec` without asking for duplicate permission. Otherwise ask only for the missing anchor authority.
 - If the specification workflow is unavailable, stop after shaping and report the missing dependency instead of writing an ad hoc specification.

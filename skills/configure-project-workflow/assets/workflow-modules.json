@@ -5,6 +5,7 @@
       "configure-project-workflow",
       "load-project-context",
       "record-project-context",
+      "record-architecture-decision",
       "maintain-project-context",
       "manage-project-work",
       "shape-project-work",
@@ -19,6 +20,7 @@
       "configure-project-workflow",
       "load-project-context",
       "record-project-context",
+      "record-architecture-decision",
       "maintain-project-context",
       "shape-project-work",
       "write-task-spec",
@@ -29,6 +31,7 @@
       "configure-project-workflow",
       "load-project-context",
       "record-project-context",
+      "record-architecture-decision",
       "shape-project-work",
       "design-frontend-flow",
       "analyze-product-reference"
@@ -67,6 +70,15 @@
       "recommended_with": ["load-project-context"],
       "aliases": [],
       "question_stages": ["context"]
+    },
+    {
+      "name": "record-architecture-decision",
+      "group": "architecture",
+      "config_section": "architecture_decisions",
+      "requires": ["record-project-context"],
+      "recommended_with": ["shape-project-work", "write-task-spec"],
+      "aliases": ["--adr-review", "--record-adr"],
+      "question_stages": ["architecture_decisions"]
     },
     {
       "name": "maintain-project-context",

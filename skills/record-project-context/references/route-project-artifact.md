@@ -99,7 +99,9 @@ role.
 
 ## Respect content ownership
 
-Let the owning domain workflow decide what a spec, ADR, report, or plan should say. Apply this skill to routing, duplication control, persistence, and consistency.
+Let the owning domain workflow decide what a spec, report, or plan should say.
+Require `record-architecture-decision` to establish ADR content and lifecycle.
+Apply this skill to routing, duplication control, persistence, and consistency.
 
 Ask only when two plausible destinations would create competing sources of truth. Otherwise choose the configured owner and proceed.
 

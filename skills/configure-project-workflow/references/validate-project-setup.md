@@ -38,6 +38,12 @@ Validate the configured workflow without executing ordinary project work.
   task, or operational sources of truth.
 - Verify persistent report types have a configured destination and that
   file/link/path-only output rules do not conflict.
+- When ADR recording is selected, verify its root and index stay within the
+  project, ID and filename patterns are present, every portable semantic state
+  maps to a project label, materiality and applicability policies preserve the
+  approved interview decisions, required sections and link policy are
+  explicit, lifecycle authority is complete, and material accepted changes
+  require supersession.
 
 Do not install a parser or dependency automatically. If no YAML parser is safely available, validate the approved setup state, generated text structure, and a full agent readback, then report the parser limitation.
 
@@ -91,11 +97,18 @@ Evaluate representative prompts without performing their mutations:
   mutations and require the configured release action;
 - planning session then request a specification -> permit only the bounded
   specification workflow;
+- planning session then explicitly request ADR recording -> permit only the
+  configured bounded ADR lifecycle and persistence workflow;
 - natural-language current-session no-code constraint then request
   implementation -> stop as for the equivalent alias;
 - request a transferable handoff report -> use the configured persistent
   destination;
 - request a path-only report response -> return only the verified path;
+- review an ADR -> remain read-only and return a bounded applicability result;
+- record an ADR -> require configured authority, preview policy, and bounded
+  ADR/index persistence through `record-project-context`;
+- materially change an accepted ADR -> create a replacement and preserve the
+  old rationale instead of rewriting it;
 - start a task naming one component -> resolve its topology entry before its
   nested instructions and context route;
 - start a cross-component task -> load only the named dependency edges and the

@@ -9,13 +9,14 @@ Use this staged catalog to obtain complete setup information without presenting 
 3. Stage 2 — project identity and repositories
 4. Stage 3 — instructions and source-of-truth boundaries
 5. Stage 4 — context and documentation
-6. Stage 5 — shaping and specifications
-7. Stage 6 — task management
-8. Stage 7 — implementation
-9. Stage 8 — review and delivery
-10. Stage 9 — domain modules
-11. Stage 10 — installation and customization
-12. Final review
+6. Stage 5 — architecture decisions
+7. Stage 6 — shaping and specifications
+8. Stage 7 — task management
+9. Stage 8 — implementation
+10. Stage 9 — review and delivery
+11. Stage 10 — domain modules
+12. Stage 11 — installation and customization
+13. Final review
 
 ## Interview rules
 
@@ -102,7 +103,26 @@ Ask 7–10 prompts covering:
    path-only output policy;
 10. whether `load`, `record`, and `maintain` modules are applicable.
 
-## Stage 5 — shaping and specifications
+## Stage 5 — architecture decisions
+
+Activate only when `record-architecture-decision` is selected.
+
+Ask 7–10 prompts covering:
+
+1. canonical ADR root and index path;
+2. ADR identifier and filename conventions;
+3. semantic lifecycle states and their project-specific labels;
+4. required sections, relative-link policy, and index-entry contract;
+5. materiality threshold and when applicability review gates downstream work;
+6. decision authority and acceptable evidence for proposal, acceptance,
+   rejection, clarification, deprecation, and supersession;
+7. preview and separate-confirmation requirements for lifecycle mutations;
+8. the boundary between non-material clarification and mandatory
+   supersession;
+9. links to architecture, tasks, specifications, and supporting evidence;
+10. existing ADRs or status vocabularies that must be preserved or reconciled.
+
+## Stage 6 — shaping and specifications
 
 Purpose: define how ideas become implementation-ready work.
 
@@ -120,7 +140,7 @@ Ask 7–10 prompts covering:
 9. specification readiness verdicts;
 10. when implementation authority must be requested separately.
 
-## Stage 6 — task management
+## Stage 7 — task management
 
 Activate only when operational task tracking is selected.
 
@@ -138,7 +158,7 @@ Ask 7–10 prompts covering:
    read-only completion evidence used for task-sequence continuation;
 10. operations requiring separate confirmation, including broad sync and schema changes.
 
-## Stage 7 — implementation
+## Stage 8 — implementation
 
 Purpose: define safe local task execution.
 
@@ -155,7 +175,7 @@ Ask 7–10 prompts covering:
 9. operational status checkpoints;
 10. exact boundary between implementation and delivery.
 
-## Stage 8 — review and delivery
+## Stage 9 — review and delivery
 
 Purpose: define publication and completion authority.
 
@@ -172,7 +192,7 @@ Ask 7–10 prompts covering:
 9. post-merge closure, sync, and workspace cleanup;
 10. deployment and production boundaries excluded from normal delivery.
 
-## Stage 9 — domain modules
+## Stage 10 — domain modules
 
 Activate when frontend design, frontend QA, or product-reference analysis is selected.
 
@@ -189,7 +209,7 @@ Present 7–10 prompts tailored to active modules, covering:
 9. external access and capture restrictions;
 10. routing from domain evidence to shaping, specification, and implementation.
 
-## Stage 10 — installation and customization
+## Stage 11 — installation and customization
 
 Purpose: finalize distribution, commands, and extension boundaries.
 

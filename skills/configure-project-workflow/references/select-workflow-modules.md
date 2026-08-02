@@ -4,9 +4,9 @@ Use `assets/workflow-modules.json` as the machine-readable module catalog.
 
 ## Recommend a profile
 
-- `full_product`: long-lived product development with context, roadmap, specifications, implementation, delivery, frontend, QA, and external references.
-- `core_development`: context, shaping, specifications, implementation, and delivery without domain-specific modules.
-- `product_discovery`: context, shaping, frontend interaction design, and product-reference analysis.
+- `full_product`: long-lived product development with context, architecture decisions, roadmap, specifications, implementation, delivery, frontend, QA, and external references.
+- `core_development`: context, architecture decisions, shaping, specifications, implementation, and delivery without domain-specific modules.
+- `product_discovery`: context, architecture decisions, shaping, frontend interaction design, and product-reference analysis.
 - `context_only`: context loading, recording, and manual maintenance.
 - `custom`: exact user-selected modules.
 
@@ -20,6 +20,7 @@ Base selection on:
 - actual repositories and surfaces;
 - operational tracker availability;
 - whether project documentation should persist;
+- whether durable architecture decisions must be recorded and revisited;
 - implementation and delivery needs;
 - frontend, QA, or reference-analysis work;
 - user restrictions and existing workflows.
