@@ -12,6 +12,7 @@ import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from html import escape as html_escape
 from html import unescape as html_unescape
 from html.parser import HTMLParser
 from pathlib import Path
@@ -676,6 +677,18 @@ def html_visible_signal_text_with_state(
                         opening_tag = re.match(
                             r"<([A-Za-z][A-Za-z0-9-]*)", token
                         )
+                        normalized_opening = (
+                            opening_tag.group(1).casefold()
+                            if opening_tag is not None
+                            else None
+                        )
+                        font_breakout = normalized_opening == "font" and bool(
+                            re.search(
+                                r"[ \t](?:color|face|size)(?:[ \t]*=|[ \t/>])",
+                                token,
+                                re.I,
+                            )
+                        )
                         if closing_tag is not None:
                             normalized_closing = closing_tag.group(1).casefold()
                             if normalized_closing in template_foreign_stack:
@@ -687,6 +700,13 @@ def html_visible_signal_text_with_state(
                                 template_foreign_stack = template_foreign_stack[
                                     :matching_index
                                 ]
+                        elif (
+                            normalized_opening in FOREIGN_CONTENT_HTML_BREAKOUT_TAGS
+                            or font_breakout
+                        ):
+                            # HTML tree construction pops foreign content and
+                            # reprocesses these start tags in the HTML namespace.
+                            template_foreign_stack = ()
                         elif (
                             opening_tag is not None
                             and not re.search(r"/[ \t]*>$", token)
@@ -2525,6 +2545,21 @@ def inspect_text(
                         closing_position = lowered_html_line.find(
                             html_block_end_token
                         )
+                        if raw_text_tag == "textarea":
+                            textarea_body = html_container_line[
+                                : (
+                                    closing_position
+                                    if closing_position >= 0
+                                    else len(html_container_line)
+                                )
+                            ]
+                            if textarea_body.strip():
+                                signal_lines.append(
+                                    (
+                                        line_count,
+                                        html_escape(textarea_body, quote=False),
+                                    )
+                                )
                         if closing_position >= 0:
                             suffix_start = closing_position + len(
                                 html_block_end_token
@@ -2609,6 +2644,28 @@ def inspect_text(
                             tokens = markdown_complete_html_tokens(container_line)
                             closing_position = container_line.lower().find(end_token)
                             if tokens:
+                                if raw_text_tag == "textarea":
+                                    opening_position = container_line.find(tokens[0])
+                                    textarea_body_start = (
+                                        opening_position + len(tokens[0])
+                                    )
+                                    textarea_body_end = (
+                                        closing_position
+                                        if closing_position >= 0
+                                        else len(container_line)
+                                    )
+                                    textarea_body = container_line[
+                                        textarea_body_start:textarea_body_end
+                                    ]
+                                    if textarea_body.strip():
+                                        signal_lines.append(
+                                            (
+                                                line_count,
+                                                html_escape(
+                                                    textarea_body, quote=False
+                                                ),
+                                            )
+                                        )
                                 html_fragment = tokens[0]
                                 if closing_position >= 0:
                                     html_fragment = (
