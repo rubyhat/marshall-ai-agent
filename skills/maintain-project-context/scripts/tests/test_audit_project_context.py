@@ -790,6 +790,49 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 0)
             self.assertEqual(by_path["memory/source.md"]["completed_markers"], 0)
 
+    def test_raw_html_target_is_not_entity_decoded_twice(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "foo&num;.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                '<a href="../context/foo&amp;num;.md">Target</a>\n',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["path"], "context/foo&num;.md")
+            self.assertEqual(target["incoming_links"], 1)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_base_href_is_resolution_context_not_incoming_resource(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

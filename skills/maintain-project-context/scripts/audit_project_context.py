@@ -1634,8 +1634,16 @@ def git_inventory(root: Path) -> Tuple[bool, Set[str], Dict[str, str]]:
     return True, tracked, status
 
 
-def normalize_link_target(root: Path, source: Path, raw_target: str) -> Optional[Path]:
-    target = decode_markdown_escapes_and_entities(raw_target.strip())
+def normalize_link_target(
+    root: Path,
+    source: Path,
+    raw_target: str,
+    *,
+    decode_markdown: bool = True,
+) -> Optional[Path]:
+    target = raw_target.strip()
+    if decode_markdown:
+        target = decode_markdown_escapes_and_entities(target)
     target = unquote(target.split("#", 1)[0].split("?", 1)[0].strip())
     if (
         not target
@@ -2381,7 +2389,7 @@ def inspect_text(
     for raw_target, raw_base in html_targets:
         target_source = item.absolute_path
         if raw_base is not None:
-            decoded_base = decode_markdown_escapes_and_entities(raw_base.strip())
+            decoded_base = raw_base.strip()
             base_path_part = unquote(
                 decoded_base.split("#", 1)[0].split("?", 1)[0].strip()
             )
@@ -2394,7 +2402,10 @@ def inspect_text(
                 continue
             else:
                 normalized_base = normalize_link_target(
-                    root, item.absolute_path, base_path_part
+                    root,
+                    item.absolute_path,
+                    base_path_part,
+                    decode_markdown=False,
                 )
                 if normalized_base is None:
                     item.link_parse_incomplete = True
@@ -2404,7 +2415,9 @@ def inspect_text(
                     if base_path_part.endswith("/")
                     else normalized_base
                 )
-        normalized = normalize_link_target(root, target_source, raw_target)
+        normalized = normalize_link_target(
+            root, target_source, raw_target, decode_markdown=False
+        )
         if normalized is not None:
             links.add(normalized)
     for raw_target, nested_reference_labels in inline_link_candidates:
