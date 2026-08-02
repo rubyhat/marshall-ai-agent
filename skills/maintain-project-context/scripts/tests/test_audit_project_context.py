@@ -2371,6 +2371,9 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                 "button-action.md",
                 "invalid-button-action.md",
                 "reset-action.md",
+                "padded-reset-action.md",
+                "padded-image-src.md",
+                "padded-image-action.md",
             )
             for target_name in target_names:
                 (context / target_name).write_text("# Target\n", encoding="utf-8")
@@ -2381,6 +2384,8 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
 <button formaction="../context/button-action.md">Submit</button>
 <button type="invalid" formaction="../context/invalid-button-action.md">Submit</button>
 <button type="reset" formaction="../context/reset-action.md">Reset</button>
+<button type=" reset " formaction="../context/padded-reset-action.md">Submit</button>
+<input type=" image " src="../context/padded-image-src.md" formaction="../context/padded-image-action.md">
 """,
                 encoding="utf-8",
             )
@@ -2419,11 +2424,18 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                 "submit-action.md",
                 "button-action.md",
                 "invalid-button-action.md",
+                "padded-reset-action.md",
             ):
                 self.assertEqual(
                     by_path[f"context/{target_name}"]["incoming_links"], 1
                 )
             self.assertEqual(by_path["context/reset-action.md"]["incoming_links"], 0)
+            self.assertEqual(
+                by_path["context/padded-image-src.md"]["incoming_links"], 0
+            )
+            self.assertEqual(
+                by_path["context/padded-image-action.md"]["incoming_links"], 0
+            )
             self.assertTrue(
                 report["link_coverage"]["complete_for_declared_roots"]
             )

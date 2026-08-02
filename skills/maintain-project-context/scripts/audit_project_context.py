@@ -442,7 +442,7 @@ class MarkdownHtmlTargetParser(HTMLParser):
             self.resource_parse_incomplete = True
         resource_attributes = namespace_resource_attributes
         if namespace == "html" and normalized_tag == "input":
-            input_type = (first_attributes.get("type") or "text").strip().casefold()
+            input_type = (first_attributes.get("type") or "text").casefold()
             if input_type == "image":
                 resource_attributes = {"formaction", "src"}
             elif input_type == "submit":
@@ -452,7 +452,7 @@ class MarkdownHtmlTargetParser(HTMLParser):
         elif namespace == "html" and normalized_tag == "button":
             button_type = (
                 first_attributes.get("type") or "submit"
-            ).strip().casefold()
+            ).casefold()
             resource_attributes = (
                 set()
                 if button_type in {"button", "reset"}
