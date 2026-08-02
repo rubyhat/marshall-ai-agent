@@ -8,6 +8,8 @@ Build one coherent implementation contract from the shaped task and verified tec
 - Keep detailed intended behavior and implementation constraints in the spec.
 - Keep runtime truth in code, schemas, and configuration.
 - Keep durable architecture decisions in their canonical decision artifact.
+- Link only applicable accepted ADRs; route uncertain applicability or a
+  material decision change through `record-architecture-decision`.
 - Link rather than copy large research reports, parent specs, or external contracts.
 
 The specification may summarize those sources only to make the exact task executable.

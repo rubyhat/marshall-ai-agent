@@ -2,7 +2,7 @@
 
 Личная библиотека reusable skills для Codex. Набор описывает не продуктовую логику конкретного проекта, а переносимые рабочие процессы: от загрузки контекста и формирования задачи до реализации, review, delivery и обслуживания проектной документации.
 
-Сейчас в репозитории находятся 12 reusable skills, включая интерактивный `configure-project-workflow` для безопасной первоначальной настройки и последующей проверки проекта. Набор версионируется и выпускается как единый совместимый workflow kit.
+Сейчас в репозитории находятся 13 reusable skills, включая интерактивный `configure-project-workflow` для безопасной первоначальной настройки и последующей проверки проекта. Набор версионируется и выпускается как единый совместимый workflow kit.
 
 ## Основная идея
 
@@ -20,15 +20,21 @@ Skills не должны содержать жёсткую привязку к �
 workflow kit, но не разрабатывает сам `marshall-ai-agent`.
 
 Не клонируйте этот репозиторий внутрь продуктового проекта. Установите только
-bootstrap skill через системный `skill-installer` по exact release tag. Для
-версии, выпускаемой этим изменением:
+bootstrap skill через системный `skill-installer` по exact release tag или,
+для reviewed unreleased testing, по полному commit SHA:
 
 ```bash
+workflow_kit_revision="EXACT_RELEASE_TAG_OR_FULL_COMMIT_SHA"
 python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/install-skill-from-github.py" \
   --repo rubyhat/marshall-ai-agent \
-  --ref v0.3.0 \
+  --ref "$workflow_kit_revision" \
   --path skills/configure-project-workflow
 ```
+
+Выбранная revision должна содержать каждый устанавливаемый module. Последний
+опубликованный `v0.3.0` предшествует `record-architecture-decision`, поэтому
+ADR-enabled setup до следующего release требует полного commit SHA из
+reviewed pull request; floating branch использовать нельзя.
 
 Для private repository installer использует существующие Git credentials либо
 `GITHUB_TOKEN`/`GH_TOKEN`. Он устанавливает skill в
@@ -106,6 +112,12 @@ flowchart LR
 
 `record-project-context` применяется в durable checkpoints по всему flow, а не только в конце. Готовая спецификация сама по себе не разрешает implementation, а выполненная implementation-задача сама по себе не разрешает commit, push или merge.
 
+Если shaping, specification или implementation встречает материальное
+архитектурное решение, `record-architecture-decision` проверяет необходимость
+и применимость ADR до того, как downstream work начнёт считать решение
+обязательным. Принятый ADR не переписывается по смыслу: материальное изменение
+оформляется новым superseding ADR.
+
 Если shaping начат через `--planning-session`, переход к implementation всегда
 проходит через новую Codex-сессию: готовая specification или поздний
 implementation alias не снимают sticky planning lock.
@@ -144,6 +156,26 @@ analyze-product-reference
 
 Обычное завершение задачи не запускает broad context cleanup.
 
+### Architecture decisions
+
+```text
+shape/spec/implementation decision boundary
+  → record-architecture-decision
+  → necessity или applicability review
+  → proposed/accepted/rejected/deprecated/superseded lifecycle
+  → record-project-context для bounded persistence
+```
+
+`--adr-review` остаётся read-only. `--record-adr` разрешает guided ADR
+workflow, но не позволяет агенту самостоятельно принять неутверждённое
+решение.
+
+Core contract использует безопасный fixed-width decimal ID, например
+`ADR-[0-9]{4}`, и точный filename pattern `<ID>.md`. Другие identifier или
+filename conventions требуют отдельного изменения workflow kit, а не
+ослабления project setup. Любая mutation сериализует или атомарно коммитит все
+затронутые ADR-файлы вместе с index через настроенный project protocol.
+
 ## Каталог skills
 
 | Skill | Назначение |
@@ -151,6 +183,7 @@ analyze-product-reference
 | `configure-project-workflow` | Безопасно исследует проект, проводит resumable interview, создаёт project topology, устанавливает выбранные modules и формирует project workflow. |
 | `load-project-context` | Загружает только контекст, необходимый для текущей содержательной задачи. |
 | `record-project-context` | Сохраняет durable project knowledge без дублирования источников истины. |
+| `record-architecture-decision` | Определяет необходимость и применимость ADR и ведёт lifecycle одного материального архитектурного решения. |
 | `maintain-project-context` | Аудирует, консолидирует и безопасно очищает project memory/documentation через двухфазный процесс. |
 | `manage-project-work` | Управляет Task ID, hierarchy, GitHub Issues/Projects, статусами и связями task/spec/PR. |
 | `shape-project-work` | Превращает идею или проблему в согласованный outcome, scope и conceptual work breakdown. |
@@ -172,6 +205,8 @@ analyze-product-reference
 | `--workflow-setup` | Начать, продолжить или изменить guided project setup. |
 | `--workflow-check` | Провести read-only audit текущей project workflow configuration. |
 | `--context-audit [scope]` | Запустить только read-only аудит project context. |
+| `--adr-review <ADR или task anchor>` | Read-only проверить необходимость или применимость архитектурного решения. |
+| `--record-adr <decision anchor>` | Создать или изменить один ADR в пределах project authority. |
 | `--task-check <Task ID или Issue URL>` | Проверить согласованность одной задачи. |
 | `--task-status <Task ID или Issue URL> <status>` | Изменить только статус одной точной задачи. |
 | `--planning-session [scope]` | Зафиксировать sticky discussion/shaping профиль до конца текущей сессии. |
@@ -293,6 +328,7 @@ marshall-ai-agent/
 │   ├── load-project-context/
 │   ├── maintain-project-context/
 │   ├── manage-project-work/
+│   ├── record-architecture-decision/
 │   ├── record-project-context/
 │   ├── shape-project-work/
 │   ├── triage-frontend-qa/

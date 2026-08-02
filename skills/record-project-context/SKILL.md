@@ -10,7 +10,9 @@ Apply a recording gate before writing project context. Preserve only information
 ## Keep the responsibility narrow
 
 - Route and persist knowledge supplied by the current task or an owning workflow.
-- Let domain workflows define the substantive content of specs, ADRs, reports, and product decisions.
+- Let `record-architecture-decision` define ADR necessity, applicability,
+  substantive content, and lifecycle transitions.
+- Let other domain workflows define the substantive content of specs, reports, and product decisions.
 - Keep operational task status in the configured issue or project system.
 - Keep implementation truth in code, schema, and runtime configuration.
 - Do not perform broad discovery, health audits, historical consolidation, or bulk deletion.
@@ -65,6 +67,15 @@ Classify its audience:
 
 Read [route-project-artifact.md](references/route-project-artifact.md) when the destination or source-of-truth owner is not immediately clear.
 
+When the candidate is architecture rationale or an ADR lifecycle change,
+require an exact content and mutation handoff from
+`record-architecture-decision`. Route and persist that handoff without
+inventing a decision, changing its semantic state, or rewriting accepted
+rationale. Preserve its configured exclusive writer guard or whole-mutation
+transaction precondition, release behavior, and partial-failure policy across
+every affected ADR file and the index; stop before writing if that coordination
+cannot be enforced.
+
 ### 4. Resolve the output contract
 
 Before writing an artifact or composing the final response, determine:
@@ -104,6 +115,8 @@ Search the likely canonical destination before creating a file or section. Do no
 - Distinguish verified facts, decisions, hypotheses, risks, and unresolved questions.
 - Add a source or verification date only when provenance or staleness matters.
 - Link to detailed specs, ADRs, reports, issues, pull requests, code, or external documentation instead of copying them.
+- Preserve accepted ADR rationale during routine context updates; material
+  changes return to `record-architecture-decision` for supersession.
 - Follow the configured language policy.
 
 Read [update-canonical-context.md](references/update-canonical-context.md) when changing stable memory, runbooks, configuration, architecture, known issues, or a context map.

@@ -16,6 +16,10 @@ For each fact, identify one owner:
 
 Link to the owner instead of copying its detail into several artifacts.
 
+If consolidation discovers missing, conflicting, or apparently outdated ADR
+rationale, classify it for human decision and hand it to
+`record-architecture-decision`. Do not repair the decision during cleanup.
+
 ## Consolidate
 
 1. Read only the candidate, its proposed canonical owner, and direct references needed to verify the move.

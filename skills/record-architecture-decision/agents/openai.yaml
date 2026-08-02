@@ -1,0 +1,4 @@
+interface:
+  display_name: "Record Architecture Decision"
+  short_description: "Создаёт и пересматривает ADR по правилам"
+  default_prompt: "Use $record-architecture-decision to evaluate and record one material architecture decision."

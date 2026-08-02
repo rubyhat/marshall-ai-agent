@@ -1,11 +1,13 @@
 import copy
 import importlib.util
+import re
 import unittest
 from pathlib import Path
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "validate_setup_state.py"
 CATALOG = Path(__file__).resolve().parents[2] / "assets" / "workflow-modules.json"
+PROJECT_SCHEMA = Path(__file__).resolve().parents[2] / "assets" / "project-workflow.schema.json"
 
 
 def load_module():
@@ -21,6 +23,7 @@ class ValidateSetupStateTest(unittest.TestCase):
     def setUpClass(cls):
         cls.module = load_module()
         cls.catalog = cls.module.load_json(CATALOG)
+        cls.project_schema = cls.module.load_json(PROJECT_SCHEMA)
 
     def valid_state(self):
         return {
@@ -140,6 +143,149 @@ class ValidateSetupStateTest(unittest.TestCase):
         self.assertIn(
             "Alias --shape-work requires owning module shape-project-work", errors
         )
+
+    def test_adr_aliases_are_registered_for_selected_module(self):
+        state = self.valid_state()
+        state["modules"]["selected"].append("record-architecture-decision")
+        state["modules"]["enabled_aliases"] = ["--adr-review", "--record-adr"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertEqual(errors, [])
+
+    def test_adr_module_requires_context_recorder(self):
+        state = self.valid_state()
+        state["modules"]["selected"] = [
+            "configure-project-workflow",
+            "record-architecture-decision",
+        ]
+        state["modules"]["enabled_aliases"] = ["--adr-review"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn(
+            "Module record-architecture-decision requires record-project-context",
+            errors,
+        )
+
+    def test_adr_config_contract_persists_policy_fields(self):
+        adr = self.project_schema["properties"]["architecture_decisions"]
+        self.assertIn("materiality_policy", adr["required"])
+        self.assertIn("applicability_policy", adr["required"])
+        blocking = adr["properties"]["applicability_policy"]["properties"][
+            "blocking_results"
+        ]
+        self.assertEqual(
+            set(blocking["items"]["enum"]), {"review required", "unclear"}
+        )
+        self.assertEqual(blocking["minItems"], 2)
+        self.assertEqual(blocking["maxItems"], 2)
+
+        mutation = adr["properties"]["mutation_policy"]
+        self.assertIn("writer_coordination", mutation["required"])
+        coordination = mutation["properties"]["writer_coordination"]
+        self.assertEqual(
+            set(coordination["properties"]["strategy"]["enum"]),
+            {"exclusive_lock", "atomic_compare_and_swap"},
+        )
+        self.assertEqual(
+            coordination["properties"]["scope"]["const"],
+            "all_affected_adrs_and_index",
+        )
+        self.assertEqual(
+            coordination["properties"]["contention_policy"]["const"],
+            "stop_before_write",
+        )
+        self.assertEqual(
+            coordination["properties"]["release_policy"]["const"],
+            "release_on_all_paths",
+        )
+        self.assertEqual(
+            coordination["properties"]["partial_failure_policy"]["const"],
+            "rollback_or_report_inconsistent_state",
+        )
+        self.assertFalse(coordination["additionalProperties"])
+
+        conditional = self.project_schema["allOf"][0]
+        selected = conditional["if"]["properties"]["workflow_kit"]["properties"][
+            "selected_modules"
+        ]
+        self.assertEqual(
+            selected["contains"]["const"], "record-architecture-decision"
+        )
+        self.assertIn("architecture_decisions", conditional["then"]["required"])
+
+    def test_adr_paths_must_stay_project_relative(self):
+        adr_properties = self.project_schema["properties"][
+            "architecture_decisions"
+        ]["properties"]
+
+        valid_paths = {
+            "root": "docs/architecture/decisions",
+            "index": "docs/architecture/decisions/README.md",
+        }
+        for field, valid_path in valid_paths.items():
+            pattern = adr_properties[field]["pattern"]
+            self.assertIsNotNone(re.search(pattern, valid_path))
+            for unsafe_path in (
+                "/tmp/decisions",
+                "../outside.md",
+                "docs/../outside.md",
+                "docs/./decisions.md",
+                "docs/decisions/",
+                "C:decisions",
+                "C:\\outside\\decisions",
+                "docs\\..\\outside.md",
+                "docs/decisions.md\n",
+                "docs/decisions\t/index.md",
+            ):
+                self.assertIsNone(
+                    re.search(pattern, unsafe_path),
+                    f"{field} accepted unsafe path {unsafe_path!r}",
+                )
+
+        index_pattern = adr_properties["index"]["pattern"]
+        self.assertIsNone(re.search(index_pattern, "docs/architecture/index"))
+
+    def test_adr_identifier_and_filename_contract_is_bounded(self):
+        adr_properties = self.project_schema["properties"][
+            "architecture_decisions"
+        ]["properties"]
+        id_pattern = adr_properties["id_pattern"]["pattern"]
+
+        for value in ("ADR-[0-9]{4}", "DECISION-LOG-[0-9]{3}", "[0-9]{4}"):
+            self.assertIsNotNone(re.search(id_pattern, value))
+        for value in (
+            "[",
+            "../[A-Z]+",
+            "ADR-[0-9]+",
+            "[A-Z]{4}",
+            "(?i:k+)",
+            "ADR-[0-9]{12}",
+            "ADR-[0-9]{4}\n",
+        ):
+            self.assertIsNone(re.search(id_pattern, value))
+
+        self.assertEqual(adr_properties["filename_pattern"]["const"], "<ID>.md")
+
+    def test_adr_required_text_rejects_whitespace_only_values(self):
+        adr_properties = self.project_schema["properties"][
+            "architecture_decisions"
+        ]["properties"]
+        text_schemas = [
+            adr_properties["materiality_policy"],
+            adr_properties["applicability_policy"]["properties"][
+                "review_triggers"
+            ]["items"],
+            adr_properties["required_sections"]["items"],
+            adr_properties["mutation_policy"]["properties"][
+                "writer_coordination"
+            ]["properties"]["protocol"],
+            *adr_properties["status_mapping"]["properties"].values(),
+            *adr_properties["decision_authority"]["properties"].values(),
+        ]
+        for schema in text_schemas:
+            self.assertIsNone(re.search(schema["pattern"], "   \t"))
+            self.assertIsNotNone(re.search(schema["pattern"], "configured value"))
+
+        self.assertFalse(adr_properties["status_mapping"]["additionalProperties"])
+        self.assertFalse(adr_properties["decision_authority"]["additionalProperties"])
 
     def test_enabled_aliases_field_is_required(self):
         state = self.valid_state()

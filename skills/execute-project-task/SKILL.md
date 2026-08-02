@@ -45,6 +45,7 @@ Read project instructions and workflow configuration. Resolve:
 - degraded-mode behavior when a remote or task tracker is unavailable;
 - project and repository quality gates;
 - domain workflows for migrations, frontend, localization, security, data, rollout, or other impacts;
+- applicable accepted ADRs and their review triggers;
 - start and local-review status checkpoints;
 - recording and delivery handoffs.
 
@@ -77,6 +78,11 @@ Read [check-task-readiness.md](references/check-task-readiness.md).
 
 Require the configured ready verdict or equivalent readiness evidence. Check unresolved decisions, acceptance criteria, dependencies, repository ownership, required quality gates, and conflicts with current architecture or higher-priority instructions.
 
+For each ADR cited as an implementation constraint, verify that its semantic
+state and applicability are still current for the exact task. Route uncertainty
+or changed premises to `record-architecture-decision`; do not start by assuming
+that accepted means universally applicable.
+
 Route material outcome or decomposition gaps to `shape-project-work`. Route specification content gaps to `write-task-spec`. Apply a user override only when project policy permits it and after stating the exact missing gate and risk.
 
 ### 3. Establish the start checkpoint
@@ -108,6 +114,11 @@ Read [implement-with-scope-control.md](references/implement-with-scope-control.m
 Implement the smallest coherent change that satisfies the agreed outcome and acceptance criteria. Follow current project architecture and repository instructions. Use current code as evidence, not as silent authority to change promised behavior.
 
 When discoveries change a durable contract, update the specification through `write-task-spec`. When they change outcome, scope, architecture, security posture, or dependency direction, stop and return to `shape-project-work`.
+
+When implementation produces material evidence against an applicable ADR,
+stop the affected work and request an ADR applicability review. Do not silently
+change the ADR, force the code to preserve an outdated premise, or treat code
+drift as automatic authority.
 
 ### 7. Run relevant quality gates
 
@@ -148,5 +159,7 @@ Stop before independent review, commit, push, pull-request creation, merge, depl
 - Receive scope from `shape-project-work` and implementation contract from `write-task-spec`.
 - Use `manage-project-work` for exact task identity and lifecycle mutations.
 - Use `record-project-context` for durable discoveries or multi-session handoff state, not routine command output.
+- Use `record-architecture-decision` when new evidence challenges a material
+  architecture decision or its applicability.
 - Hand independent review and delivery to `deliver-reviewed-change`.
 - Invoke domain skills and project runbooks only when the task impact requires them.

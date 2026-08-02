@@ -43,6 +43,11 @@ project-neutral; для процедурных инструкций сохран
 Если изменение затрагивает ownership, authority, alias, configuration contract
 или handoff, проверить все связанные skills и README-каталог на конфликты.
 
+`record-architecture-decision` владеет ADR necessity, applicability, content и
+lifecycle. `record-project-context` только маршрутизирует и сохраняет готовый
+ADR handoff, а `maintain-project-context` не переписывает rationale или
+supersession во время cleanup.
+
 ## Проверка
 
 Перед handoff запустить:

@@ -56,6 +56,42 @@ Include only selected modules. Record:
 - persistent artifact destinations and exact output-form precedence;
 - applicable task, spec, implementation, delivery, context, and domain sections.
 
+When `record-architecture-decision` is selected, generate an
+`architecture_decisions` section containing:
+
+- a project-relative ADR root and Markdown index path inside that root;
+- a bounded fixed-width decimal ADR identifier pattern, such as
+  `ADR-[0-9]{4}`, and the exact core filename pattern `<ID>.md`;
+- a mapping from the semantic `proposed`, `accepted`, `rejected`, `deprecated`,
+  and `superseded` states to project labels;
+- the approved `materiality_policy` used to distinguish an ADR from a
+  task-local choice;
+- an `applicability_policy` containing the evidence or review triggers that
+  require read-only reassessment and the blocking `review required` and
+  `unclear` results;
+- required ADR sections and relative-link/index policy;
+- decision authority and acceptable approval evidence for every lifecycle
+  transition;
+- mutation-preview and separate-confirmation policy;
+- a verified writer-coordination strategy and exact project protocol that
+  serializes or atomically commits every affected ADR file and the index, with
+  stop-before-write behavior when the guard or precondition is unavailable,
+  release on every path, and explicit partial-failure recovery behavior;
+- the invariant that a material change to an accepted ADR requires
+  supersession.
+
+Trim required ADR text values before generation. Require pairwise-distinct
+normalized lifecycle labels and non-blank materiality, review-trigger,
+required-section, authority, and writer-protocol values. Require coordination
+scope `all_affected_adrs_and_index` and reject ambiguous or unsupported
+identifier and filename conventions instead of persisting them as free-form
+strings.
+
+Do not enable either ADR alias or generate ADR routing without the owning
+module and its required `record-project-context` dependency. Do not create an
+ADR directory, index, or placeholder record during setup unless that exact
+artifact is part of the approved manifest.
+
 Generate only aliases listed in the approved
 `modules.enabled_aliases` setup-state field. For every ordinary alias, require
 its owning module to be selected. For every conditional alias, additionally

@@ -82,6 +82,10 @@ Continue only when:
 - the proposal is corrected; or
 - the user explicitly accepts the described material trade-off and has authority to do so.
 
-If the new decision supersedes durable project truth, update the canonical decision through `record-project-context` before downstream work relies on it.
+If an architecture decision supersedes durable project truth, route its
+substance and lifecycle through `record-architecture-decision`, then persist
+only that exact handoff through `record-project-context` before downstream work
+relies on it. Use `record-project-context` directly only for non-ADR durable
+truth owned by another canonical artifact.
 
 Explicit acceptance cannot override higher-priority instructions, permissions, legal constraints, or non-waivable safety requirements.

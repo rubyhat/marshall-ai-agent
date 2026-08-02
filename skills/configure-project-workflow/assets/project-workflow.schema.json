@@ -113,6 +113,166 @@
       },
       "additionalProperties": true
     },
+    "architecture_decisions": {
+      "type": "object",
+      "required": [
+        "root",
+        "index",
+        "id_pattern",
+        "filename_pattern",
+        "status_mapping",
+        "materiality_policy",
+        "applicability_policy",
+        "required_sections",
+        "link_policy",
+        "decision_authority",
+        "mutation_policy"
+      ],
+      "properties": {
+        "root": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!.*[\\x00-\\x1F\\x7F])(?![A-Za-z]:)(?![\\\\/])(?!.*(?:^|[\\\\/])\\.\\.?(?:[\\\\/]|$))(?!.*[\\\\/]$).+$"
+        },
+        "index": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!.*[\\x00-\\x1F\\x7F])(?![A-Za-z]:)(?![\\\\/])(?!.*(?:^|[\\\\/])\\.\\.?(?:[\\\\/]|$))(?!.*[\\\\/]$).+\\.md$"
+        },
+        "id_pattern": {
+          "type": "string",
+          "pattern": "^(?!.*[\\r\\n])(?:[A-Za-z][A-Za-z0-9_-]{0,30}-)?\\[0-9\\]\\{[1-9]\\}$"
+        },
+        "filename_pattern": {"const": "<ID>.md"},
+        "status_mapping": {
+          "type": "object",
+          "required": [
+            "proposed",
+            "accepted",
+            "rejected",
+            "deprecated",
+            "superseded"
+          ],
+          "properties": {
+            "proposed": {"type": "string", "pattern": "\\S"},
+            "accepted": {"type": "string", "pattern": "\\S"},
+            "rejected": {"type": "string", "pattern": "\\S"},
+            "deprecated": {"type": "string", "pattern": "\\S"},
+            "superseded": {"type": "string", "pattern": "\\S"}
+          },
+          "additionalProperties": false
+        },
+        "materiality_policy": {"type": "string", "pattern": "\\S"},
+        "applicability_policy": {
+          "type": "object",
+          "required": ["review_triggers", "blocking_results"],
+          "properties": {
+            "review_triggers": {
+              "type": "array",
+              "items": {"type": "string", "pattern": "\\S"},
+              "uniqueItems": true,
+              "minItems": 1
+            },
+            "blocking_results": {
+              "type": "array",
+              "items": {"enum": ["review required", "unclear"]},
+              "uniqueItems": true,
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "additionalProperties": true
+        },
+        "required_sections": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "\\S"},
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "link_policy": {
+          "type": "object",
+          "required": ["relative_links", "index_required"],
+          "properties": {
+            "relative_links": {"const": true},
+            "index_required": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "decision_authority": {
+          "type": "object",
+          "required": [
+            "propose",
+            "accept",
+            "reject",
+            "clarify",
+            "deprecate",
+            "supersede"
+          ],
+          "properties": {
+            "propose": {"type": "string", "pattern": "\\S"},
+            "accept": {"type": "string", "pattern": "\\S"},
+            "reject": {"type": "string", "pattern": "\\S"},
+            "clarify": {"type": "string", "pattern": "\\S"},
+            "deprecate": {"type": "string", "pattern": "\\S"},
+            "supersede": {"type": "string", "pattern": "\\S"}
+          },
+          "additionalProperties": false
+        },
+        "mutation_policy": {
+          "type": "object",
+          "required": [
+            "preview_required",
+            "separate_confirmation_for",
+            "accepted_material_changes_require_supersession",
+            "writer_coordination"
+          ],
+          "properties": {
+            "preview_required": {"type": "boolean"},
+            "separate_confirmation_for": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "propose",
+                  "accept",
+                  "reject",
+                  "clarify",
+                  "deprecate",
+                  "supersede"
+                ]
+              },
+              "uniqueItems": true
+            },
+            "accepted_material_changes_require_supersession": {"const": true},
+            "writer_coordination": {
+              "type": "object",
+              "required": [
+                "strategy",
+                "protocol",
+                "scope",
+                "contention_policy",
+                "release_policy",
+                "partial_failure_policy"
+              ],
+              "properties": {
+                "strategy": {
+                  "enum": ["exclusive_lock", "atomic_compare_and_swap"]
+                },
+                "protocol": {"type": "string", "pattern": "\\S"},
+                "scope": {"const": "all_affected_adrs_and_index"},
+                "contention_policy": {"const": "stop_before_write"},
+                "release_policy": {"const": "release_on_all_paths"},
+                "partial_failure_policy": {
+                  "const": "rollback_or_report_inconsistent_state"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
     "skills": {
       "type": "object",
       "required": ["active"],
@@ -207,5 +367,25 @@
       "additionalProperties": true
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "required": ["workflow_kit"],
+        "properties": {
+          "workflow_kit": {
+            "required": ["selected_modules"],
+            "properties": {
+              "selected_modules": {
+                "contains": {"const": "record-architecture-decision"}
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": ["architecture_decisions"]
+      }
+    }
+  ],
   "additionalProperties": true
 }

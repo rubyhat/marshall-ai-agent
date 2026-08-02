@@ -54,6 +54,10 @@ Record only commands and sequences that were verified or whose unverified status
 
 Keep current invariants in architecture. Keep alternatives, reasoning, and consequences in an ADR. Cross-link rather than duplicate.
 
+Do not materially revise accepted ADR rationale through a canonical-context
+update. Hand clarification, applicability, deprecation, or supersession to
+`record-architecture-decision` and persist only its exact result.
+
 ### Known issues
 
 Keep actionable unresolved risks. When an issue is resolved, update the current state and link to durable evidence; do not grow an indefinite resolved-task archive.

@@ -38,6 +38,24 @@ Validate the configured workflow without executing ordinary project work.
   task, or operational sources of truth.
 - Verify persistent report types have a configured destination and that
   file/link/path-only output rules do not conflict.
+- When ADR recording is selected, verify its root and Markdown index stay
+  within the project and the index resolves inside the ADR root; reject
+  absolute, drive-relative, dot-segment, trailing-separator, directory-valued,
+  or conflicting destinations, including an index stem accepted as an ADR ID.
+  Require the bounded fixed-width decimal ID convention and exact `<ID>.md`
+  filename pattern. Verify every portable semantic state has one non-blank,
+  normalized, pairwise-distinct project label; materiality, review triggers,
+  required sections, and every lifecycle authority value are non-blank; and
+  material accepted changes require supersession.
+- Verify writer coordination selects one exact project-supported exclusive-lock
+  or atomic compare-and-swap protocol, covers all affected ADR files and the
+  index, stops before writing when its guard or precondition is unavailable,
+  releases on every path, and rolls back safely or reports inconsistent state
+  after a partial failure.
+- Dry-run one representative ADR ID through the complete filename and confirm
+  the concrete output stays under the ADR root, cannot collide with the index,
+  and cannot overwrite another ADR. Do not expand this check into a generic
+  template or filesystem portability proof.
 
 Do not install a parser or dependency automatically. If no YAML parser is safely available, validate the approved setup state, generated text structure, and a full agent readback, then report the parser limitation.
 
@@ -91,11 +109,18 @@ Evaluate representative prompts without performing their mutations:
   mutations and require the configured release action;
 - planning session then request a specification -> permit only the bounded
   specification workflow;
+- planning session then explicitly request ADR recording -> permit only the
+  configured bounded ADR lifecycle and persistence workflow;
 - natural-language current-session no-code constraint then request
   implementation -> stop as for the equivalent alias;
 - request a transferable handoff report -> use the configured persistent
   destination;
 - request a path-only report response -> return only the verified path;
+- review an ADR -> remain read-only and return a bounded applicability result;
+- record an ADR -> require configured authority, preview policy, and bounded
+  ADR/index persistence through `record-project-context`;
+- materially change an accepted ADR -> create a replacement and preserve the
+  old rationale instead of rewriting it;
 - start a task naming one component -> resolve its topology entry before its
   nested instructions and context route;
 - start a cross-component task -> load only the named dependency edges and the

@@ -13,6 +13,8 @@ Produce a coherent implementation specification without reopening settled shapin
 - Receive outcome, scope, decisions, and decomposition from `shape-project-work`, or an equivalent evidence and scope packet from a configured authorized domain handoff.
 - Let `manage-project-work` establish required task identity, tracker anchors, links, and operational status.
 - Use `record-project-context` to create or update project-local specification files.
+- Let `record-architecture-decision` own material architecture rationale and
+  applicability review.
 - Let domain workflows define specialized requirements for frontend design, migrations, QA, legal behavior, or other configured impacts.
 - Do not implement code, create worktrees, open pull requests, or write implementation reports.
 - Do not create a full implementation spec for an Epic or Feature by default. Use a shared coordination or contract artifact only when project policy explicitly calls for one.
@@ -44,6 +46,7 @@ Read the project workflow configuration and resolve:
 - bundled-template fallback policy;
 - selection rules for spec depth and annexes;
 - required impacts and domain workflows;
+- ADR routes, semantic states, and applicability policy when configured;
 - readiness labels and operational status mapping;
 - recording and task-management handoffs.
 
@@ -62,6 +65,13 @@ When project policy requires a stable Task ID or tracker item, use `manage-proje
 Require stable outcome, scope, decisions, ownership, and dependency direction. If a new product decision, material scope change, or conflict is discovered, return it to `shape-project-work` rather than deciding silently inside the spec.
 
 Do not hide a blocker in placeholder prose. Create an incomplete draft only with explicit draft authority.
+
+Resolve only ADRs relevant to the exact task. Link an applicable accepted ADR
+as a constraint without copying its rationale. If status, scope, assumptions,
+or current evidence make applicability uncertain, return to
+`record-architecture-decision` and stop the affected specification boundary.
+Do not adapt task scope merely to preserve an ADR whose premises may have
+changed.
 
 ### 3. Select depth and template
 
@@ -112,6 +122,7 @@ Check that:
 - task identity, title, owner, tracker, parent, and path agree;
 - current and desired behavior do not conflict;
 - plan stays within scope and respects architecture;
+- every cited ADR is relevant, semantically active, and applicable to the task;
 - every requirement has acceptance coverage;
 - every critical criterion has a test or verification path;
 - contracts, errors, permissions, states, and data semantics agree across sections;
@@ -154,6 +165,8 @@ Do not start implementation automatically when the user requested only a specifi
 - Do not rewrite completed historical specs solely to match a newer template.
 - Treat post-implementation behavior found in code as evidence, not automatic permission to rewrite the promised contract.
 - Route a material outcome or decomposition change back through shaping.
+- Route a material architecture-decision change or uncertain ADR applicability
+  through `record-architecture-decision` before updating dependent requirements.
 
 ## Adapt templates without coupling the skill
 
