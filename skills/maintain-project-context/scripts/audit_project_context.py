@@ -1888,7 +1888,17 @@ def inspect_text(
                         html_block_container_tokens = ()
                         html_block_comment_open = False
                     elif html_block_end_token is not None:
-                        if html_block_end_token in html_container_line.lower():
+                        lowered_html_line = html_container_line.lower()
+                        closing_position = lowered_html_line.find(
+                            html_block_end_token
+                        )
+                        if closing_position >= 0:
+                            suffix_start = closing_position + len(
+                                html_block_end_token
+                            )
+                            rendered_suffix = html_container_line[suffix_start:]
+                            if rendered_suffix.strip():
+                                signal_lines.append((line_count, rendered_suffix))
                             html_block_end_token = None
                             html_block_container_tokens = ()
                         paragraph_active = False
@@ -1952,6 +1962,14 @@ def inspect_text(
                             tokens = markdown_complete_html_tokens(container_line)
                             if tokens:
                                 html_only_fragments.append((line_count, tokens[0]))
+                            closing_position = container_line.lower().find(end_token)
+                            if closing_position >= 0:
+                                suffix_start = closing_position + len(end_token)
+                                rendered_suffix = container_line[suffix_start:]
+                                if rendered_suffix.strip():
+                                    signal_lines.append(
+                                        (line_count, rendered_suffix)
+                                    )
                     elif until_blank:
                         sanitized_html_line, html_block_comment_open = (
                             strip_html_comments(container_line)

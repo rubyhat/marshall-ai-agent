@@ -989,6 +989,54 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                 report["link_coverage"]["complete_for_declared_roots"]
             )
 
+    def test_raw_text_closing_suffix_collects_rendered_sibling_target(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (context / "stale.md").write_text("# Stale\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                (
+                    "<script>const hidden = "
+                    "'<a href=\"../context/stale.md\">stale</a>';"
+                    "</script><a href=\"../context/target.md\">target</a>\n"
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["context/target.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["context/stale.md"]["incoming_links"], 0)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_comment_inside_ordinary_html_block_is_opaque(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
