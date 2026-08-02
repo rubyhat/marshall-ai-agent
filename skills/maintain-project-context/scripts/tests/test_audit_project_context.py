@@ -1472,6 +1472,83 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             self.assertEqual(source["completed_markers"], 2)
             self.assertEqual(source["unresolved_markers"], 0)
 
+    def test_inline_canvas_fallback_is_opaque_to_lifecycle_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "source.md").write_text(
+                "Completed <canvas>TODO</canvas>\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/source.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            source = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(source["completed_markers"], 1)
+            self.assertEqual(source["unresolved_markers"], 0)
+
+    def test_hidden_subtrees_are_opaque_to_lifecycle_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "source.md").write_text(
+                (
+                    "Completed <div hidden>TODO</div>\n"
+                    "Completed <section hidden>\n"
+                    "FIXME\n"
+                    "</section>\n"
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/source.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            source = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(source["completed_markers"], 2)
+            self.assertEqual(source["unresolved_markers"], 0)
+
     def test_inert_template_body_does_not_create_lifecycle_signals(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -2554,6 +2631,73 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             )
             self.assertEqual(
                 by_path["context/padded-image-action.md"]["incoming_links"], 0
+            )
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
+    def test_source_resources_follow_effective_parent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            target_names = (
+                "picture-src.md",
+                "picture-srcset.md",
+                "media-src.md",
+                "media-srcset.md",
+            )
+            for target_name in target_names:
+                (context / target_name).write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                (
+                    "<picture>"
+                    '<source src="../context/picture-src.md" '
+                    'srcset="../context/picture-srcset.md">'
+                    "</picture>\n"
+                    "<video>"
+                    '<source src="../context/media-src.md" '
+                    'srcset="../context/media-srcset.md">'
+                    "</video>\n"
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["context/picture-src.md"]["incoming_links"], 0)
+            self.assertEqual(
+                by_path["context/picture-srcset.md"]["incoming_links"], 1
+            )
+            self.assertEqual(by_path["context/media-src.md"]["incoming_links"], 1)
+            self.assertEqual(
+                by_path["context/media-srcset.md"]["incoming_links"], 0
             )
             self.assertTrue(
                 report["link_coverage"]["complete_for_declared_roots"]

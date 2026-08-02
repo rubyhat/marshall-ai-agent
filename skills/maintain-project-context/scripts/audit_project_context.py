@@ -131,6 +131,7 @@ HTML_RAW_TEXT_ELEMENTS = {
     "xmp",
 }
 LIFECYCLE_OPAQUE_HTML_ELEMENTS = {
+    "canvas",
     "iframe",
     "noembed",
     "noframes",
@@ -465,6 +466,21 @@ class MarkdownHtmlTargetParser(HTMLParser):
                 if button_type in {"button", "reset"}
                 else {"formaction"}
             )
+        elif namespace == "html" and normalized_tag == "source":
+            parent_tag = (
+                self.element_stack[-1][0]
+                if self.element_stack
+                and self.element_stack[-1][1] == "html"
+                else None
+            )
+            if parent_tag == "picture":
+                resource_attributes = {"srcset"}
+            elif parent_tag in {"audio", "video"}:
+                resource_attributes = {"src"}
+            else:
+                if first_attributes.get("src") or first_attributes.get("srcset"):
+                    self.resource_parse_incomplete = True
+                resource_attributes = set()
         seen_resource_attributes: Set[str] = set()
         for name, value in attrs:
             normalized_name = name.casefold()
@@ -550,6 +566,35 @@ class MarkdownHtmlTargetParser(HTMLParser):
             if self.element_stack[index][0] == normalized_tag:
                 del self.element_stack[index:]
                 return
+
+
+class HtmlStartTagAttributeParser(HTMLParser):
+    """Capture attributes from one complete HTML start-tag token."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.attributes: Set[str] = set()
+
+    def capture(self, attrs: List[Tuple[str, Optional[str]]]) -> None:
+        if not self.attributes:
+            self.attributes.update(name.casefold() for name, _ in attrs)
+
+    def handle_starttag(
+        self, tag: str, attrs: List[Tuple[str, Optional[str]]]
+    ) -> None:
+        self.capture(attrs)
+
+    def handle_startendtag(
+        self, tag: str, attrs: List[Tuple[str, Optional[str]]]
+    ) -> None:
+        self.capture(attrs)
+
+
+def html_start_tag_has_attribute(token: str, attribute: str) -> bool:
+    parser = HtmlStartTagAttributeParser()
+    parser.feed(token)
+    parser.close()
+    return attribute.casefold() in parser.attributes
 
 
 def html_template_is_declarative_shadow_root(token: str) -> bool:
@@ -824,16 +869,28 @@ def html_visible_signal_text_with_state(
         pieces.append(raw[cursor:opening])
         token = raw[opening:html_end]
         opening_tag = re.match(r"<([A-Za-z][A-Za-z0-9-]*)", token)
+        normalized_opening_tag = (
+            opening_tag.group(1).casefold()
+            if opening_tag is not None
+            else None
+        )
+        hidden_subtree = bool(
+            normalized_opening_tag
+            and normalized_opening_tag not in HTML_VOID_ELEMENTS
+            and html_start_tag_has_attribute(token, "hidden")
+        )
         if (
             opening_tag is not None
-            and opening_tag.group(1).casefold()
-            in LIFECYCLE_OPAQUE_HTML_ELEMENTS
+            and (
+                normalized_opening_tag in LIFECYCLE_OPAQUE_HTML_ELEMENTS
+                or hidden_subtree
+            )
             and not (
-                opening_tag.group(1).casefold() == "template"
+                normalized_opening_tag == "template"
                 and html_template_is_declarative_shadow_root(token)
             )
         ):
-            raw_text_state = (opening_tag.group(1).casefold(), 1, None, ())
+            raw_text_state = (normalized_opening_tag, 1, None, ())
         cursor = html_end
     return html_unescape("".join(pieces)), raw_text_state
 
