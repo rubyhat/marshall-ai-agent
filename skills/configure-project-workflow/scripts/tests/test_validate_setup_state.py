@@ -198,6 +198,7 @@ class ValidateSetupStateTest(unittest.TestCase):
                 "/tmp/decisions",
                 "../outside.md",
                 "docs/../outside.md",
+                "C:decisions",
                 "C:\\outside\\decisions",
                 "docs\\..\\outside.md",
             ):
