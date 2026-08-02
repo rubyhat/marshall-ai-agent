@@ -406,6 +406,13 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
         config["architecture_decisions"]["filename_pattern"] = "decision.md"
         self.assert_invalid(config)
 
+    def test_adr_index_must_not_end_with_separator(self) -> None:
+        for index in ("docs/architecture/index/", "docs\\architecture\\index\\"):
+            with self.subTest(index=index):
+                config = rendered_config()
+                config["architecture_decisions"]["index"] = index
+                self.assert_invalid(config)
+
     def test_adr_filename_pattern_must_stay_inside_root(self) -> None:
         for pattern in (
             "../<ID>.md",

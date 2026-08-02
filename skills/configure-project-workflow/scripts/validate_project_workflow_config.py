@@ -399,6 +399,15 @@ def validate_semantics(
     if isinstance(adr, dict):
         for path_name in ("root", "index"):
             path_value = adr.get(path_name)
+            if (
+                path_name == "index"
+                and isinstance(path_value, str)
+                and path_value.endswith(("/", "\\"))
+            ):
+                errors.append(
+                    "architecture_decisions.index must name a file, not end "
+                    "with a path separator"
+                )
             if isinstance(path_value, str) and not safe_relative_project_path(
                 path_value
             ):

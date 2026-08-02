@@ -228,9 +228,10 @@ class MarkdownHtmlTargetParser(HTMLParser):
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
     ) -> None:
         normalized_tag = tag.casefold()
-        if normalized_tag == "style":
-            # CSS has its own URL grammar. Do not certify reference coverage
-            # when a stylesheet body is intentionally left opaque.
+        if normalized_tag in {"pre", "style"}:
+            # CSS has its own URL grammar, while CommonMark HTML blocks keep
+            # nested HTML inside pre outside this bounded parser. Do not
+            # certify reference coverage when either body stays opaque.
             self.resource_parse_incomplete = True
         resource_attributes = HTML_RESOURCE_ATTRIBUTES.get(normalized_tag, set())
         seen_resource_attributes: Set[str] = set()
@@ -346,7 +347,7 @@ def html_visible_signal_text_with_state(
         if (
             opening_tag is not None
             and opening_tag.group(1).casefold()
-            in {"pre", "script", "style", "textarea"}
+            in {"script", "style", "textarea"}
             and not token.rstrip().endswith("/>")
         ):
             raw_text_tag = opening_tag.group(1).casefold()
