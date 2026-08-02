@@ -230,6 +230,17 @@ class MarkdownHtmlTargetParser(HTMLParser):
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
     ) -> None:
         normalized_tag = tag.casefold()
+        first_attributes: Dict[str, Optional[str]] = {}
+        for name, value in attrs:
+            first_attributes.setdefault(name.casefold(), value)
+        if (
+            normalized_tag == "meta"
+            and (first_attributes.get("http-equiv") or "").casefold() == "refresh"
+            and first_attributes.get("content")
+        ):
+            # Refresh content has a separate URL grammar. Until it is parsed,
+            # do not certify repository-reference coverage.
+            self.resource_parse_incomplete = True
         if self.template_depth:
             if normalized_tag == "template":
                 self.template_depth += 1
@@ -370,7 +381,11 @@ def html_visible_signal_text_with_state(
         if (
             opening_tag is not None
             and opening_tag.group(1).casefold()
-            in {"script", "style"}
+            in {"script", "style", "template"}
+            and not (
+                opening_tag.group(1).casefold() == "template"
+                and re.search(r"\bshadowrootmode\b", token, re.I)
+            )
             and not token.rstrip().endswith("/>")
         ):
             raw_text_tag = opening_tag.group(1).casefold()

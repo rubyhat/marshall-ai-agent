@@ -898,6 +898,56 @@ completed"
                 report["link_coverage"]["complete_for_declared_roots"]
             )
 
+    def test_meta_refresh_downgrades_reference_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                (
+                    '<meta http-equiv="refresh" '
+                    'content="0; url=../context/target.md">\n'
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 0)
+            self.assertEqual(
+                report["link_coverage"]["status"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertEqual(
+                report["summary"]["skipped"]["reference_parse_incomplete"],
+                1,
+            )
+
     def test_malformed_raw_html_does_not_create_incoming_link(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -1096,6 +1146,42 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             source = json.loads(result.stdout)["largest_files"][0]
             self.assertEqual(source["completed_markers"], 1)
             self.assertEqual(source["unresolved_markers"], 1)
+
+    def test_inert_template_body_does_not_create_lifecycle_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "source.md").write_text(
+                "<template>TODO completed</template>\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/source.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            source = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(source["completed_markers"], 0)
+            self.assertEqual(source["unresolved_markers"], 0)
 
     def test_unparsed_style_body_downgrades_reference_coverage(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
