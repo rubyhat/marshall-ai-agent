@@ -522,6 +522,9 @@ class MarkdownHtmlTargetParser(HTMLParser):
             self.handle_starttag(tag, attrs)
             return
         if self.template_depth:
+            # HTML also ignores the slash on raw-text children inside inert
+            # template content, so preserve that state until its real end tag.
+            self.handle_element(tag, attrs, push=None)
             return
         # HTML ignores the XML-style slash for non-void elements; foreign
         # content honors it.
@@ -623,14 +626,23 @@ def html_raw_text_has_non_commonmark_closer(raw: str, tag: str) -> bool:
 
 def html_visible_signal_text_with_state(
     raw: str,
-    raw_text_state: Optional[Tuple[str, int, Optional[str]]] = None,
-) -> Tuple[str, Optional[Tuple[str, int, Optional[str]]]]:
+    raw_text_state: Optional[
+        Tuple[str, int, Optional[str], Tuple[str, ...]]
+    ] = None,
+) -> Tuple[
+    str, Optional[Tuple[str, int, Optional[str], Tuple[str, ...]]]
+]:
     """Strip raw HTML while keeping inline raw-text element bodies opaque."""
     pieces: List[str] = []
     cursor = 0
     while cursor < len(raw):
         if raw_text_state is not None:
-            raw_text_tag, raw_text_depth, template_raw_text_tag = raw_text_state
+            (
+                raw_text_tag,
+                raw_text_depth,
+                template_raw_text_tag,
+                template_foreign_stack,
+            ) = raw_text_state
             if raw_text_tag == "template":
                 search_cursor = cursor
                 while True:
@@ -653,7 +665,41 @@ def html_visible_signal_text_with_state(
                                 raw_text_tag,
                                 raw_text_depth,
                                 template_raw_text_tag,
+                                template_foreign_stack,
                             )
+                    elif template_foreign_stack:
+                        closing_tag = re.fullmatch(
+                            r"</([A-Za-z][A-Za-z0-9-]*)[ \t]*>",
+                            token,
+                            re.I,
+                        )
+                        opening_tag = re.match(
+                            r"<([A-Za-z][A-Za-z0-9-]*)", token
+                        )
+                        if closing_tag is not None:
+                            normalized_closing = closing_tag.group(1).casefold()
+                            if normalized_closing in template_foreign_stack:
+                                matching_index = len(template_foreign_stack) - 1 - (
+                                    template_foreign_stack[::-1].index(
+                                        normalized_closing
+                                    )
+                                )
+                                template_foreign_stack = template_foreign_stack[
+                                    :matching_index
+                                ]
+                        elif (
+                            opening_tag is not None
+                            and not re.search(r"/[ \t]*>$", token)
+                        ):
+                            template_foreign_stack += (
+                                opening_tag.group(1).casefold(),
+                            )
+                        raw_text_state = (
+                            raw_text_tag,
+                            raw_text_depth,
+                            template_raw_text_tag,
+                            template_foreign_stack,
+                        )
                     elif re.fullmatch(r"</template[ \t]*>", token, re.I):
                         raw_text_depth -= 1
                         cursor = candidate_end
@@ -664,6 +710,7 @@ def html_visible_signal_text_with_state(
                             raw_text_tag,
                             raw_text_depth,
                             template_raw_text_tag,
+                            template_foreign_stack,
                         )
                     elif re.match(r"<template(?:[ \t/>]|$)", token, re.I):
                         # HTML ignores a self-closing slash on template.
@@ -672,12 +719,27 @@ def html_visible_signal_text_with_state(
                             raw_text_tag,
                             raw_text_depth,
                             template_raw_text_tag,
+                            template_foreign_stack,
                         )
                     else:
                         opening_tag = re.match(
                             r"<([A-Za-z][A-Za-z0-9-]*)", token
                         )
                         if (
+                            opening_tag is not None
+                            and opening_tag.group(1).casefold() in {"math", "svg"}
+                            and not re.search(r"/[ \t]*>$", token)
+                        ):
+                            template_foreign_stack = (
+                                opening_tag.group(1).casefold(),
+                            )
+                            raw_text_state = (
+                                raw_text_tag,
+                                raw_text_depth,
+                                template_raw_text_tag,
+                                template_foreign_stack,
+                            )
+                        elif (
                             opening_tag is not None
                             and opening_tag.group(1).casefold()
                             in HTML_RAW_TEXT_ELEMENTS
@@ -689,6 +751,7 @@ def html_visible_signal_text_with_state(
                                 raw_text_tag,
                                 raw_text_depth,
                                 template_raw_text_tag,
+                                template_foreign_stack,
                             )
                     search_cursor = candidate_end
                 continue
@@ -744,7 +807,7 @@ def html_visible_signal_text_with_state(
                 and html_template_is_declarative_shadow_root(token)
             )
         ):
-            raw_text_state = (opening_tag.group(1).casefold(), 1, None)
+            raw_text_state = (opening_tag.group(1).casefold(), 1, None, ())
         cursor = html_end
     return html_unescape("".join(pieces)), raw_text_state
 
@@ -3015,7 +3078,9 @@ def inspect_text(
             for heading_line in heading_signal_lines
         )
     prepared_signal_lines: List[Tuple[int, str, str, str]] = []
-    inline_raw_text_state: Optional[Tuple[str, int, Optional[str]]] = None
+    inline_raw_text_state: Optional[
+        Tuple[str, int, Optional[str], Tuple[str, ...]]
+    ] = None
     for signal_line_number, raw_signal_line in signal_lines:
         markdown_signal_line = (
             markdown_visible_signal_text(raw_signal_line, defined_labels)
@@ -3066,7 +3131,16 @@ def inspect_text(
         # that occur before it in source order.
         raw_base = document_base
         target_source = item.absolute_path
+        if "\\" in raw_target:
+            # Special-scheme browser URLs preprocess backslashes as path
+            # separators. Keep cleanup evidence conservative until that URL
+            # algorithm is modeled directly.
+            item.link_parse_incomplete = True
+            continue
         if raw_base is not None:
+            if "\\" in raw_base:
+                item.link_parse_incomplete = True
+                continue
             decoded_base = raw_base.strip()
             base_path_part = unquote(
                 decoded_base.split("#", 1)[0].split("?", 1)[0].strip()
