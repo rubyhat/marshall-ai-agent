@@ -64,7 +64,7 @@ HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     "link": {"href", "imagesrcset"},
     "object": {"data"},
     "q": {"cite"},
-    "script": {"href", "src", "xlink:href"},
+    "script": {"src"},
     "source": {"src", "srcset"},
     "track": {"src"},
     "video": {"poster", "src"},
@@ -225,6 +225,7 @@ class MarkdownHtmlTargetParser(HTMLParser):
         self.base_seen = base_seen
         self.template_depth = template_depth
         self.resource_parse_incomplete = False
+        self.declarative_shadow_template_seen = False
 
     def handle_starttag(
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
@@ -247,10 +248,12 @@ class MarkdownHtmlTargetParser(HTMLParser):
             return
         if normalized_tag == "template":
             if any(
-                name.casefold() == "shadowrootmode" and value
+                name.casefold() == "shadowrootmode"
+                and (value or "").casefold() in {"open", "closed"}
                 for name, value in attrs
             ):
                 self.resource_parse_incomplete = True
+                self.declarative_shadow_template_seen = True
             self.template_depth = 1
             return
         if normalized_tag in {"pre", "style"}:
@@ -266,6 +269,14 @@ class MarkdownHtmlTargetParser(HTMLParser):
                 self.resource_parse_incomplete = True
             if normalized_tag == "iframe" and normalized_name == "srcdoc" and value:
                 # srcdoc is a nested HTML document with its own resource graph.
+                self.resource_parse_incomplete = True
+            if (
+                normalized_tag == "script"
+                and normalized_name in {"href", "xlink:href"}
+                and value
+            ):
+                # Without carrying HTML/SVG namespaces, do not treat SVG-only
+                # script references as valid in an HTML script context.
                 self.resource_parse_incomplete = True
             if normalized_tag == "base" and normalized_name == "href":
                 if not self.base_seen:
@@ -303,6 +314,14 @@ class MarkdownHtmlTargetParser(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag.casefold() == "template" and self.template_depth:
             self.template_depth -= 1
+
+
+def html_template_is_declarative_shadow_root(token: str) -> bool:
+    """Return whether a complete template token declares a shadow root."""
+    parser = MarkdownHtmlTargetParser()
+    parser.feed(token)
+    parser.close()
+    return parser.declarative_shadow_template_seen
 
 
 def html_srcset_targets(raw: str) -> Set[str]:
@@ -413,7 +432,7 @@ def html_visible_signal_text_with_state(
             in {"script", "style", "template"}
             and not (
                 opening_tag.group(1).casefold() == "template"
-                and re.search(r"\bshadowrootmode\b", token, re.I)
+                and html_template_is_declarative_shadow_root(token)
             )
         ):
             raw_text_state = (opening_tag.group(1).casefold(), 1)

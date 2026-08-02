@@ -1261,6 +1261,42 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             self.assertEqual(source["completed_markers"], 0)
             self.assertEqual(source["unresolved_markers"], 0)
 
+    def test_shadowrootmode_word_in_other_attribute_keeps_template_inert(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "source.md").write_text(
+                'Completed <template title="shadowrootmode">TODO</template>\n',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/source.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            source = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(source["completed_markers"], 1)
+            self.assertEqual(source["unresolved_markers"], 0)
+
     def test_nested_template_bodies_remain_opaque_to_lifecycle_signals(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -1547,6 +1583,49 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             self.assertEqual(by_path["context/target.md"]["incoming_links"], 0)
             self.assertTrue(
                 report["link_coverage"]["complete_for_declared_roots"]
+            )
+
+    def test_html_script_href_is_not_counted_as_an_incoming_reference(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                '<script href="../context/target.md"></script>\n',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 0)
+            self.assertEqual(
+                report["link_coverage"]["status"],
+                "declared_reference_roots_with_skips_incomplete",
             )
 
     def test_pre_block_downgrades_coverage_for_unparsed_nested_html(self) -> None:
