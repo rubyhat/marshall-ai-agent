@@ -2405,6 +2405,8 @@ def normalize_link_target(
         or URI_SCHEME_RE.match(target)
     ):
         return None
+    if "\x00" in target:
+        return None
     if any(token in target for token in ("{", "}", "$")):
         return None
     candidate = root / target.lstrip("/") if target.startswith("/") else source.parent / target

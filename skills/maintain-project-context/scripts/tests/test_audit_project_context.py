@@ -5224,6 +5224,44 @@ Canonical fact.
             largest = json.loads(result.stdout)["largest_files"][0]
             self.assertEqual(largest["broken_targets"], ["memory/missing.md"])
 
+    def test_percent_encoded_nul_link_target_is_safely_ignored(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            source = memory / "source.md"
+            source.write_text("# Source\n\n[x](%00)\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/source.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            source_report = report["largest_files"][0]
+            self.assertEqual(source_report["broken_targets"], [])
+            self.assertEqual(
+                report["summary"]["possible_broken_references"],
+                0,
+            )
+
     def test_semicolonless_entity_like_inline_target_remains_literal(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
