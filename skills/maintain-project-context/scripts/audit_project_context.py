@@ -110,6 +110,17 @@ HTML_VOID_ELEMENTS = {
     "wbr",
 }
 SVG_HTML_INTEGRATION_POINTS = {"desc", "foreignobject", "title"}
+HTML_RAW_TEXT_ELEMENTS = {
+    "iframe",
+    "noembed",
+    "noframes",
+    "plaintext",
+    "script",
+    "style",
+    "textarea",
+    "title",
+    "xmp",
+}
 FOREIGN_CONTENT_HTML_BREAKOUT_TAGS = {
     "b",
     "big",
@@ -532,6 +543,30 @@ def html_srcset_targets(raw: str) -> Set[str]:
         if cursor < len(raw):
             cursor += 1
     return targets
+
+
+def html_raw_text_closing_suffix(raw: str, tag: str) -> Optional[str]:
+    """Return a fragment beginning at the first valid raw-text closing tag."""
+    if tag == "plaintext":
+        return None
+    closing_prefix = f"</{tag}"
+    search_cursor = 0
+    while True:
+        candidate = raw.casefold().find(closing_prefix, search_cursor)
+        if candidate < 0:
+            return None
+        boundary = candidate + len(closing_prefix)
+        if boundary < len(raw) and raw[boundary] not in " \t>":
+            search_cursor = candidate + 2
+            continue
+        candidate_end = markdown_inline_html_token_end(raw, candidate)
+        if candidate_end is not None and re.fullmatch(
+            rf"</{re.escape(tag)}[ \t]*>",
+            raw[candidate:candidate_end],
+            re.I,
+        ):
+            return raw[candidate:]
+        search_cursor = candidate + 2
 
 
 def html_visible_signal_text_with_state(
@@ -2142,6 +2177,18 @@ def inspect_text(
     def register_html_fragment(fragment: str) -> None:
         nonlocal html_base_href, html_base_seen, html_template_depth
         nonlocal html_element_stack
+        if html_element_stack:
+            raw_text_tag, raw_text_namespace = html_element_stack[-1]
+            if (
+                raw_text_namespace == "html"
+                and raw_text_tag in HTML_RAW_TEXT_ELEMENTS
+            ):
+                suffix = html_raw_text_closing_suffix(
+                    fragment, raw_text_tag
+                )
+                if suffix is None:
+                    return
+                fragment = suffix
         parser = MarkdownHtmlTargetParser(
             html_base_href,
             html_base_seen,
@@ -2302,6 +2349,14 @@ def inspect_text(
                             suffix_start = closing_position + len(
                                 html_block_end_token
                             )
+                            html_only_fragments.append(
+                                (
+                                    line_count,
+                                    html_container_line[
+                                        closing_position:suffix_start
+                                    ],
+                                )
+                            )
                             rendered_suffix = html_container_line[suffix_start:]
                             queue_rendered_suffix(rendered_suffix, line_count)
                             html_block_end_token = None
@@ -2365,9 +2420,20 @@ def inspect_text(
                         raw_text_tag = end_token[2:-1] if end_token.startswith("</") else None
                         if raw_text_tag in {"pre", "script", "style", "textarea"}:
                             tokens = markdown_complete_html_tokens(container_line)
-                            if tokens:
-                                html_only_fragments.append((line_count, tokens[0]))
                             closing_position = container_line.lower().find(end_token)
+                            if tokens:
+                                html_fragment = tokens[0]
+                                if closing_position >= 0:
+                                    html_fragment = (
+                                        tokens[0] + end_token
+                                        if raw_text_tag == "pre"
+                                        else container_line[
+                                            : closing_position + len(end_token)
+                                        ]
+                                    )
+                                html_only_fragments.append(
+                                    (line_count, html_fragment)
+                                )
                             if closing_position >= 0:
                                 suffix_start = closing_position + len(end_token)
                                 rendered_suffix = container_line[suffix_start:]

@@ -463,11 +463,11 @@ def validate_semantics(
             if (
                 path_name == "index"
                 and isinstance(path_value, str)
-                and path_value.endswith(("/", "\\"))
+                and path_value.endswith(("/", "\\", "/.", "\\."))
             ):
                 errors.append(
-                    "architecture_decisions.index must name a file, not end "
-                    "with a path separator"
+                    "architecture_decisions.index must name a file, not a "
+                    "directory-valued path"
                 )
             if isinstance(path_value, str) and not safe_relative_project_path(
                 path_value
