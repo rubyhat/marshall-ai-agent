@@ -682,6 +682,9 @@ completed"
             (history / "image.md").write_text("# Image\n", encoding="utf-8")
             (history / "object.md").write_text("# Object\n", encoding="utf-8")
             (history / "srcset.md").write_text("# Srcset\n", encoding="utf-8")
+            (history / "background.md").write_text(
+                "# Background\n", encoding="utf-8"
+            )
             (history / "svg-image.md").write_text("# SVG image\n", encoding="utf-8")
             (history / "svg-use.md").write_text("# SVG use\n", encoding="utf-8")
             (references / "source.md").write_text(
@@ -689,6 +692,7 @@ completed"
 <img src='../history/image.md' alt="Image">
 <object data="../history/object.md"></object>
 <img srcset="data:image/png;base64,AAAA 1x, ../history/srcset.md 2x">
+<body background="../history/background.md"></body>
 <svg><image href="../history/svg-image.md"></image></svg>
 <svg><use xlink:href="../history/svg-use.md"></use></svg>
 """,
@@ -723,6 +727,7 @@ completed"
             self.assertEqual(by_path["history/image.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/object.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/srcset.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["history/background.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/svg-image.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/svg-use.md"]["incoming_links"], 1)
             self.assertTrue(
@@ -1295,6 +1300,45 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             self.assertEqual(result.returncode, 0, result.stderr)
             source = json.loads(result.stdout)["largest_files"][0]
             self.assertEqual(source["completed_markers"], 1)
+            self.assertEqual(source["unresolved_markers"], 0)
+
+    def test_inline_legacy_fallbacks_are_opaque_to_lifecycle_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "source.md").write_text(
+                (
+                    "Completed <noframes>TODO</noframes>\n"
+                    "Completed <noembed>FIXME</noembed>\n"
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/source.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            source = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(source["completed_markers"], 2)
             self.assertEqual(source["unresolved_markers"], 0)
 
     def test_inert_template_body_does_not_create_lifecycle_signals(self) -> None:

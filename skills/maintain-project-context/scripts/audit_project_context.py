@@ -53,6 +53,7 @@ HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     "area": {"href"},
     "audio": {"src"},
     "blockquote": {"cite"},
+    "body": {"background"},
     "button": {"formaction"},
     "del": {"cite"},
     "embed": {"src"},
@@ -70,7 +71,14 @@ HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     "q": {"cite"},
     "script": {"src"},
     "source": {"src", "srcset"},
+    "table": {"background"},
+    "tbody": {"background"},
+    "td": {"background"},
+    "tfoot": {"background"},
+    "th": {"background"},
+    "thead": {"background"},
     "track": {"src"},
+    "tr": {"background"},
     "video": {"poster", "src"},
 }
 SVG_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
@@ -123,6 +131,8 @@ HTML_RAW_TEXT_ELEMENTS = {
 }
 LIFECYCLE_OPAQUE_HTML_ELEMENTS = {
     "iframe",
+    "noembed",
+    "noframes",
     "script",
     "style",
     "template",
