@@ -292,7 +292,11 @@ class MarkdownHtmlTargetParser(HTMLParser):
     def handle_startendtag(
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
     ) -> None:
-        if tag.casefold() == "template" or self.template_depth:
+        if tag.casefold() == "template":
+            # HTML ignores the XML-style slash for non-void template.
+            self.handle_starttag(tag, attrs)
+            return
+        if self.template_depth:
             return
         self.handle_starttag(tag, attrs)
 
@@ -386,7 +390,6 @@ def html_visible_signal_text_with_state(
                 opening_tag.group(1).casefold() == "template"
                 and re.search(r"\bshadowrootmode\b", token, re.I)
             )
-            and not token.rstrip().endswith("/>")
         ):
             raw_text_tag = opening_tag.group(1).casefold()
         cursor = html_end
