@@ -517,6 +517,7 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
             ("[A-Z]", "CO<ID>.md"),
             ("[0-9]", "COM<ID>.md"),
             ("[0-9]", "folder/LPT<ID>.txt"),
+            ("ADR-[0-9]{4}", "<slug>/<ID>.md"),
         ):
             with self.subTest(filename_pattern=filename_pattern):
                 config = rendered_config()

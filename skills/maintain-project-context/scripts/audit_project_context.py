@@ -353,7 +353,9 @@ class MarkdownHtmlTargetParser(HTMLParser):
             if normalized_tag == "template":
                 self.template_depth += 1
             return
-        if normalized_tag == "template":
+        self.apply_foreign_content_breakout(normalized_tag, first_attributes)
+        namespace = self.element_namespace(normalized_tag)
+        if normalized_tag == "template" and namespace == "html":
             if (first_attributes.get("shadowrootmode") or "").casefold() in {
                 "open",
                 "closed",
@@ -362,8 +364,6 @@ class MarkdownHtmlTargetParser(HTMLParser):
                 self.declarative_shadow_template_seen = True
             self.template_depth = 1
             return
-        self.apply_foreign_content_breakout(normalized_tag, first_attributes)
-        namespace = self.element_namespace(normalized_tag)
         if push is None:
             push = namespace == "html"
         if (
@@ -479,7 +479,7 @@ class MarkdownHtmlTargetParser(HTMLParser):
     def handle_startendtag(
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
     ) -> None:
-        if tag.casefold() == "template":
+        if tag.casefold() == "template" and self.child_namespace() == "html":
             # HTML ignores the XML-style slash for non-void template.
             self.handle_starttag(tag, attrs)
             return

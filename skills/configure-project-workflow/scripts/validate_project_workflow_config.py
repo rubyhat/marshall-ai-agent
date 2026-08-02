@@ -311,14 +311,21 @@ def filename_pattern_can_render_windows_device_name(
 ) -> bool:
     for component in PureWindowsPath(filename_pattern).parts:
         basename_template = component.split(".", 1)[0]
-        if "<ID>" not in basename_template:
+        if not any(
+            placeholder in basename_template
+            for placeholder in ("<ID>", "<slug>")
+        ):
             continue
         for reserved in WINDOWS_RESERVED_BASENAMES:
             matches, identifiers = template_identifier_matches(
                 basename_template, reserved, ignore_case=True
             )
-            if matches and any(
-                adr_id_pattern_accepts(compiled_id, identifier, ignore_case=True)
+            if not matches:
+                continue
+            if "<ID>" not in basename_template or any(
+                adr_id_pattern_accepts(
+                    compiled_id, identifier, ignore_case=True
+                )
                 for identifier in identifiers
             ):
                 return True
