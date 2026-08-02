@@ -484,7 +484,10 @@ def markdown_reference_label_is_valid(raw: str) -> bool:
 
 
 def markdown_reference_use_labels(
-    line: str, *, include_images: bool = True
+    line: str,
+    *,
+    include_images: bool = True,
+    include_links: bool = True,
 ) -> Set[str]:
     labels: Set[str] = set()
     visible = list(line)
@@ -495,7 +498,15 @@ def markdown_reference_use_labels(
         opening = start + 1 if is_image else start
         if markdown_character_is_escaped(line, opening):
             continue
+        if not is_image:
+            labels.update(
+                markdown_reference_use_labels(
+                    label, include_images=True, include_links=False
+                )
+            )
         if is_image and not include_images:
+            continue
+        if not is_image and not include_links:
             continue
         raw_label = reference_label or label
         if not markdown_reference_label_is_valid(raw_label):
@@ -514,6 +525,8 @@ def markdown_reference_use_labels(
         if markdown_character_is_escaped(without_explicit_references, opening):
             continue
         if is_image and not include_images:
+            continue
+        if not is_image and not include_links:
             continue
         raw_label = match.group(1)
         if markdown_reference_label_is_valid(raw_label):

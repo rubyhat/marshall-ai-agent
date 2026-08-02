@@ -1592,6 +1592,54 @@ Visible content.
             self.assertEqual(by_path["memory/page.md"]["incoming_links"], 1)
             self.assertEqual(by_path["memory/badge.md"]["incoming_links"], 1)
 
+    def test_reference_outer_link_counts_nested_reference_image_target(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "page.md").write_text("# Page\n", encoding="utf-8")
+            (memory / "preview.md").write_text("# Preview\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                """# Source
+
+[![Preview][image]][page]
+
+[image]: preview.md
+[page]: page.md
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/page.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/preview.md"]["incoming_links"], 1)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_reference_link_inside_inline_image_alt_is_not_a_resource(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
