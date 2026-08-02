@@ -855,8 +855,47 @@ completed"
                 report["summary"]["skipped"]["reference_parse_incomplete"],
                 1,
             )
-            self.assertEqual(
-                report["summary"]["skipped"]["reference_parse_incomplete"], 1
+
+    def test_inert_template_link_does_not_count_as_incoming(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                '<template><a href="target.md">target</a></template>\n',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 0)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
             )
 
     def test_malformed_raw_html_does_not_create_incoming_link(self) -> None:
@@ -1021,6 +1060,42 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             source = json.loads(result.stdout)["largest_files"][0]
             self.assertEqual(source["completed_markers"], 1)
             self.assertEqual(source["unresolved_markers"], 0)
+
+    def test_inline_textarea_value_remains_visible_to_lifecycle_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "source.md").write_text(
+                "Completed <textarea>TODO</textarea>\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/source.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            source = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(source["completed_markers"], 1)
+            self.assertEqual(source["unresolved_markers"], 1)
 
     def test_unparsed_style_body_downgrades_reference_coverage(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -217,17 +217,31 @@ class MarkdownHtmlTargetParser(HTMLParser):
         self,
         base_href: Optional[str] = None,
         base_seen: bool = False,
+        template_depth: int = 0,
     ) -> None:
         super().__init__(convert_charrefs=True)
         self.targets: Set[Tuple[str, Optional[str]]] = set()
         self.base_href = base_href
         self.base_seen = base_seen
+        self.template_depth = template_depth
         self.resource_parse_incomplete = False
 
     def handle_starttag(
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
     ) -> None:
         normalized_tag = tag.casefold()
+        if self.template_depth:
+            if normalized_tag == "template":
+                self.template_depth += 1
+            return
+        if normalized_tag == "template":
+            if any(
+                name.casefold() == "shadowrootmode" and value
+                for name, value in attrs
+            ):
+                self.resource_parse_incomplete = True
+            self.template_depth = 1
+            return
         if normalized_tag in {"pre", "style"}:
             # CSS has its own URL grammar, while CommonMark HTML blocks keep
             # nested HTML inside pre outside this bounded parser. Do not
@@ -267,7 +281,13 @@ class MarkdownHtmlTargetParser(HTMLParser):
     def handle_startendtag(
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
     ) -> None:
+        if tag.casefold() == "template" or self.template_depth:
+            return
         self.handle_starttag(tag, attrs)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.casefold() == "template" and self.template_depth:
+            self.template_depth -= 1
 
 
 def html_srcset_targets(raw: str) -> Set[str]:
@@ -350,7 +370,7 @@ def html_visible_signal_text_with_state(
         if (
             opening_tag is not None
             and opening_tag.group(1).casefold()
-            in {"script", "style", "textarea"}
+            in {"script", "style"}
             and not token.rstrip().endswith("/>")
         ):
             raw_text_tag = opening_tag.group(1).casefold()
@@ -1828,6 +1848,7 @@ def inspect_text(
     html_targets: Set[Tuple[str, Optional[str]]] = set()
     html_base_href: Optional[str] = None
     html_base_seen = False
+    html_template_depth = 0
     front_matter_end = (
         markdown_front_matter_end(item.absolute_path) if markdown else None
     )
@@ -1872,13 +1893,16 @@ def inspect_text(
     ] = None
 
     def register_html_fragment(fragment: str) -> None:
-        nonlocal html_base_href, html_base_seen
-        parser = MarkdownHtmlTargetParser(html_base_href, html_base_seen)
+        nonlocal html_base_href, html_base_seen, html_template_depth
+        parser = MarkdownHtmlTargetParser(
+            html_base_href, html_base_seen, html_template_depth
+        )
         parser.feed("".join(markdown_complete_html_tokens(fragment)))
         parser.close()
         html_targets.update(parser.targets)
         html_base_href = parser.base_href
         html_base_seen = parser.base_seen
+        html_template_depth = parser.template_depth
         if parser.resource_parse_incomplete:
             item.link_parse_incomplete = True
         if markdown_has_incomplete_html_token(fragment):

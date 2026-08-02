@@ -217,16 +217,14 @@ def adr_id_max_width(pattern: str) -> Optional[int]:
 def adr_filename_components_fit_max_id(
     filename_pattern: str, maximum_id_length: int
 ) -> bool:
-    """Check ASCII-rendered component sizes for the longest valid ADR ID."""
+    """Check UTF-8 component sizes after rendering the longest valid ADR ID."""
     for component in PureWindowsPath(filename_pattern).parts:
         identifier_slots = component.count("<ID>")
-        if not identifier_slots:
-            continue
         without_identifiers = component.replace("<ID>", "")
         fixed_rendered = ADR_FILENAME_PLACEHOLDER_RE.sub(
             "safe", without_identifiers
         )
-        rendered_length = len(fixed_rendered) + (
+        rendered_length = len(fixed_rendered.encode("utf-8")) + (
             identifier_slots * maximum_id_length
         )
         if rendered_length > PORTABLE_FILENAME_COMPONENT_MAX_BYTES:
@@ -495,8 +493,9 @@ def validate_semantics(
                 filename_pattern, maximum_id_length
             ):
                 errors.append(
-                    "architecture_decisions.id_pattern must have a bounded maximum "
-                    "that keeps every rendered filename component within 255 bytes"
+                    "architecture_decisions.filename_pattern must keep every "
+                    "rendered component within 255 UTF-8 bytes for the maximum "
+                    "valid ADR ID"
                 )
             if not safe_relative_project_path(
                 filename_pattern, require_portable_components=False
