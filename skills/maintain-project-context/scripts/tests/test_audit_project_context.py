@@ -450,6 +450,89 @@ completed"
                 report["summary"]["skipped"]["reference_parse_incomplete"], 1
             )
 
+    def test_bare_inline_destination_rejects_backslash_before_space(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "foo\\ bar.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                "[fake](foo\\ bar.md)\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/foo\\ bar.md"]["incoming_links"], 0)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
+    def test_collapsed_reference_after_unmatched_opener_is_counted(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                """[ note [target][]
+
+[target]: target.md
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_reference_root_counts_local_targets_in_raw_html(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -706,6 +789,64 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
             self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 0)
             self.assertEqual(by_path["memory/source.md"]["completed_markers"], 0)
+
+    def test_base_href_is_resolution_context_not_incoming_resource(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            nested = context / "nested"
+            references = root / "references"
+            context.mkdir()
+            nested.mkdir()
+            references.mkdir()
+            (context / "base-only.md").write_text("# Base\n", encoding="utf-8")
+            (context / "actual.md").write_text("# Actual\n", encoding="utf-8")
+            (nested / "nested.md").write_text("# Nested\n", encoding="utf-8")
+            (references / "file-base.md").write_text(
+                """<base href="../context/base-only.md">
+<a href="actual.md">Actual</a>
+""",
+                encoding="utf-8",
+            )
+            (references / "directory-base.md").write_text(
+                """<base href="../context/nested/">
+<a href="nested.md">Nested</a>
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["context/base-only.md"]["incoming_links"], 0)
+            self.assertEqual(by_path["context/actual.md"]["incoming_links"], 1)
+            self.assertEqual(
+                by_path["context/nested/nested.md"]["incoming_links"], 1
+            )
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
 
     def test_raw_text_html_block_body_does_not_create_incoming_links(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

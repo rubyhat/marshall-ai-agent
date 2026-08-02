@@ -51,7 +51,6 @@ HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     "a": {"href"},
     "area": {"href"},
     "audio": {"src"},
-    "base": {"href"},
     "blockquote": {"cite"},
     "button": {"formaction"},
     "del": {"cite"},
@@ -199,17 +198,29 @@ class MarkdownReferenceTargetMatch:
 class MarkdownHtmlTargetParser(HTMLParser):
     """Collect non-executable local-reference candidates from raw HTML."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        base_href: Optional[str] = None,
+        base_seen: bool = False,
+    ) -> None:
         super().__init__(convert_charrefs=True)
-        self.targets: Set[str] = set()
+        self.targets: Set[Tuple[str, Optional[str]]] = set()
+        self.base_href = base_href
+        self.base_seen = base_seen
 
     def handle_starttag(
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
     ) -> None:
-        resource_attributes = HTML_RESOURCE_ATTRIBUTES.get(tag.casefold(), set())
+        normalized_tag = tag.casefold()
+        resource_attributes = HTML_RESOURCE_ATTRIBUTES.get(normalized_tag, set())
         seen_resource_attributes: Set[str] = set()
         for name, value in attrs:
             normalized_name = name.casefold()
+            if normalized_tag == "base" and normalized_name == "href":
+                if not self.base_seen:
+                    self.base_seen = True
+                    self.base_href = value or ""
+                continue
             if normalized_name not in resource_attributes:
                 continue
             # HTML keeps the first duplicate attribute. Later duplicates must
@@ -220,9 +231,12 @@ class MarkdownHtmlTargetParser(HTMLParser):
             if not value:
                 continue
             if normalized_name in {"srcset", "imagesrcset"}:
-                self.targets.update(html_srcset_targets(value))
+                self.targets.update(
+                    (target, self.base_href)
+                    for target in html_srcset_targets(value)
+                )
             else:
-                self.targets.add(value)
+                self.targets.add((value, self.base_href))
 
     def handle_startendtag(
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
@@ -565,7 +579,13 @@ def markdown_link_label_end(line: str, opening: int) -> Optional[int]:
     while cursor < len(line):
         character = line[cursor]
         if character == "\\":
-            cursor += 2
+            if (
+                cursor + 1 < len(line)
+                and line[cursor + 1] in string.punctuation
+            ):
+                cursor += 2
+            else:
+                cursor += 1
             continue
         if character == "<":
             html_end = markdown_inline_html_token_end(line, cursor)
@@ -694,7 +714,8 @@ def markdown_reference_links(
             continue
         label_end = markdown_link_label_end(line, opening)
         if label_end is None:
-            break
+            cursor = opening + 1
+            continue
         reference_opening = label_end + 1
         if (
             reference_opening >= len(line)
@@ -745,7 +766,11 @@ def markdown_reference_destination_target(
         return None
     destination_start = cursor
     while cursor < len(line) and line[cursor] not in " \t\r\n":
-        if line[cursor] == "\\":
+        if (
+            line[cursor] == "\\"
+            and cursor + 1 < len(line)
+            and line[cursor + 1] in string.punctuation
+        ):
             cursor += 2
         else:
             cursor += 1
@@ -836,7 +861,13 @@ def markdown_link_destination(
     while cursor < len(line):
         character = line[cursor]
         if character == "\\":
-            cursor += 2
+            if (
+                cursor + 1 < len(line)
+                and line[cursor + 1] in string.punctuation
+            ):
+                cursor += 2
+            else:
+                cursor += 1
             continue
         if character in "<>":
             return None
@@ -1634,7 +1665,9 @@ def inspect_text(
     nonblank = 0
     open_sections: List[Tuple[int, int]] = []
     markdown = item.absolute_path.suffix.lower() in {".md", ".markdown", ".mdx"}
-    html_targets: Set[str] = set()
+    html_targets: Set[Tuple[str, Optional[str]]] = set()
+    html_base_href: Optional[str] = None
+    html_base_seen = False
     front_matter_end = (
         markdown_front_matter_end(item.absolute_path) if markdown else None
     )
@@ -1678,10 +1711,13 @@ def inspect_text(
     ] = None
 
     def register_html_fragment(fragment: str) -> None:
-        parser = MarkdownHtmlTargetParser()
+        nonlocal html_base_href, html_base_seen
+        parser = MarkdownHtmlTargetParser(html_base_href, html_base_seen)
         parser.feed("".join(markdown_complete_html_tokens(fragment)))
         parser.close()
         html_targets.update(parser.targets)
+        html_base_href = parser.base_href
+        html_base_seen = parser.base_seen
         if markdown_has_incomplete_html_token(fragment):
             item.link_parse_incomplete = True
 
@@ -2342,8 +2378,33 @@ def inspect_text(
                     raw_signal_line, task_id_pattern, defined_labels
                 )
             )
-    for raw_target in html_targets:
-        normalized = normalize_link_target(root, item.absolute_path, raw_target)
+    for raw_target, raw_base in html_targets:
+        target_source = item.absolute_path
+        if raw_base is not None:
+            decoded_base = decode_markdown_escapes_and_entities(raw_base.strip())
+            base_path_part = unquote(
+                decoded_base.split("#", 1)[0].split("?", 1)[0].strip()
+            )
+            if not base_path_part:
+                target_source = item.absolute_path
+            elif base_path_part.startswith("//") or URI_SCHEME_RE.match(
+                base_path_part
+            ):
+                item.link_parse_incomplete = True
+                continue
+            else:
+                normalized_base = normalize_link_target(
+                    root, item.absolute_path, base_path_part
+                )
+                if normalized_base is None:
+                    item.link_parse_incomplete = True
+                    continue
+                target_source = (
+                    normalized_base / "__base__"
+                    if base_path_part.endswith("/")
+                    else normalized_base
+                )
+        normalized = normalize_link_target(root, target_source, raw_target)
         if normalized is not None:
             links.add(normalized)
     for raw_target, nested_reference_labels in inline_link_candidates:
