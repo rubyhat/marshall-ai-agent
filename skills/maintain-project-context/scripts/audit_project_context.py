@@ -957,6 +957,30 @@ def html_visible_signal_text_with_state(
                         if closing_tag is not None
                         else None
                     )
+                    active_raw_text_descendant = (
+                        lifecycle_stack_tag(template_foreign_stack[-1])
+                        if template_foreign_stack
+                        and lifecycle_stack_tag(template_foreign_stack[-1])
+                        in HTML_RAW_TEXT_ELEMENTS
+                        else None
+                    )
+                    if active_raw_text_descendant is not None:
+                        if normalized_closing == active_raw_text_descendant:
+                            template_foreign_stack = (
+                                lifecycle_stack_pop_matching(
+                                    template_foreign_stack,
+                                    active_raw_text_descendant,
+                                )
+                            )
+                        cursor = candidate_end
+                        raw_text_state = (
+                            raw_text_tag,
+                            raw_text_depth,
+                            details_summary_phase,
+                            template_foreign_stack,
+                        )
+                        search_cursor = candidate_end
+                        continue
                     if (
                         details_summary_phase == DETAILS_SUMMARY_VISIBLE
                         and not lifecycle_stack_has_opaque_ancestor(

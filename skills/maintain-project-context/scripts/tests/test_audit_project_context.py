@@ -1641,6 +1641,7 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                     "Completed <details><summary>TODO</summary>FIXME</details>\n"
                     "Completed <details><div><summary>TODO</summary></div></details>\n"
                     "Completed <details><summary>Visible <span hidden>TODO</span></summary></details>\n"
+                    "Completed <details><summary><script></details></script></summary>FIXME</details>\n"
                     "Completed <details open>TODO</details>\n"
                 ),
                 encoding="utf-8",
@@ -1669,7 +1670,7 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
 
             self.assertEqual(result.returncode, 0, result.stderr)
             source = json.loads(result.stdout)["largest_files"][0]
-            self.assertEqual(source["completed_markers"], 5)
+            self.assertEqual(source["completed_markers"], 6)
             self.assertEqual(source["unresolved_markers"], 2)
 
     def test_raw_text_self_closing_end_tag_restores_visible_signals(self) -> None:
