@@ -397,6 +397,56 @@ completed"
                 report["link_coverage"]["complete_for_declared_roots"]
             )
 
+    def test_oversized_content_source_is_skipped_with_incomplete_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                "# Source\n\n[Target](target.md)\n" + ("x" * 128),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--max-content-bytes",
+                    "64",
+                    "--candidate-limit",
+                    "0",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 0)
+            self.assertNotIn("lines", by_path["memory/source.md"])
+            self.assertEqual(report["summary"]["skipped"]["content_too_large"], 1)
+            self.assertEqual(
+                report["link_coverage"]["status"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertFalse(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_inline_link_after_unmatched_opening_bracket_is_counted(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -583,11 +633,15 @@ completed"
             (history / "image.md").write_text("# Image\n", encoding="utf-8")
             (history / "object.md").write_text("# Object\n", encoding="utf-8")
             (history / "srcset.md").write_text("# Srcset\n", encoding="utf-8")
+            (history / "svg-image.md").write_text("# SVG image\n", encoding="utf-8")
+            (history / "svg-use.md").write_text("# SVG use\n", encoding="utf-8")
             (references / "source.md").write_text(
                 """<a href="../history/target.md">Target</a>
 <img src='../history/image.md' alt="Image">
 <object data="../history/object.md"></object>
 <img srcset="data:image/png;base64,AAAA 1x, ../history/srcset.md 2x">
+<svg><image href="../history/svg-image.md"></image></svg>
+<svg><use xlink:href="../history/svg-use.md"></use></svg>
 """,
                 encoding="utf-8",
             )
@@ -620,6 +674,8 @@ completed"
             self.assertEqual(by_path["history/image.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/object.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/srcset.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["history/svg-image.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["history/svg-use.md"]["incoming_links"], 1)
             self.assertTrue(
                 report["link_coverage"]["complete_for_declared_roots"]
             )

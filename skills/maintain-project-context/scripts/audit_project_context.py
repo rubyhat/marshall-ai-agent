@@ -47,6 +47,7 @@ TEXT_EXTENSIONS = {
 }
 STRUCTURED_TEXT_EXTENSIONS = {".csv", ".json", ".toml", ".tsv", ".yaml", ".yml"}
 MAX_MULTILINE_LINK_SCAN_CHARS = 1024 * 1024
+DEFAULT_MAX_CONTENT_BYTES = 8 * 1024 * 1024
 HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     "a": {"href"},
     "area": {"href"},
@@ -63,10 +64,24 @@ HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     "link": {"href", "imagesrcset"},
     "object": {"data"},
     "q": {"cite"},
-    "script": {"src"},
+    "script": {"href", "src", "xlink:href"},
     "source": {"src", "srcset"},
     "track": {"src"},
     "video": {"poster", "src"},
+    # SVG2 uses href; xlink:href remains common in existing documentation.
+    "animate": {"href", "xlink:href"},
+    "animatemotion": {"href", "xlink:href"},
+    "animatetransform": {"href", "xlink:href"},
+    "feimage": {"href", "xlink:href"},
+    "filter": {"href", "xlink:href"},
+    "image": {"href", "xlink:href"},
+    "lineargradient": {"href", "xlink:href"},
+    "mpath": {"href", "xlink:href"},
+    "pattern": {"href", "xlink:href"},
+    "radialgradient": {"href", "xlink:href"},
+    "set": {"href", "xlink:href"},
+    "textpath": {"href", "xlink:href"},
+    "use": {"href", "xlink:href"},
 }
 TASK_ID_TOKEN_WRAPPERS = "`*_[](){}<>.,:;!?\"'"
 DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
@@ -2873,12 +2888,22 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
         ):
             item = audited_by_path.get(resolved)
             is_external_source = item is None
+            try:
+                source_size = source_path.stat().st_size
+            except (OSError, PermissionError):
+                skipped[
+                    "reference_unreadable"
+                    if is_external_source
+                    else "content_unreadable"
+                ] += 1
+                reference_scan_incomplete = True
+                continue
             if item is None:
                 item = AuditFile(
                     absolute_path=source_path,
                     relative_path=source_path.relative_to(root).as_posix(),
                     scope="reference-only",
-                    size=0,
+                    size=source_size,
                     modified_at="",
                     age_days=0,
                     location_state="reference-only",
@@ -2886,6 +2911,14 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
                     binary=False,
                 )
             if item.absolute_path.suffix.lower() not in TEXT_EXTENSIONS:
+                continue
+            if source_size > args.max_content_bytes:
+                skipped[
+                    "reference_content_too_large"
+                    if is_external_source
+                    else "content_too_large"
+                ] += 1
+                reference_scan_incomplete = True
                 continue
             if item.absolute_path.suffix.lower() in STRUCTURED_TEXT_EXTENSIONS:
                 skipped["reference_unparsed_structured_source"] += 1
@@ -3004,6 +3037,7 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
         },
         "options": {
             "content_signals": args.include_content_signals,
+            "max_content_bytes": args.max_content_bytes,
             "git_state": args.include_git_state,
             "age_buckets": args.age_buckets,
             "top": args.top,
@@ -3149,6 +3183,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Count lines and inspect bounded semantic/link signals without printing content",
     )
     parser.add_argument(
+        "--max-content-bytes",
+        type=int,
+        default=DEFAULT_MAX_CONTENT_BYTES,
+        help=(
+            "Maximum bytes loaded from one content/reference source; larger files "
+            "are skipped and reference coverage is marked incomplete"
+        ),
+    )
+    parser.add_argument(
         "--include-git-state",
         action="store_true",
         help="Report tracked, modified, and untracked state when root is a Git worktree",
@@ -3183,6 +3226,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.top < 0 or args.candidate_limit < 0:
         fail("--top and --candidate-limit must be zero or greater")
+    if args.max_content_bytes <= 0:
+        fail("--max-content-bytes must be greater than zero")
     args.age_buckets = parse_age_buckets(args.age_buckets)
     report = build_report(args)
     if args.format == "json":

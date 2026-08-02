@@ -45,6 +45,9 @@ Useful optional flags:
 - `--age-buckets 30,90,180` for display buckets;
 - `--top 20` for largest-file and duplicate summaries;
 - `--candidate-limit 50`, or `0` for all detected candidates;
+- `--max-content-bytes 8388608` sets the per-file content-read ceiling. Files
+  above it remain in the metadata inventory, but semantic/link parsing is
+  skipped and incoming-link coverage is explicitly incomplete;
 - repeatable `--exclude-dir <name>` for project-specific generated directories.
 - repeatable `--reference-root <path>` for all configured maps, canonical
   context, runbooks, and other context roots that can link to an audit
@@ -73,6 +76,9 @@ The script reports:
 - candidate signals without printing file contents.
 
 The script never moves, edits, archives, or deletes files.
+By default it never loads more than 8 MiB from one content/reference source.
+Raise that ceiling only after checking available memory and the exact scope;
+never treat an audit with a size skip as complete incoming-reference evidence.
 
 ## Fallback for macOS/Linux
 
