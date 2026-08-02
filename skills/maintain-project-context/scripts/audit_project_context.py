@@ -207,9 +207,17 @@ class MarkdownHtmlTargetParser(HTMLParser):
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
     ) -> None:
         resource_attributes = HTML_RESOURCE_ATTRIBUTES.get(tag.casefold(), set())
+        seen_resource_attributes: Set[str] = set()
         for name, value in attrs:
             normalized_name = name.casefold()
-            if normalized_name not in resource_attributes or not value:
+            if normalized_name not in resource_attributes:
+                continue
+            # HTML keeps the first duplicate attribute. Later duplicates must
+            # not manufacture extra repository references.
+            if normalized_name in seen_resource_attributes:
+                continue
+            seen_resource_attributes.add(normalized_name)
+            if not value:
                 continue
             if normalized_name in {"srcset", "imagesrcset"}:
                 self.targets.update(html_srcset_targets(value))
@@ -2415,7 +2423,14 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
 
     for scope in scopes:
         scope_label = scope.relative_to(root).as_posix() or "."
-        for path in iter_scope_files(scope, excluded_dirs):
+        for path in iter_scope_files(
+            scope,
+            excluded_dirs,
+            skipped,
+            "scope_symlink",
+            "scope_excluded_dir",
+            "scope_traversal_error",
+        ):
             resolved = path.resolve(strict=False)
             if resolved in seen:
                 continue

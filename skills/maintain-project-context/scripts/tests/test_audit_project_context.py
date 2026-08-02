@@ -707,6 +707,48 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             self.assertEqual(by_path["memory/source.md"]["unresolved_markers"], 0)
             self.assertEqual(by_path["memory/source.md"]["completed_markers"], 0)
 
+    def test_duplicate_raw_html_resource_attribute_uses_first_target(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "page.md").write_text("# Page\n", encoding="utf-8")
+            (memory / "stale.md").write_text("# Stale\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                '<a href="page.md" href="stale.md">Guide</a>\n',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/page.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["memory/stale.md"]["incoming_links"], 0)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_incomplete_html_like_text_remains_visible_to_signals(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -828,6 +870,46 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                 report["link_coverage"]["complete_for_declared_roots"]
             )
             self.assertEqual(report["summary"]["skipped"]["reference_symlink"], 1)
+
+    def test_candidate_scope_records_symlink_and_excluded_directory_skips(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            vendor = memory / "vendor"
+            external = root / "external.md"
+            memory.mkdir()
+            vendor.mkdir()
+            (memory / "visible.md").write_text("# Visible\n", encoding="utf-8")
+            (vendor / "hidden.md").write_text("# Hidden\n", encoding="utf-8")
+            external.write_text("# External\n", encoding="utf-8")
+            try:
+                (memory / "linked.md").symlink_to(external)
+            except OSError as error:
+                self.skipTest(f"symlinks unavailable: {error}")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            self.assertEqual(report["summary"]["files"], 1)
+            self.assertEqual(report["summary"]["skipped"]["scope_symlink"], 1)
+            self.assertEqual(
+                report["summary"]["skipped"]["scope_excluded_dir"], 1
+            )
 
     def test_reference_root_excluded_subtree_marks_coverage_incomplete(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
