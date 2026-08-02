@@ -743,6 +743,24 @@ def lifecycle_raw_text_closing_token_end(
     return candidate + slash_closer.end() if slash_closer is not None else None
 
 
+def lifecycle_stack_tag(entry: str) -> str:
+    """Return the HTML tag encoded in a lifecycle ancestor-stack entry."""
+    return entry[1:] if entry.startswith("!") else entry
+
+
+def lifecycle_stack_has_opaque_ancestor(stack: Tuple[str, ...]) -> bool:
+    return any(entry.startswith("!") for entry in stack)
+
+
+def lifecycle_stack_pop_matching(
+    stack: Tuple[str, ...], closing_tag: str
+) -> Tuple[str, ...]:
+    for index in range(len(stack) - 1, -1, -1):
+        if lifecycle_stack_tag(stack[index]) == closing_tag:
+            return stack[:index]
+    return stack
+
+
 def html_visible_signal_text_with_state(
     raw: str,
     raw_text_state: Optional[
@@ -939,7 +957,12 @@ def html_visible_signal_text_with_state(
                         if closing_tag is not None
                         else None
                     )
-                    if details_summary_phase == DETAILS_SUMMARY_VISIBLE:
+                    if (
+                        details_summary_phase == DETAILS_SUMMARY_VISIBLE
+                        and not lifecycle_stack_has_opaque_ancestor(
+                            template_foreign_stack
+                        )
+                    ):
                         pieces.append(raw[cursor:candidate])
                     if (
                         details_summary_phase == DETAILS_SUMMARY_PENDING
@@ -948,38 +971,71 @@ def html_visible_signal_text_with_state(
                         and normalized_opening == "summary"
                     ):
                         details_summary_phase = DETAILS_SUMMARY_VISIBLE
+                        if html_start_tag_has_attribute(token, "hidden"):
+                            template_foreign_stack += ("!summary",)
                     elif (
                         details_summary_phase == DETAILS_SUMMARY_VISIBLE
-                        and not template_foreign_stack
+                        and (
+                            not template_foreign_stack
+                            or template_foreign_stack == ("!summary",)
+                        )
                         and normalized_closing == "summary"
                     ):
                         details_summary_phase = DETAILS_SUMMARY_COMPLETE
+                        template_foreign_stack = ()
                     elif normalized_opening == "details":
                         raw_text_depth += 1
+                        if details_summary_phase == DETAILS_SUMMARY_VISIBLE:
+                            nested_details_opaque = (
+                                html_start_tag_has_attribute(token, "hidden")
+                                or not html_start_tag_has_attribute(token, "open")
+                            )
+                            template_foreign_stack += (
+                                ("!" if nested_details_opaque else "")
+                                + "details",
+                            )
                     elif normalized_closing == "details":
                         raw_text_depth -= 1
                         if raw_text_depth == 0:
                             cursor = candidate_end
                             raw_text_state = None
                             break
+                        template_foreign_stack = lifecycle_stack_pop_matching(
+                            template_foreign_stack, "details"
+                        )
                     elif (
                         normalized_opening is not None
                         and normalized_opening not in HTML_VOID_ELEMENTS
-                        and not re.search(r"/[ \t]*>$", token)
                     ):
-                        template_foreign_stack += (normalized_opening,)
-                    elif (
-                        normalized_closing is not None
-                        and normalized_closing in template_foreign_stack
-                    ):
-                        matching_index = len(template_foreign_stack) - 1 - (
-                            template_foreign_stack[::-1].index(
-                                normalized_closing
+                        if template_foreign_stack:
+                            current_parent = lifecycle_stack_tag(
+                                template_foreign_stack[-1]
+                            )
+                            if normalized_opening in HTML_IMPLIED_END_START_TAGS.get(
+                                current_parent, set()
+                            ):
+                                template_foreign_stack = template_foreign_stack[:-1]
+                        nested_opaque = (
+                            html_start_tag_has_attribute(token, "hidden")
+                            or normalized_opening in LIFECYCLE_OPAQUE_HTML_ELEMENTS
+                            or (
+                                normalized_opening == "dialog"
+                                and not html_start_tag_has_attribute(token, "open")
                             )
                         )
-                        template_foreign_stack = template_foreign_stack[
-                            :matching_index
-                        ]
+                        template_foreign_stack += (
+                            ("!" if nested_opaque else "") + normalized_opening,
+                        )
+                    elif (
+                        normalized_closing is not None
+                        and any(
+                            lifecycle_stack_tag(entry) == normalized_closing
+                            for entry in template_foreign_stack
+                        )
+                    ):
+                        template_foreign_stack = lifecycle_stack_pop_matching(
+                            template_foreign_stack, normalized_closing
+                        )
                     cursor = candidate_end
                     raw_text_state = (
                         raw_text_tag,
