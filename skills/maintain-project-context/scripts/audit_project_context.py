@@ -493,6 +493,31 @@ def markdown_reference_use_labels(
     return labels
 
 
+def markdown_has_multiline_reference_label_start(line: str) -> bool:
+    """Detect a full-reference label that continues past this physical line."""
+    cursor = 0
+    while cursor < len(line):
+        opening = line.find("[", cursor)
+        if opening < 0:
+            return False
+        if markdown_character_is_escaped(line, opening):
+            cursor = opening + 1
+            continue
+        label_end = markdown_link_label_end(line, opening)
+        if label_end is None:
+            cursor = opening + 1
+            continue
+        reference_opening = label_end + 1
+        if (
+            reference_opening < len(line)
+            and line[reference_opening] == "["
+            and markdown_link_label_end(line, reference_opening) is None
+        ):
+            return True
+        cursor = label_end + 1
+    return False
+
+
 def markdown_link_label_end(line: str, opening: int) -> Optional[int]:
     depth = 1
     cursor = opening + 1
@@ -1173,15 +1198,12 @@ def markdown_multiline_reference_title_lines(
     start_index: int,
     first_fragment: str,
     container_tokens: Sequence[Tuple[str, int]],
-) -> Optional[Set[int]]:
+) -> Tuple[Optional[Set[int]], bool]:
     if markdown_reference_title_state(first_fragment) != "open":
-        return None
+        return None, False
     combined = first_fragment.strip()
     consumed_lines: Set[int] = set()
-    for offset in range(1, 8):
-        future_index = start_index + offset
-        if future_index >= len(lines):
-            break
+    for future_index in range(start_index + 1, len(lines)):
         future_line = markdown_container_continuation(
             lines[future_index], container_tokens
         )
@@ -1193,13 +1215,13 @@ def markdown_multiline_reference_title_lines(
         combined += "\n" + future_line.rstrip("\r\n")
         consumed_lines.add(future_index)
         if len(combined) > 4096:
-            break
+            return None, True
         state = markdown_reference_title_state(combined)
         if state == "complete":
-            return consumed_lines
+            return consumed_lines, False
         if state == "invalid":
             break
-    return None
+    return None, False
 
 
 def matching_backtick_run_end(
@@ -1952,12 +1974,14 @@ def inspect_text(
                     definition_suffix
                 )
                 if definition_title_state == "open":
-                    consumed_title_lines = markdown_multiline_reference_title_lines(
-                        lines,
-                        line_index,
-                        definition_suffix,
-                        container_tokens,
+                    (
+                        consumed_title_lines,
+                        title_scan_incomplete,
+                    ) = markdown_multiline_reference_title_lines(
+                        lines, line_index, definition_suffix, container_tokens
                     )
+                    if title_scan_incomplete:
+                        item.link_parse_incomplete = True
                     if consumed_title_lines is not None:
                         multiline_reference_title_hidden_lines.update(
                             consumed_title_lines
@@ -1999,14 +2023,17 @@ def inspect_text(
                     if title_state == "complete":
                         reference_title_continues = True
                     elif title_state == "open":
-                        consumed_title_lines = (
-                            markdown_multiline_reference_title_lines(
-                                lines,
-                                line_index,
-                                reference_line,
-                                previous_pending_reference_title_container_tokens,
-                            )
+                        (
+                            consumed_title_lines,
+                            title_scan_incomplete,
+                        ) = markdown_multiline_reference_title_lines(
+                            lines,
+                            line_index,
+                            reference_line,
+                            previous_pending_reference_title_container_tokens,
                         )
+                        if title_scan_incomplete:
+                            item.link_parse_incomplete = True
                         if consumed_title_lines is not None:
                             reference_title_continues = True
                             multiline_reference_title_hidden_lines.update(
@@ -2034,12 +2061,17 @@ def inspect_text(
                     continuation_suffix
                 )
                 if continuation_title_state == "open":
-                    consumed_title_lines = markdown_multiline_reference_title_lines(
+                    (
+                        consumed_title_lines,
+                        title_scan_incomplete,
+                    ) = markdown_multiline_reference_title_lines(
                         lines,
                         line_index,
                         continuation_suffix,
                         previous_pending_reference_container_tokens,
                     )
+                    if title_scan_incomplete:
+                        item.link_parse_incomplete = True
                     if consumed_title_lines is not None:
                         multiline_reference_title_hidden_lines.update(
                             consumed_title_lines
@@ -2085,6 +2117,10 @@ def inspect_text(
                     pending_reference_container_tokens = container_tokens
             elif markdown:
                 reference_use_line = markdown_mask_inline_links(line)
+                if markdown_has_multiline_reference_label_start(
+                    reference_use_line
+                ):
+                    item.link_parse_incomplete = True
                 used_reference_labels.update(
                     markdown_reference_use_labels(reference_use_line)
                 )

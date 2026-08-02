@@ -1999,6 +1999,109 @@ Visible paragraph
             self.assertEqual(largest["broken_targets"], [])
             self.assertEqual(largest["unresolved_markers"], 1)
 
+    def test_reference_title_can_close_after_seven_continuation_lines(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                """# Source
+
+[Use][guide]
+
+[guide]: target.md "line zero
+ line one
+ line two
+ line three
+ line four
+ line five
+ line six
+ line seven
+ line eight"
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 1)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
+    def test_multiline_reference_label_marks_link_coverage_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                """# Source
+
+[Guide][my
+ ref]
+
+[my ref]: target.md
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 0)
+            self.assertEqual(
+                by_path["memory/target.md"]["incoming_links_coverage"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertEqual(
+                report["summary"]["skipped"]["reference_parse_incomplete"], 1
+            )
+
     def test_multiline_reference_title_stops_at_heading_boundary(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
