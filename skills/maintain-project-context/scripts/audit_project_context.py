@@ -676,6 +676,23 @@ def html_raw_text_has_non_commonmark_closer(raw: str, tag: str) -> bool:
         search_cursor = candidate + 2
 
 
+def lifecycle_raw_text_closing_token_end(
+    raw: str, candidate: int, tag: str
+) -> Optional[int]:
+    """Return the end of a browser-significant same-line raw-text closer."""
+    candidate_end = markdown_inline_html_token_end(raw, candidate)
+    if candidate_end is not None:
+        return candidate_end
+    # CommonMark does not recognize the slash form as an inline raw-HTML
+    # closing tag, but the HTML tokenizer still closes the raw-text element.
+    slash_closer = re.match(
+        rf"</{re.escape(tag)}[ \t]*/[ \t]*>",
+        raw[candidate:],
+        re.I,
+    )
+    return candidate + slash_closer.end() if slash_closer is not None else None
+
+
 def html_visible_signal_text_with_state(
     raw: str,
     raw_text_state: Optional[
@@ -702,13 +719,17 @@ def html_visible_signal_text_with_state(
                     if candidate < 0:
                         return html_unescape("".join(pieces)), raw_text_state
                     candidate_end = markdown_inline_html_token_end(raw, candidate)
+                    if candidate_end is None and template_raw_text_tag is not None:
+                        candidate_end = lifecycle_raw_text_closing_token_end(
+                            raw, candidate, template_raw_text_tag
+                        )
                     if candidate_end is None:
                         search_cursor = candidate + 1
                         continue
                     token = raw[candidate:candidate_end]
                     if template_raw_text_tag is not None:
                         if re.fullmatch(
-                            rf"</{re.escape(template_raw_text_tag)}[ \t]*>",
+                            rf"</{re.escape(template_raw_text_tag)}[ \t]*/?>",
                             token,
                             re.I,
                         ):
@@ -872,10 +893,12 @@ def html_visible_signal_text_with_state(
                 if candidate < 0:
                     break
                 boundary = candidate + len(closing_prefix)
-                if boundary < len(raw) and raw[boundary] not in " \t>":
+                if boundary < len(raw) and raw[boundary] not in " \t/>":
                     search_cursor = candidate + 2
                     continue
-                candidate_end = markdown_inline_html_token_end(raw, candidate)
+                candidate_end = lifecycle_raw_text_closing_token_end(
+                    raw, candidate, raw_text_tag
+                )
                 if (
                     candidate_end is not None
                     and raw[candidate:candidate_end].lower().startswith(
@@ -916,11 +939,16 @@ def html_visible_signal_text_with_state(
             and normalized_opening_tag not in HTML_VOID_ELEMENTS
             and html_start_tag_has_attribute(token, "hidden")
         )
+        closed_dialog_subtree = bool(
+            normalized_opening_tag == "dialog"
+            and not html_start_tag_has_attribute(token, "open")
+        )
         if (
             opening_tag is not None
             and (
                 normalized_opening_tag in LIFECYCLE_OPAQUE_HTML_ELEMENTS
                 or hidden_subtree
+                or closed_dialog_subtree
             )
             and not (
                 normalized_opening_tag == "template"
@@ -2887,7 +2915,7 @@ def inspect_text(
                     continue
 
             semantic_line = line
-            inline_links = markdown_inline_links(line)
+            inline_links = markdown_inline_links(line) if markdown else []
             if markdown:
                 (
                     multiline_links,
