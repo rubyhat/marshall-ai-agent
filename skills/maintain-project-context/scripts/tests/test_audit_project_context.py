@@ -685,6 +685,7 @@ completed"
             (history / "background.md").write_text(
                 "# Background\n", encoding="utf-8"
             )
+            (history / "ping.md").write_text("# Ping\n", encoding="utf-8")
             (history / "svg-image.md").write_text("# SVG image\n", encoding="utf-8")
             (history / "svg-use.md").write_text("# SVG use\n", encoding="utf-8")
             (references / "source.md").write_text(
@@ -693,6 +694,7 @@ completed"
 <object data="../history/object.md"></object>
 <img srcset="data:image/png;base64,AAAA 1x, ../history/srcset.md 2x">
 <body background="../history/background.md"></body>
+<a href="https://example.invalid" ping="../history/ping.md https://example.invalid/ping">Ping</a>
 <svg><image href="../history/svg-image.md"></image></svg>
 <svg><use xlink:href="../history/svg-use.md"></use></svg>
 """,
@@ -728,6 +730,7 @@ completed"
             self.assertEqual(by_path["history/object.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/srcset.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/background.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["history/ping.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/svg-image.md"]["incoming_links"], 1)
             self.assertEqual(by_path["history/svg-use.md"]["incoming_links"], 1)
             self.assertTrue(
@@ -2440,6 +2443,54 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             self.assertEqual(
                 report["link_coverage"]["status"],
                 "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertEqual(
+                report["summary"]["skipped"]["reference_parse_incomplete"],
+                1,
+            )
+
+    def test_fragmented_raw_text_closer_downgrades_reference_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                (
+                    "Intro <script>\n"
+                    "</script\n"
+                    '><a href="../context/target.md">target</a>\n'
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            self.assertFalse(
+                report["link_coverage"]["complete_for_declared_roots"]
             )
             self.assertEqual(
                 report["summary"]["skipped"]["reference_parse_incomplete"],

@@ -49,8 +49,8 @@ STRUCTURED_TEXT_EXTENSIONS = {".csv", ".json", ".toml", ".tsv", ".yaml", ".yml"}
 MAX_MULTILINE_LINK_SCAN_CHARS = 1024 * 1024
 DEFAULT_MAX_CONTENT_BYTES = 8 * 1024 * 1024
 HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
-    "a": {"href"},
-    "area": {"href"},
+    "a": {"href", "ping"},
+    "area": {"href", "ping"},
     "audio": {"src"},
     "blockquote": {"cite"},
     "body": {"background"},
@@ -497,6 +497,10 @@ class MarkdownHtmlTargetParser(HTMLParser):
                 self.targets.update(
                     (target, self.base_href)
                     for target in html_srcset_targets(value)
+                )
+            elif normalized_name == "ping":
+                self.targets.update(
+                    (target, self.base_href) for target in value.split()
                 )
             else:
                 self.targets.add((value, self.base_href))
@@ -2274,6 +2278,13 @@ def inspect_text(
                     fragment, raw_text_tag
                 )
                 if suffix is None:
+                    if html_raw_text_has_non_commonmark_closer(
+                        fragment, raw_text_tag
+                    ):
+                        # A browser can finish this raw-text closing tag in a
+                        # later Markdown fragment. Without buffering the HTML
+                        # token, do not certify repository-reference coverage.
+                        item.link_parse_incomplete = True
                     return
                 fragment = suffix
         parser = MarkdownHtmlTargetParser(
