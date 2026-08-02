@@ -270,11 +270,42 @@ def html_srcset_targets(raw: str) -> Set[str]:
     return targets
 
 
-def html_visible_signal_text(raw: str) -> str:
-    """Strip only syntactically complete CommonMark raw-HTML tokens."""
+def html_visible_signal_text_with_state(
+    raw: str, raw_text_tag: Optional[str] = None
+) -> Tuple[str, Optional[str]]:
+    """Strip raw HTML while keeping inline raw-text element bodies opaque."""
     pieces: List[str] = []
     cursor = 0
     while cursor < len(raw):
+        if raw_text_tag is not None:
+            closing_prefix = f"</{raw_text_tag}"
+            search_cursor = cursor
+            closing_start = -1
+            closing_end: Optional[int] = None
+            while True:
+                candidate = raw.lower().find(closing_prefix, search_cursor)
+                if candidate < 0:
+                    break
+                boundary = candidate + len(closing_prefix)
+                if boundary < len(raw) and raw[boundary] not in " \t>":
+                    search_cursor = candidate + 2
+                    continue
+                candidate_end = markdown_inline_html_token_end(raw, candidate)
+                if (
+                    candidate_end is not None
+                    and raw[candidate:candidate_end].lower().startswith(
+                        closing_prefix
+                    )
+                ):
+                    closing_start = candidate
+                    closing_end = candidate_end
+                    break
+                search_cursor = candidate + 2
+            if closing_start < 0 or closing_end is None:
+                return html_unescape("".join(pieces)), raw_text_tag
+            cursor = closing_end
+            raw_text_tag = None
+            continue
         opening = raw.find("<", cursor)
         if opening < 0:
             pieces.append(raw[cursor:])
@@ -288,8 +319,23 @@ def html_visible_signal_text(raw: str) -> str:
             cursor = opening + 1
             continue
         pieces.append(raw[cursor:opening])
+        token = raw[opening:html_end]
+        opening_tag = re.match(r"<([A-Za-z][A-Za-z0-9-]*)", token)
+        if (
+            opening_tag is not None
+            and opening_tag.group(1).casefold()
+            in {"pre", "script", "style", "textarea"}
+            and not token.rstrip().endswith("/>")
+        ):
+            raw_text_tag = opening_tag.group(1).casefold()
         cursor = html_end
-    return html_unescape("".join(pieces))
+    return html_unescape("".join(pieces)), raw_text_tag
+
+
+def html_visible_signal_text(raw: str) -> str:
+    """Strip complete CommonMark raw HTML from one standalone text fragment."""
+    visible, _ = html_visible_signal_text_with_state(raw)
+    return visible
 
 
 def strip_html_comments(raw: str, in_comment: bool = False) -> Tuple[str, bool]:
@@ -2470,6 +2516,7 @@ def inspect_text(
             for heading_line in heading_signal_lines
         )
     prepared_signal_lines: List[Tuple[int, str, str, str]] = []
+    inline_raw_text_tag: Optional[str] = None
     for signal_line_number, raw_signal_line in signal_lines:
         markdown_signal_line = (
             markdown_visible_signal_text(raw_signal_line, defined_labels)
@@ -2481,7 +2528,9 @@ def inspect_text(
             if markdown
             else markdown_signal_line
         )
-        signal_line = html_visible_signal_text(html_signal_input)
+        signal_line, inline_raw_text_tag = html_visible_signal_text_with_state(
+            html_signal_input, inline_raw_text_tag
+        )
         prepared_signal_lines.append(
             (signal_line_number, raw_signal_line, html_signal_input, signal_line)
         )
@@ -2506,9 +2555,7 @@ def inspect_text(
         item.completed_marker_count += len(STATUS_RE.findall(signal_line))
         if task_id_pattern is not None:
             task_ids.update(
-                configured_task_ids(
-                    raw_signal_line, task_id_pattern, defined_labels
-                )
+                configured_task_ids(signal_line, task_id_pattern, defined_labels)
             )
     for raw_target, raw_base in html_targets:
         target_source = item.absolute_path
@@ -2868,7 +2915,8 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
             else:
                 links_by_source[item.relative_path] = targets
             for target in targets:
-                incoming[target] += 1
+                if target != resolved:
+                    incoming[target] += 1
 
         if not reference_roots:
             link_coverage_status = "scoped_only_incomplete"
