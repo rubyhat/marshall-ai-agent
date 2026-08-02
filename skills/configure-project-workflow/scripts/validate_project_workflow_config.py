@@ -443,6 +443,11 @@ def validate_semantics(
                 "architecture_decisions.filename_pattern must contain <ID>"
             )
         if isinstance(filename_pattern, str):
+            if filename_pattern.endswith(("/", "\\")):
+                errors.append(
+                    "architecture_decisions.filename_pattern must name a file, "
+                    "not end with a path separator"
+                )
             if not safe_relative_project_path(
                 filename_pattern, require_portable_components=False
             ):

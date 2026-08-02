@@ -222,15 +222,22 @@ class MarkdownHtmlTargetParser(HTMLParser):
         self.targets: Set[Tuple[str, Optional[str]]] = set()
         self.base_href = base_href
         self.base_seen = base_seen
+        self.resource_parse_incomplete = False
 
     def handle_starttag(
         self, tag: str, attrs: List[Tuple[str, Optional[str]]]
     ) -> None:
         normalized_tag = tag.casefold()
+        if normalized_tag == "style":
+            # CSS has its own URL grammar. Do not certify reference coverage
+            # when a stylesheet body is intentionally left opaque.
+            self.resource_parse_incomplete = True
         resource_attributes = HTML_RESOURCE_ATTRIBUTES.get(normalized_tag, set())
         seen_resource_attributes: Set[str] = set()
         for name, value in attrs:
             normalized_name = name.casefold()
+            if value and "url(" in value.casefold():
+                self.resource_parse_incomplete = True
             if normalized_tag == "base" and normalized_name == "href":
                 if not self.base_seen:
                     self.base_seen = True
@@ -434,7 +441,7 @@ def configured_task_ids(
 
 def markdown_front_matter_end(path: Path) -> Optional[int]:
     """Return the inclusive closing line number for valid leading front matter."""
-    with path.open("r", encoding="utf-8", errors="replace") as handle:
+    with path.open("r", encoding="utf-8") as handle:
         first_line = handle.readline()
         if not MARKDOWN_FRONT_MATTER_START_RE.match(first_line):
             return None
@@ -1863,6 +1870,8 @@ def inspect_text(
         html_targets.update(parser.targets)
         html_base_href = parser.base_href
         html_base_seen = parser.base_seen
+        if parser.resource_parse_incomplete:
+            item.link_parse_incomplete = True
         if markdown_has_incomplete_html_token(fragment):
             item.link_parse_incomplete = True
 
@@ -1909,7 +1918,7 @@ def inspect_text(
         item.markdown_heading_count += 1
         heading_signal_lines.append(heading_signal_text)
 
-    with item.absolute_path.open("r", encoding="utf-8", errors="replace") as handle:
+    with item.absolute_path.open("r", encoding="utf-8") as handle:
         lines = handle.readlines()
         multiline_link_line_overrides: Dict[int, str] = {}
         multiline_reference_title_hidden_lines: Set[int] = set()
@@ -2931,6 +2940,14 @@ def build_report(args: argparse.Namespace) -> Dict[str, object]:
                 reference_scan_incomplete = True
             try:
                 targets = inspect_text(item, root, task_id_pattern)
+            except UnicodeDecodeError:
+                skipped[
+                    "reference_content_decode_error"
+                    if is_external_source
+                    else "content_decode_error"
+                ] += 1
+                reference_scan_incomplete = True
+                continue
             except (OSError, PermissionError):
                 skipped[
                     "reference_content_unreadable"

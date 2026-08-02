@@ -447,6 +447,55 @@ completed"
                 report["link_coverage"]["complete_for_declared_roots"]
             )
 
+    def test_invalid_utf8_source_downgrades_reference_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "café.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_bytes(
+                b"[Target](../context/caf\xe9.md)\n"
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 0)
+            self.assertEqual(
+                report["summary"]["skipped"]["reference_content_decode_error"],
+                1,
+            )
+            self.assertEqual(
+                report["link_coverage"]["status"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertFalse(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_inline_link_after_unmatched_opening_bracket_is_counted(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -925,6 +974,56 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             source = json.loads(result.stdout)["largest_files"][0]
             self.assertEqual(source["completed_markers"], 1)
             self.assertEqual(source["unresolved_markers"], 0)
+
+    def test_unparsed_style_body_downgrades_reference_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                (
+                    "<style>body { background: "
+                    "url('../context/target.md') }</style>\n"
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 0)
+            self.assertEqual(
+                report["link_coverage"]["status"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertEqual(
+                report["summary"]["skipped"]["reference_parse_incomplete"],
+                1,
+            )
 
     def test_raw_html_target_is_not_entity_decoded_twice(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
