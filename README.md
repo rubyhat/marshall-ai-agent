@@ -31,10 +31,11 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
   --path skills/configure-project-workflow
 ```
 
-Выбранная revision должна содержать каждый устанавливаемый module. Последний
-опубликованный `v0.3.0` предшествует `record-architecture-decision`, поэтому
-ADR-enabled setup до следующего release требует полного commit SHA из
-reviewed pull request; floating branch использовать нельзя.
+Выбранная revision должна содержать каждый устанавливаемый module. Начиная с
+`v0.4.0`, опубликованный workflow kit включает
+`record-architecture-decision`. Для стабильного ADR-enabled setup используйте
+exact release tag `v0.4.0` или новее; полный commit SHA допустим только для
+reviewed unreleased testing. Floating branch использовать нельзя.
 
 Для private repository installer использует существующие Git credentials либо
 `GITHUB_TOKEN`/`GH_TOKEN`. Он устанавливает skill в
