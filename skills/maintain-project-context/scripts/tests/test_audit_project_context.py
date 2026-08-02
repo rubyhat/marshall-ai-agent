@@ -1037,6 +1037,60 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                 report["link_coverage"]["complete_for_declared_roots"]
             )
 
+    def test_raw_text_closing_suffix_comment_is_opaque(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                (
+                    "<script>const value = 1;</script>"
+                    "<!-- <a href=\"../context/target.md\">"
+                    "TODO completed</a> -->\n"
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--scope",
+                    "references",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["context/target.md"]["incoming_links"], 0)
+            self.assertEqual(
+                by_path["references/source.md"]["unresolved_markers"], 0
+            )
+            self.assertEqual(
+                by_path["references/source.md"]["completed_markers"], 0
+            )
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_comment_inside_ordinary_html_block_is_opaque(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -2528,6 +2582,56 @@ Visible paragraph
                 """# Source
 
 [Guide][my
+ ref]
+
+[my ref]: target.md
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--reference-root",
+                    "memory",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["memory/target.md"]["incoming_links"], 0)
+            self.assertEqual(
+                by_path["memory/target.md"]["incoming_links_coverage"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+            self.assertEqual(
+                report["summary"]["skipped"]["reference_parse_incomplete"], 1
+            )
+
+    def test_multiline_shortcut_label_marks_link_coverage_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "target.md").write_text("# Target\n", encoding="utf-8")
+            (memory / "source.md").write_text(
+                """# Source
+
+[my
  ref]
 
 [my ref]: target.md

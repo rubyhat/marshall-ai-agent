@@ -573,6 +573,44 @@ def markdown_has_multiline_reference_label_start(line: str) -> bool:
     return False
 
 
+def markdown_unclosed_reference_label_continues(
+    lines: Sequence[str],
+    start_index: int,
+    line: str,
+    container_tokens: Sequence[Tuple[str, int]],
+) -> bool:
+    """Detect an unfinished first/shortcut label closed later in its paragraph."""
+    cursor = 0
+    while cursor < len(line):
+        opening = line.find("[", cursor)
+        if opening < 0:
+            return False
+        if markdown_character_is_escaped(line, opening):
+            cursor = opening + 1
+            continue
+        if markdown_link_label_end(line, opening) is not None:
+            cursor = opening + 1
+            continue
+        combined = line[opening:]
+        for future_index in range(start_index + 1, len(lines)):
+            future_line = markdown_paragraph_continuation(
+                lines[future_index], container_tokens
+            )
+            if (
+                future_line is None
+                or not future_line.strip()
+                or markdown_line_interrupts_paragraph(future_line)
+            ):
+                break
+            combined += "\n" + future_line.rstrip("\r\n")
+            if len(combined) > MAX_MULTILINE_LINK_SCAN_CHARS:
+                return True
+            if markdown_link_label_end(combined, 0) is not None:
+                return True
+        cursor = opening + 1
+    return False
+
+
 def markdown_link_label_end(line: str, opening: int) -> Optional[int]:
     depth = 1
     cursor = opening + 1
@@ -1767,6 +1805,19 @@ def inspect_text(
         if markdown_has_incomplete_html_token(fragment):
             item.link_parse_incomplete = True
 
+    def queue_rendered_suffix(fragment: str, line_number: int) -> None:
+        sanitized, comment_open, code_span_open = sanitize_markdown_inline(
+            fragment,
+            False,
+            0,
+            [fragment],
+            1,
+        )
+        if comment_open or code_span_open:
+            item.link_parse_incomplete = True
+        if sanitized.strip():
+            signal_lines.append((line_number, sanitized))
+
     def register_heading(
         heading_level: int,
         heading_start: int,
@@ -1897,8 +1948,7 @@ def inspect_text(
                                 html_block_end_token
                             )
                             rendered_suffix = html_container_line[suffix_start:]
-                            if rendered_suffix.strip():
-                                signal_lines.append((line_count, rendered_suffix))
+                            queue_rendered_suffix(rendered_suffix, line_count)
                             html_block_end_token = None
                             html_block_container_tokens = ()
                         paragraph_active = False
@@ -1966,10 +2016,9 @@ def inspect_text(
                             if closing_position >= 0:
                                 suffix_start = closing_position + len(end_token)
                                 rendered_suffix = container_line[suffix_start:]
-                                if rendered_suffix.strip():
-                                    signal_lines.append(
-                                        (line_count, rendered_suffix)
-                                    )
+                                queue_rendered_suffix(
+                                    rendered_suffix, line_count
+                                )
                     elif until_blank:
                         sanitized_html_line, html_block_comment_open = (
                             strip_html_comments(container_line)
@@ -2275,6 +2324,14 @@ def inspect_text(
                 reference_use_line = markdown_mask_inline_links(line)
                 if markdown_has_multiline_reference_label_start(
                     reference_use_line
+                ) or (
+                    not multiline_links
+                    and markdown_unclosed_reference_label_continues(
+                        lines,
+                        line_index,
+                        reference_use_line,
+                        container_tokens,
+                    )
                 ):
                     item.link_parse_incomplete = True
                 used_reference_labels.update(
