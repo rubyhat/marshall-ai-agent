@@ -115,7 +115,7 @@ STATUS_RE = re.compile(
     re.I,
 )
 MARKDOWN_REFERENCE_SHORTCUT_RE = re.compile(
-    r"(?<!!)!?\[((?:\\.|[^\]\\])+)\](?![\[(])"
+    r"(?<!!)!?\[((?:\\.|[^\]\\])+)\](?!\[)"
 )
 MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(
     r"^[ ]{0,3}\[((?:\\.|[^\]\\])+)\]:"
@@ -247,11 +247,10 @@ class MarkdownHtmlTargetParser(HTMLParser):
                 self.template_depth += 1
             return
         if normalized_tag == "template":
-            if any(
-                name.casefold() == "shadowrootmode"
-                and (value or "").casefold() in {"open", "closed"}
-                for name, value in attrs
-            ):
+            if (first_attributes.get("shadowrootmode") or "").casefold() in {
+                "open",
+                "closed",
+            }:
                 self.resource_parse_incomplete = True
                 self.declarative_shadow_template_seen = True
             self.template_depth = 1
@@ -260,6 +259,11 @@ class MarkdownHtmlTargetParser(HTMLParser):
             # CSS has its own URL grammar, while CommonMark HTML blocks keep
             # nested HTML inside pre outside this bounded parser. Do not
             # certify reference coverage when either body stays opaque.
+            self.resource_parse_incomplete = True
+        if first_attributes.get("style"):
+            # CSS declarations can carry repository references through more
+            # than url(), including image-set() string images. Keep coverage
+            # conservative until the full style-attribute grammar is parsed.
             self.resource_parse_incomplete = True
         resource_attributes = HTML_RESOURCE_ATTRIBUTES.get(normalized_tag, set())
         seen_resource_attributes: Set[str] = set()
