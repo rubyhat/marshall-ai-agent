@@ -332,13 +332,38 @@ def html_srcset_targets(raw: str) -> Set[str]:
 
 
 def html_visible_signal_text_with_state(
-    raw: str, raw_text_tag: Optional[str] = None
-) -> Tuple[str, Optional[str]]:
+    raw: str, raw_text_state: Optional[Tuple[str, int]] = None
+) -> Tuple[str, Optional[Tuple[str, int]]]:
     """Strip raw HTML while keeping inline raw-text element bodies opaque."""
     pieces: List[str] = []
     cursor = 0
     while cursor < len(raw):
-        if raw_text_tag is not None:
+        if raw_text_state is not None:
+            raw_text_tag, raw_text_depth = raw_text_state
+            if raw_text_tag == "template":
+                search_cursor = cursor
+                while True:
+                    candidate = raw.find("<", search_cursor)
+                    if candidate < 0:
+                        return html_unescape("".join(pieces)), raw_text_state
+                    candidate_end = markdown_inline_html_token_end(raw, candidate)
+                    if candidate_end is None:
+                        search_cursor = candidate + 1
+                        continue
+                    token = raw[candidate:candidate_end]
+                    if re.fullmatch(r"</template[ \t]*>", token, re.I):
+                        raw_text_depth -= 1
+                        cursor = candidate_end
+                        if raw_text_depth == 0:
+                            raw_text_state = None
+                            break
+                        raw_text_state = (raw_text_tag, raw_text_depth)
+                    elif re.match(r"<template(?:[ \t/>]|$)", token, re.I):
+                        # HTML ignores a self-closing slash on template.
+                        raw_text_depth += 1
+                        raw_text_state = (raw_text_tag, raw_text_depth)
+                    search_cursor = candidate_end
+                continue
             closing_prefix = f"</{raw_text_tag}"
             search_cursor = cursor
             closing_start = -1
@@ -363,9 +388,9 @@ def html_visible_signal_text_with_state(
                     break
                 search_cursor = candidate + 2
             if closing_start < 0 or closing_end is None:
-                return html_unescape("".join(pieces)), raw_text_tag
+                return html_unescape("".join(pieces)), raw_text_state
             cursor = closing_end
-            raw_text_tag = None
+            raw_text_state = None
             continue
         opening = raw.find("<", cursor)
         if opening < 0:
@@ -391,9 +416,9 @@ def html_visible_signal_text_with_state(
                 and re.search(r"\bshadowrootmode\b", token, re.I)
             )
         ):
-            raw_text_tag = opening_tag.group(1).casefold()
+            raw_text_state = (opening_tag.group(1).casefold(), 1)
         cursor = html_end
-    return html_unescape("".join(pieces)), raw_text_tag
+    return html_unescape("".join(pieces)), raw_text_state
 
 
 def html_visible_signal_text(raw: str) -> str:
@@ -2591,7 +2616,7 @@ def inspect_text(
             for heading_line in heading_signal_lines
         )
     prepared_signal_lines: List[Tuple[int, str, str, str]] = []
-    inline_raw_text_tag: Optional[str] = None
+    inline_raw_text_state: Optional[Tuple[str, int]] = None
     for signal_line_number, raw_signal_line in signal_lines:
         markdown_signal_line = (
             markdown_visible_signal_text(raw_signal_line, defined_labels)
@@ -2603,8 +2628,8 @@ def inspect_text(
             if markdown
             else markdown_signal_line
         )
-        signal_line, inline_raw_text_tag = html_visible_signal_text_with_state(
-            html_signal_input, inline_raw_text_tag
+        signal_line, inline_raw_text_state = html_visible_signal_text_with_state(
+            html_signal_input, inline_raw_text_state
         )
         prepared_signal_lines.append(
             (signal_line_number, raw_signal_line, html_signal_input, signal_line)

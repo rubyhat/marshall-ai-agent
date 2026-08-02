@@ -1261,6 +1261,45 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
             self.assertEqual(source["completed_markers"], 0)
             self.assertEqual(source["unresolved_markers"], 0)
 
+    def test_nested_template_bodies_remain_opaque_to_lifecycle_signals(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            memory = root / "memory"
+            memory.mkdir()
+            (memory / "source.md").write_text(
+                (
+                    "Completed <template><template>x</template>"
+                    "TODO</template>\n"
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "memory",
+                    "--canonical",
+                    "memory/source.md",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            source = json.loads(result.stdout)["largest_files"][0]
+            self.assertEqual(source["completed_markers"], 1)
+            self.assertEqual(source["unresolved_markers"], 0)
+
     def test_unparsed_style_body_downgrades_reference_coverage(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
