@@ -121,6 +121,7 @@ HTML_RAW_TEXT_ELEMENTS = {
     "title",
     "xmp",
 }
+LIFECYCLE_OPAQUE_HTML_ELEMENTS = {"script", "style", "template", "title"}
 FOREIGN_CONTENT_HTML_BREAKOUT_TAGS = {
     "b",
     "big",
@@ -696,7 +697,7 @@ def html_visible_signal_text_with_state(
         if (
             opening_tag is not None
             and opening_tag.group(1).casefold()
-            in {"script", "style", "template"}
+            in LIFECYCLE_OPAQUE_HTML_ELEMENTS
             and not (
                 opening_tag.group(1).casefold() == "template"
                 and html_template_is_declarative_shadow_root(token)
