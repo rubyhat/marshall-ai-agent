@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.3.0...v0.4.0) (2026-08-02)
+
+
+### Новые возможности
+
+* **workflow:** add ADR lifecycle core ([#14](https://github.com/rubyhat/marshall-ai-agent/issues/14)) ([7f298e3](https://github.com/rubyhat/marshall-ai-agent/commit/7f298e3bd6208ccfd44b7be77e1d5bfc5ccf58fd))
+
+### Совместимость и обновление
+
+* Добавлен skill `record-architecture-decision` и read-only/mutation aliases
+  `--adr-review` и `--record-adr`. Он управляет necessity, applicability и
+  lifecycle одного материального архитектурного решения, а сохраняет готовый
+  ADR через bounded handoff в `record-project-context`.
+* Для проектов, которые не включают новый ADR-модуль, обязательной миграции
+  нет; существующие установки по pinned revision не изменяются автоматически.
+* При обновлении до `v0.4.0` с включением ADR-модуля повторно запустите
+  `--workflow-setup`: конфигурация должна получить секцию
+  `architecture_decisions` с project-relative root/index, lifecycle labels,
+  decision authority, preview/confirmation policy и точным exclusive-lock или
+  compare-and-swap protocol для общей ADR/index mutation. После настройки
+  выполните `--workflow-check`.
+* Стабильная установка должна использовать exact tag `v0.4.0`; floating
+  `main` не является воспроизводимой revision.
+
 ## [0.3.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.2.1...v0.3.0) (2026-08-01)
 
 
