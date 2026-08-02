@@ -27,7 +27,9 @@ Validate the configured workflow without executing ordinary project work.
 - Verify no configured path escapes its intended root.
 - Verify the ADR ID regex can emit only non-empty portable identifier
   characters and that every concrete rendered ADR filename remains inside the
-  configured ADR root on both POSIX and Windows path semantics.
+  configured ADR root on both POSIX and Windows path semantics; allow only
+  `<ID>` and bounded `<slug>` placeholders and prove the maximum rendered
+  component fits within 255 UTF-8 bytes.
 - Verify `paths.project_topology` resolves to exactly one canonical topology
   artifact.
 - Verify every configured repository or deployable unit has one topology entry

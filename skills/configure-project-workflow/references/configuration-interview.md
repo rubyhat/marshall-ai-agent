@@ -116,7 +116,8 @@ without turning accepted ADRs into permanent dogma.
 Ask 7–10 prompts covering:
 
 1. existing ADR or decision artifacts and their current authority;
-2. canonical ADR root, index, ID, filename, and document language;
+2. canonical ADR root, index, ID, filename, slug byte budget, and document
+   language;
 3. distinct project labels mapped to the `accepted`, `superseded`, `deprecated`,
    and `rejected` semantic states, plus whether an optional distinct `proposed`
    state is useful;

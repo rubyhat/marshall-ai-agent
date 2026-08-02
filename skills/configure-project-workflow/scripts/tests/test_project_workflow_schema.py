@@ -188,6 +188,7 @@ def rendered_config() -> Dict[str, Any]:
             "index": "docs_ai/adr/README.md",
             "id_pattern": "ADR-[0-9]{4}",
             "filename_pattern": "<ID>-<slug>.md",
+            "slug_max_bytes": 96,
             "statuses": {
                 "proposed": "proposed",
                 "accepted": "accepted",
@@ -356,6 +357,34 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                     "filename_pattern"
                 ] = filename_pattern
                 self.assert_invalid(fixed_component)
+
+    def test_adr_slug_budget_must_fit_filename_component(self) -> None:
+        config = rendered_config()
+        config["architecture_decisions"]["slug_max_bytes"] = 244
+        self.assert_invalid(config)
+
+        boundary = rendered_config()
+        boundary["architecture_decisions"]["slug_max_bytes"] = 243
+        self.assert_valid(boundary)
+
+        for invalid_budget in (0, 256, "96", True):
+            with self.subTest(slug_max_bytes=invalid_budget):
+                invalid = rendered_config()
+                invalid["architecture_decisions"][
+                    "slug_max_bytes"
+                ] = invalid_budget
+                self.assert_invalid(invalid)
+
+        backward_compatible = rendered_config()
+        del backward_compatible["architecture_decisions"]["slug_max_bytes"]
+        self.assert_valid(backward_compatible)
+
+    def test_adr_filename_pattern_rejects_unbounded_placeholder(self) -> None:
+        config = rendered_config()
+        config["architecture_decisions"][
+            "filename_pattern"
+        ] = "<ID>-<title>.md"
+        self.assert_invalid(config)
 
     def test_adr_root_and_index_must_stay_inside_project(self) -> None:
         for field, path in (

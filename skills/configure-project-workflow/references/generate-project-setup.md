@@ -79,7 +79,7 @@ When `record-architecture-decision` is selected, generate one
 `architecture_decisions` section containing:
 
 - canonical ADR root and index;
-- ID and filename convention;
+- ID and filename convention, including a bounded `<slug>` byte budget;
 - distinct semantic lifecycle-status mapping and decision authority;
 - project-specific materiality and review triggers;
 - mandatory applicability review before forcing task conformance;

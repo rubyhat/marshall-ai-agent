@@ -42,6 +42,7 @@ WINDOWS_FORBIDDEN_COMPONENT_CHARACTERS = frozenset('<>:"|?*')
 ADR_FILENAME_PLACEHOLDER_RE = re.compile(r"<[^<>]+>")
 ADR_TEMPLATE_VALUE_PATTERN = r"[A-Za-z0-9_-]+"
 PORTABLE_FILENAME_COMPONENT_MAX_BYTES = 255
+DEFAULT_ADR_SLUG_MAX_BYTES = 96
 
 
 def load_mapping(path: Path) -> Mapping[str, Any]:
@@ -215,18 +216,23 @@ def adr_id_max_width(pattern: str) -> Optional[int]:
 
 
 def adr_filename_components_fit_max_id(
-    filename_pattern: str, maximum_id_length: int
+    filename_pattern: str,
+    maximum_id_length: int,
+    slug_max_bytes: int,
 ) -> bool:
-    """Check UTF-8 component sizes after rendering the longest valid ADR ID."""
+    """Check component sizes after rendering bounded dynamic placeholders."""
     for component in PureWindowsPath(filename_pattern).parts:
         identifier_slots = component.count("<ID>")
-        without_identifiers = component.replace("<ID>", "")
+        slug_slots = component.count("<slug>")
+        without_identifiers = component.replace("<ID>", "").replace(
+            "<slug>", ""
+        )
         fixed_rendered = ADR_FILENAME_PLACEHOLDER_RE.sub(
             "safe", without_identifiers
         )
         rendered_length = len(fixed_rendered.encode("utf-8")) + (
             identifier_slots * maximum_id_length
-        )
+        ) + (slug_slots * slug_max_bytes)
         if rendered_length > PORTABLE_FILENAME_COMPONENT_MAX_BYTES:
             return False
     return True
@@ -478,11 +484,34 @@ def validate_semantics(
                         "portable filename-safe characters: A-Z, a-z, 0-9, - or _"
                     )
         filename_pattern = adr.get("filename_pattern")
+        slug_max_bytes = adr.get(
+            "slug_max_bytes", DEFAULT_ADR_SLUG_MAX_BYTES
+        )
+        if (
+            not isinstance(slug_max_bytes, int)
+            or isinstance(slug_max_bytes, bool)
+            or not 1 <= slug_max_bytes <= PORTABLE_FILENAME_COMPONENT_MAX_BYTES
+        ):
+            errors.append(
+                "architecture_decisions.slug_max_bytes must be an integer "
+                "between 1 and 255"
+            )
         if isinstance(filename_pattern, str) and "<ID>" not in filename_pattern:
             errors.append(
                 "architecture_decisions.filename_pattern must contain <ID>"
             )
         if isinstance(filename_pattern, str):
+            unsupported_placeholders = {
+                match.group(0)
+                for match in ADR_FILENAME_PLACEHOLDER_RE.finditer(
+                    filename_pattern
+                )
+            } - {"<ID>", "<slug>"}
+            if unsupported_placeholders:
+                errors.append(
+                    "architecture_decisions.filename_pattern supports only "
+                    "<ID> and <slug> placeholders"
+                )
             if filename_pattern.endswith(("/", "\\")):
                 errors.append(
                     "architecture_decisions.filename_pattern must name a file, "
@@ -493,13 +522,20 @@ def validate_semantics(
                 if isinstance(id_pattern, str)
                 else None
             )
-            if maximum_id_length is not None and not adr_filename_components_fit_max_id(
-                filename_pattern, maximum_id_length
+            if (
+                maximum_id_length is not None
+                and isinstance(slug_max_bytes, int)
+                and not isinstance(slug_max_bytes, bool)
+                and not adr_filename_components_fit_max_id(
+                    filename_pattern,
+                    maximum_id_length,
+                    slug_max_bytes,
+                )
             ):
                 errors.append(
                     "architecture_decisions.filename_pattern must keep every "
                     "rendered component within 255 UTF-8 bytes for the maximum "
-                    "valid ADR ID"
+                    "valid ADR ID and configured slug budget"
                 )
             if not safe_relative_project_path(
                 filename_pattern, require_portable_components=False

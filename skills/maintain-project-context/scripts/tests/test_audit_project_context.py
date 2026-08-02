@@ -1569,6 +1569,52 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                 report["link_coverage"]["complete_for_declared_roots"]
             )
 
+    def test_first_base_href_applies_to_targets_that_precede_it(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            nested = context / "nested"
+            references = root / "references"
+            nested.mkdir(parents=True)
+            references.mkdir()
+            (nested / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                (
+                    '<a href="target.md">Target</a>\n'
+                    '<base href="../context/nested/">\n'
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 1)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_base_href_is_resolution_context_not_incoming_resource(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

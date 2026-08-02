@@ -78,6 +78,7 @@ architecture_decisions:
   index: "{{ADR_INDEX_PATH}}"
   id_pattern: "{{ADR_ID_PATTERN}}"
   filename_pattern: "{{ADR_FILENAME_PATTERN}}"
+  slug_max_bytes: 96
   statuses:
     proposed: proposed
     accepted: accepted

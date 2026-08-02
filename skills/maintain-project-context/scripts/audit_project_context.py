@@ -2781,7 +2781,11 @@ def inspect_text(
             task_ids.update(
                 configured_task_ids(signal_line, task_id_pattern, defined_labels)
             )
-    for raw_target, raw_base in html_targets:
+    document_base = html_base_href if html_base_seen else None
+    for raw_target, _ in html_targets:
+        # The first HTML <base> applies document-wide, including to elements
+        # that occur before it in source order.
+        raw_base = document_base
         target_source = item.absolute_path
         if raw_base is not None:
             decoded_base = raw_base.strip()

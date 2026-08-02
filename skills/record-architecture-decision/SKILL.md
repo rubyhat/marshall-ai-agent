@@ -62,6 +62,7 @@ Use project configuration and instructions to resolve:
 
 - whether the ADR module is enabled;
 - ADR root, index, ID and filename convention;
+- configured `<slug>` UTF-8 byte budget, defaulting to 96 when omitted;
 - configured labels for the semantic lifecycle states and decision authority;
 - project or domain triggers that require an ADR;
 - architecture sources and relationship to code and task specifications;
@@ -155,7 +156,10 @@ concrete ID to match both the configured pattern and the portable
 relative path, then reject an absolute path, Windows drive, parent component,
 or any lexical/resolved escape from the configured ADR root or project root,
 including a symlink boundary. Normalize a generated slug to a single safe
-filename segment, and reject Windows reserved device components such as
+`[a-z0-9_-]+` filename segment, truncate it to the configured
+`slug_max_bytes` UTF-8 budget (96 when omitted), and revalidate the fully
+rendered component against the 255-byte portability limit. Reject Windows
+reserved device components such as
 `CON`, `NUL`, `COM0`–`COM9`, `LPT0`–`LPT9`, their ISO-8859-1 superscript
 `1`–`3` aliases, `CONIN$`, or `CONOUT$` even when they have an extension;
 never interpolate raw user text into the path.
