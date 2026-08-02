@@ -525,6 +525,42 @@ class ProjectWorkflowSchemaTest(unittest.TestCase):
                 config["architecture_decisions"]["filename_pattern"] = filename_pattern
                 self.assert_invalid(config)
 
+    def test_adr_slug_budget_bounds_device_name_feasibility(self) -> None:
+        bounded = rendered_config()
+        bounded["architecture_decisions"][
+            "filename_pattern"
+        ] = "C<slug>/<ID>.md"
+        bounded["architecture_decisions"]["slug_max_bytes"] = 1
+        self.assert_valid(bounded)
+
+        unbounded = rendered_config()
+        unbounded["architecture_decisions"][
+            "filename_pattern"
+        ] = "C<slug>/<ID>.md"
+        unbounded["architecture_decisions"]["slug_max_bytes"] = 2
+        self.assert_invalid(unbounded)
+
+    def test_adr_slug_budget_bounds_index_collision_feasibility(self) -> None:
+        bounded = rendered_config()
+        bounded["architecture_decisions"][
+            "filename_pattern"
+        ] = "folder-<slug>/<ID>.md"
+        bounded["architecture_decisions"][
+            "index"
+        ] = "docs_ai/adr/folder-ab/ADR-0001.md"
+        bounded["architecture_decisions"]["slug_max_bytes"] = 1
+        self.assert_valid(bounded)
+
+        colliding = rendered_config()
+        colliding["architecture_decisions"][
+            "filename_pattern"
+        ] = "folder-<slug>/<ID>.md"
+        colliding["architecture_decisions"][
+            "index"
+        ] = "docs_ai/adr/folder-ab/ADR-0001.md"
+        colliding["architecture_decisions"]["slug_max_bytes"] = 2
+        self.assert_invalid(colliding)
+
     def test_prefixed_windows_device_identifier_is_portable(self) -> None:
         config = rendered_config()
         config["architecture_decisions"]["id_pattern"] = "CON"

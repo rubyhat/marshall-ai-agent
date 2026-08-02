@@ -264,7 +264,11 @@ def rendered_adr_filename_is_portable(pattern: str, identifier: str) -> bool:
 
 
 def template_identifier_matches(
-    template: str, target: str, *, ignore_case: bool = False
+    template: str,
+    target: str,
+    *,
+    slug_max_bytes: int,
+    ignore_case: bool = False,
 ) -> tuple[bool, Set[str]]:
     """Report every ID allocation that can render a portable target."""
     flags = re.IGNORECASE if ignore_case else 0
@@ -278,6 +282,10 @@ def template_identifier_matches(
             pieces.append(re.escape(template[cursor : placeholder.start()]))
             if placeholder.group(0) == "<ID>" and identifier is not None:
                 pieces.append(re.escape(identifier))
+            elif placeholder.group(0) == "<slug>":
+                pieces.append(
+                    rf"[A-Za-z0-9_-]{{1,{slug_max_bytes}}}"
+                )
             else:
                 pieces.append(ADR_TEMPLATE_VALUE_PATTERN)
             cursor = placeholder.end()
@@ -307,7 +315,9 @@ def adr_id_pattern_accepts(
 
 
 def filename_pattern_can_render_windows_device_name(
-    filename_pattern: str, compiled_id: re.Pattern
+    filename_pattern: str,
+    compiled_id: re.Pattern,
+    slug_max_bytes: int,
 ) -> bool:
     for component in PureWindowsPath(filename_pattern).parts:
         basename_template = component.split(".", 1)[0]
@@ -318,7 +328,10 @@ def filename_pattern_can_render_windows_device_name(
             continue
         for reserved in WINDOWS_RESERVED_BASENAMES:
             matches, identifiers = template_identifier_matches(
-                basename_template, reserved, ignore_case=True
+                basename_template,
+                reserved,
+                slug_max_bytes=slug_max_bytes,
+                ignore_case=True,
             )
             if not matches:
                 continue
@@ -337,6 +350,7 @@ def adr_index_conflicts_with_rendered_filename(
     adr_index: str,
     filename_pattern: str,
     compiled_id: re.Pattern,
+    slug_max_bytes: int,
 ) -> bool:
     root = PureWindowsPath(adr_root)
     index = PureWindowsPath(adr_index)
@@ -350,7 +364,10 @@ def adr_index_conflicts_with_rendered_filename(
     prefix_pattern = "/".join(pattern_parts[:shared_length])
     normalized_index = "/".join(index_parts[:shared_length])
     matches, identifiers = template_identifier_matches(
-        prefix_pattern, normalized_index, ignore_case=True
+        prefix_pattern,
+        normalized_index,
+        slug_max_bytes=slug_max_bytes,
+        ignore_case=True,
     )
     return matches and (
         not identifiers
@@ -503,6 +520,13 @@ def validate_semantics(
                 "architecture_decisions.slug_max_bytes must be an integer "
                 "between 1 and 255"
             )
+        effective_slug_max_bytes = (
+            slug_max_bytes
+            if isinstance(slug_max_bytes, int)
+            and not isinstance(slug_max_bytes, bool)
+            and 1 <= slug_max_bytes <= PORTABLE_FILENAME_COMPONENT_MAX_BYTES
+            else DEFAULT_ADR_SLUG_MAX_BYTES
+        )
         if isinstance(filename_pattern, str) and "<ID>" not in filename_pattern:
             errors.append(
                 "architecture_decisions.filename_pattern must contain <ID>"
@@ -570,7 +594,9 @@ def validate_semantics(
                     )
                 elif compiled_id is not None and (
                     filename_pattern_can_render_windows_device_name(
-                        filename_pattern, compiled_id
+                        filename_pattern,
+                        compiled_id,
+                        effective_slug_max_bytes,
                     )
                 ):
                     errors.append(
@@ -586,6 +612,7 @@ def validate_semantics(
                         adr_index,
                         filename_pattern,
                         compiled_id,
+                        effective_slug_max_bytes,
                     )
                 ):
                     errors.append(
