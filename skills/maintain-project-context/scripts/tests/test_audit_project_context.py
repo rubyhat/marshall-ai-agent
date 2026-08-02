@@ -833,6 +833,57 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                 report["link_coverage"]["complete_for_declared_roots"]
             )
 
+    def test_first_base_href_follows_source_order_across_inline_and_block_html(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            one = context / "one"
+            two = context / "two"
+            references = root / "references"
+            one.mkdir(parents=True)
+            two.mkdir(parents=True)
+            references.mkdir()
+            (one / "target.md").write_text("# One\n", encoding="utf-8")
+            (two / "target.md").write_text("# Two\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                """Intro <base href="../context/one/">
+
+<base href="../context/two/">
+<a href="target.md">Target</a>
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--top",
+                    "10",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["context/one/target.md"]["incoming_links"], 1)
+            self.assertEqual(by_path["context/two/target.md"]["incoming_links"], 0)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_base_href_is_resolution_context_not_incoming_resource(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

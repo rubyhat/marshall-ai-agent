@@ -1747,7 +1747,8 @@ def inspect_text(
     reference_definitions: Dict[str, str] = {}
     used_reference_labels: Set[str] = set()
     inline_link_candidates: List[Tuple[str, Set[str]]] = []
-    signal_lines: List[str] = []
+    signal_lines: List[Tuple[int, str]] = []
+    html_only_fragments: List[Tuple[int, str]] = []
     heading_signal_lines: List[str] = []
     pending_reference_label: Optional[str] = None
     pending_reference_container_tokens: Tuple[Tuple[str, int], ...] = ()
@@ -1899,9 +1900,8 @@ def inspect_text(
                                 html_container_line, html_block_comment_open
                             )
                         )
-                        register_html_fragment(sanitized_html_line)
                         if sanitized_html_line.strip():
-                            signal_lines.append(sanitized_html_line)
+                            signal_lines.append((line_count, sanitized_html_line))
                         if not html_container_line.strip():
                             html_block_until_blank = False
                             html_block_container_tokens = ()
@@ -1951,14 +1951,13 @@ def inspect_text(
                         if raw_text_tag in {"pre", "script", "style", "textarea"}:
                             tokens = markdown_complete_html_tokens(container_line)
                             if tokens:
-                                register_html_fragment(tokens[0])
+                                html_only_fragments.append((line_count, tokens[0]))
                     elif until_blank:
                         sanitized_html_line, html_block_comment_open = (
                             strip_html_comments(container_line)
                         )
-                        register_html_fragment(sanitized_html_line)
                         if sanitized_html_line.strip():
-                            signal_lines.append(sanitized_html_line)
+                            signal_lines.append((line_count, sanitized_html_line))
                     if (
                         end_token is not None
                         and end_token not in container_line.lower()
@@ -2317,7 +2316,7 @@ def inspect_text(
             if heading_match and DATED_HEADING_RE.search(structure_line):
                 item.dated_heading_count += 1
             if not reference_definition:
-                signal_lines.append(semantic_line)
+                signal_lines.append((line_count, semantic_line))
             for start, _, label, raw_target in inline_links:
                 if line[start : start + 1] != "!":
                     for nested_label, nested_target in markdown_nested_image_links(
@@ -2395,7 +2394,8 @@ def inspect_text(
             )
             for heading_line in heading_signal_lines
         )
-    for raw_signal_line in signal_lines:
+    prepared_signal_lines: List[Tuple[int, str, str, str]] = []
+    for signal_line_number, raw_signal_line in signal_lines:
         markdown_signal_line = (
             markdown_visible_signal_text(raw_signal_line, defined_labels)
             if markdown
@@ -2406,8 +2406,20 @@ def inspect_text(
             if markdown
             else markdown_signal_line
         )
-        register_html_fragment(html_signal_input)
         signal_line = html_visible_signal_text(html_signal_input)
+        prepared_signal_lines.append(
+            (signal_line_number, raw_signal_line, html_signal_input, signal_line)
+        )
+    html_events = [
+        (line_number, fragment)
+        for line_number, fragment in html_only_fragments
+    ] + [
+        (line_number, html_signal_input)
+        for line_number, _, html_signal_input, _ in prepared_signal_lines
+    ]
+    for _, html_fragment in sorted(html_events, key=lambda event: event[0]):
+        register_html_fragment(html_fragment)
+    for _, raw_signal_line, _, signal_line in prepared_signal_lines:
         item.unresolved_marker_count += len(UNRESOLVED_RE.findall(signal_line))
         supersession_field = SUPERSESSION_FIELD_RE.match(signal_line)
         if supersession_field:
