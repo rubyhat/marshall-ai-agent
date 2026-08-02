@@ -239,6 +239,9 @@ class MarkdownHtmlTargetParser(HTMLParser):
             normalized_name = name.casefold()
             if value and "url(" in value.casefold():
                 self.resource_parse_incomplete = True
+            if normalized_tag == "iframe" and normalized_name == "srcdoc" and value:
+                # srcdoc is a nested HTML document with its own resource graph.
+                self.resource_parse_incomplete = True
             if normalized_tag == "base" and normalized_name == "href":
                 if not self.base_seen:
                     self.base_seen = True
@@ -563,7 +566,12 @@ def markdown_mask_escaped_html_openers(line: str) -> str:
 
 
 def markdown_reference_label_is_valid(raw: str) -> bool:
-    return bool(normalize_reference_label(raw)) and len(raw) <= 999
+    if not normalize_reference_label(raw) or len(raw) > 999:
+        return False
+    return not any(
+        character in "[]" and not markdown_character_is_escaped(raw, position)
+        for position, character in enumerate(raw)
+    )
 
 
 def markdown_reference_use_labels(
