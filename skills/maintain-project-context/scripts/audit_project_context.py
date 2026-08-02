@@ -57,6 +57,7 @@ HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     "del": {"cite"},
     "embed": {"src"},
     "form": {"action"},
+    "frame": {"src"},
     "iframe": {"src"},
     # The HTML tree builder rewrites an HTML-namespace <image> start tag to
     # <img>; Python's HTMLParser keeps the literal name.
@@ -96,6 +97,7 @@ HTML_VOID_ELEMENTS = {
     "br",
     "col",
     "embed",
+    "frame",
     "hr",
     "image",
     "img",
@@ -108,6 +110,52 @@ HTML_VOID_ELEMENTS = {
     "wbr",
 }
 SVG_HTML_INTEGRATION_POINTS = {"desc", "foreignobject", "title"}
+FOREIGN_CONTENT_HTML_BREAKOUT_TAGS = {
+    "b",
+    "big",
+    "blockquote",
+    "body",
+    "br",
+    "center",
+    "code",
+    "dd",
+    "div",
+    "dl",
+    "dt",
+    "em",
+    "embed",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "head",
+    "hr",
+    "i",
+    "img",
+    "li",
+    "listing",
+    "menu",
+    "meta",
+    "nobr",
+    "ol",
+    "p",
+    "pre",
+    "ruby",
+    "s",
+    "small",
+    "span",
+    "strike",
+    "strong",
+    "sub",
+    "sup",
+    "table",
+    "tt",
+    "u",
+    "ul",
+    "var",
+}
 TASK_ID_TOKEN_WRAPPERS = "`*_[](){}<>.,:;!?\"'"
 DATED_HEADING_RE = re.compile(r"^\s*#{1,6}\s+.*\b20\d{2}-\d{2}-\d{2}\b", re.I)
 MARKDOWN_HEADING_RE = re.compile(r"^[ ]{0,3}(#{1,6})(?:[ \t]+|$)")
@@ -273,25 +321,34 @@ class MarkdownHtmlTargetParser(HTMLParser):
             return "mathml"
         return namespace
 
+    def apply_foreign_content_breakout(
+        self,
+        normalized_tag: str,
+        first_attributes: Dict[str, Optional[str]],
+    ) -> None:
+        namespace = self.child_namespace()
+        font_breakout = normalized_tag == "font" and any(
+            name in first_attributes for name in {"color", "face", "size"}
+        )
+        if namespace == "html" or not (
+            normalized_tag in FOREIGN_CONTENT_HTML_BREAKOUT_TAGS
+            or font_breakout
+        ):
+            return
+        while self.element_stack and self.element_stack[-1][1] != "html":
+            self.element_stack.pop()
+
     def handle_element(
         self,
         tag: str,
         attrs: List[Tuple[str, Optional[str]]],
         *,
-        push: bool,
+        push: Optional[bool],
     ) -> None:
         normalized_tag = tag.casefold()
         first_attributes: Dict[str, Optional[str]] = {}
         for name, value in attrs:
             first_attributes.setdefault(name.casefold(), value)
-        if (
-            normalized_tag == "meta"
-            and (first_attributes.get("http-equiv") or "").casefold() == "refresh"
-            and first_attributes.get("content")
-        ):
-            # Refresh content has a separate URL grammar. Until it is parsed,
-            # do not certify repository-reference coverage.
-            self.resource_parse_incomplete = True
         if self.template_depth:
             if normalized_tag == "template":
                 self.template_depth += 1
@@ -305,7 +362,19 @@ class MarkdownHtmlTargetParser(HTMLParser):
                 self.declarative_shadow_template_seen = True
             self.template_depth = 1
             return
+        self.apply_foreign_content_breakout(normalized_tag, first_attributes)
         namespace = self.element_namespace(normalized_tag)
+        if push is None:
+            push = namespace == "html"
+        if (
+            namespace == "html"
+            and normalized_tag == "meta"
+            and (first_attributes.get("http-equiv") or "").casefold() == "refresh"
+            and first_attributes.get("content")
+        ):
+            # Refresh content has a separate URL grammar. Until it is parsed,
+            # do not certify repository-reference coverage.
+            self.resource_parse_incomplete = True
         if normalized_tag in {"pre", "style"}:
             # CSS has its own URL grammar, while CommonMark HTML blocks keep
             # nested HTML inside pre outside this bounded parser. Do not
@@ -321,18 +390,40 @@ class MarkdownHtmlTargetParser(HTMLParser):
             if namespace == "html"
             else SVG_RESOURCE_ATTRIBUTES if namespace == "svg" else {}
         )
-        resource_attributes = namespace_resource_map.get(normalized_tag, set())
+        namespace_resource_attributes = namespace_resource_map.get(
+            normalized_tag, set()
+        )
         all_known_resource_attributes = (
             HTML_RESOURCE_ATTRIBUTES.get(normalized_tag, set())
             | SVG_RESOURCE_ATTRIBUTES.get(normalized_tag, set())
         )
         if any(
             first_attributes.get(attribute)
-            for attribute in all_known_resource_attributes - resource_attributes
+            for attribute in (
+                all_known_resource_attributes - namespace_resource_attributes
+            )
         ):
             # A known HTML/SVG resource-shaped element appeared in another
             # namespace. Do not invent an incoming edge or certify coverage.
             self.resource_parse_incomplete = True
+        resource_attributes = namespace_resource_attributes
+        if namespace == "html" and normalized_tag == "input":
+            input_type = (first_attributes.get("type") or "text").strip().casefold()
+            if input_type == "image":
+                resource_attributes = {"formaction", "src"}
+            elif input_type == "submit":
+                resource_attributes = {"formaction"}
+            else:
+                resource_attributes = set()
+        elif namespace == "html" and normalized_tag == "button":
+            button_type = (
+                first_attributes.get("type") or "submit"
+            ).strip().casefold()
+            resource_attributes = (
+                set()
+                if button_type in {"button", "reset"}
+                else {"formaction"}
+            )
         seen_resource_attributes: Set[str] = set()
         for name, value in attrs:
             normalized_name = name.casefold()
@@ -394,11 +485,9 @@ class MarkdownHtmlTargetParser(HTMLParser):
             return
         if self.template_depth:
             return
-        normalized_tag = tag.casefold()
-        namespace = self.element_namespace(normalized_tag)
         # HTML ignores the XML-style slash for non-void elements; foreign
         # content honors it.
-        self.handle_element(tag, attrs, push=namespace == "html")
+        self.handle_element(tag, attrs, push=None)
 
     def handle_endtag(self, tag: str) -> None:
         normalized_tag = tag.casefold()

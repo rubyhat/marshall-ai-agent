@@ -1941,6 +1941,164 @@ completed <? TODO ?> <!DECL TODO> <![CDATA[TODO]]>
                 "declared_reference_roots_with_skips_incomplete",
             )
 
+    def test_svg_breakout_reprocesses_following_elements_as_html(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                '<svg><p><use href="../context/target.md"></use>\n',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 0)
+            self.assertEqual(
+                report["link_coverage"]["status"],
+                "declared_reference_roots_with_skips_incomplete",
+            )
+
+    def test_legacy_frame_src_creates_incoming_reference(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            (context / "target.md").write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                '<frameset><frame src="../context/target.md"></frameset>\n',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            target = report["largest_files"][0]
+            self.assertEqual(target["incoming_links"], 1)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
+    def test_form_control_resources_follow_effective_type(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "context"
+            references = root / "references"
+            context.mkdir()
+            references.mkdir()
+            target_names = (
+                "text-src.md",
+                "text-action.md",
+                "image-src.md",
+                "image-action.md",
+                "submit-action.md",
+                "button-action.md",
+                "invalid-button-action.md",
+                "reset-action.md",
+            )
+            for target_name in target_names:
+                (context / target_name).write_text("# Target\n", encoding="utf-8")
+            (references / "source.md").write_text(
+                """<input type="text" src="../context/text-src.md" formaction="../context/text-action.md">
+<input type="image" src="../context/image-src.md" formaction="../context/image-action.md">
+<input type="submit" formaction="../context/submit-action.md">
+<button formaction="../context/button-action.md">Submit</button>
+<button type="invalid" formaction="../context/invalid-button-action.md">Submit</button>
+<button type="reset" formaction="../context/reset-action.md">Reset</button>
+""",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--scope",
+                    "context",
+                    "--reference-root",
+                    "references",
+                    "--include-content-signals",
+                    "--candidate-limit",
+                    "0",
+                    "--top",
+                    "20",
+                    "--format",
+                    "json",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            by_path = {item["path"]: item for item in report["largest_files"]}
+            self.assertEqual(by_path["context/text-src.md"]["incoming_links"], 0)
+            self.assertEqual(by_path["context/text-action.md"]["incoming_links"], 0)
+            for target_name in (
+                "image-src.md",
+                "image-action.md",
+                "submit-action.md",
+                "button-action.md",
+                "invalid-button-action.md",
+            ):
+                self.assertEqual(
+                    by_path[f"context/{target_name}"]["incoming_links"], 1
+                )
+            self.assertEqual(by_path["context/reset-action.md"]["incoming_links"], 0)
+            self.assertTrue(
+                report["link_coverage"]["complete_for_declared_roots"]
+            )
+
     def test_pre_block_downgrades_coverage_for_unparsed_nested_html(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
