@@ -58,6 +58,9 @@ HTML_RESOURCE_ATTRIBUTES: Dict[str, Set[str]] = {
     "embed": {"src"},
     "form": {"action"},
     "iframe": {"src"},
+    # The HTML tree builder rewrites an HTML-namespace <image> start tag to
+    # <img>; Python's HTMLParser keeps the literal name.
+    "image": {"src", "srcset"},
     "img": {"src", "srcset"},
     "input": {"formaction", "src"},
     "ins": {"cite"},
@@ -94,6 +97,7 @@ HTML_VOID_ELEMENTS = {
     "col",
     "embed",
     "hr",
+    "image",
     "img",
     "input",
     "link",
