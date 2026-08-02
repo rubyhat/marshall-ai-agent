@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.3.0...v0.4.0) (2026-08-02)
+
+
+### Новые возможности
+
+* **workflow:** add ADR lifecycle core ([#14](https://github.com/rubyhat/marshall-ai-agent/issues/14)) ([7f298e3](https://github.com/rubyhat/marshall-ai-agent/commit/7f298e3bd6208ccfd44b7be77e1d5bfc5ccf58fd))
+
 ## [0.3.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.2.1...v0.3.0) (2026-08-01)
 
 
