@@ -112,6 +112,49 @@ class PlanningPublicationContractTest(unittest.TestCase):
             ["implementation_base_must_contain_publication_revision"]
             ["description"],
         )
+        legacy_adoption = properties["readiness"]["properties"][
+            "legacy_ready_adoption"
+        ]
+        self.assertEqual(legacy_adoption["default"], {"enabled": False})
+        self.assertNotIn("legacy_ready_adoption", properties["readiness"]["required"])
+        self.assertEqual(
+            legacy_adoption["properties"]["baseline_revision"]["pattern"],
+            "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+        )
+        self.assertEqual(
+            legacy_adoption["properties"]["evidence_mode"]["const"],
+            "canonical_baseline_package_manifest",
+        )
+        self.assertTrue(
+            legacy_adoption["properties"]
+            ["baseline_must_be_ancestor_of_current_authority_base"]["const"]
+        )
+        self.assertTrue(
+            legacy_adoption["properties"]
+            ["persist_complete_baseline_package_manifest"]["const"]
+        )
+        enabled_branch = legacy_adoption["allOf"][0]
+        self.assertEqual(
+            enabled_branch["if"]["properties"]["enabled"]["const"], True
+        )
+        self.assertIn(
+            "baseline_revision", enabled_branch["then"]["required"]
+        )
+        self.assertIn(
+            "baseline_must_be_ancestor_of_current_authority_base",
+            enabled_branch["then"]["required"],
+        )
+        self.assertIn(
+            "persist_complete_baseline_package_manifest",
+            enabled_branch["then"]["required"],
+        )
+        self.assertFalse(
+            legacy_adoption["properties"]["claim_independent_review"]["const"]
+        )
+        self.assertEqual(
+            legacy_adoption["properties"]["record_evidence_kind"]["const"],
+            "legacy_ready_baseline",
+        )
         publication_condition = schema["allOf"][0]
         self.assertEqual(
             publication_condition["if"]["properties"]["workflow_kit"]
@@ -139,6 +182,39 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("effective values from the schema defaults", validation)
         self.assertIn("process working directory to the exact planning worktree", review)
         self.assertIn("schema defaults in memory", review)
+
+    def test_existing_ready_specs_get_deterministic_adoption_evidence(self):
+        generated = GENERATE.read_text(encoding="utf-8")
+        validation = VALIDATE.read_text(encoding="utf-8")
+        readiness = (
+            SKILL_ROOT.parent
+            / "execute-project-task"
+            / "references"
+            / "check-task-readiness.md"
+        ).read_text(encoding="utf-8")
+        task_linkage = (
+            SKILL_ROOT.parent
+            / "manage-project-work"
+            / "references"
+            / "link-and-close-project-task.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("exact full Git object ID", generated)
+        self.assertIn("64-hex SHA-256", generated)
+        self.assertIn("legacy_ready_baseline", generated)
+        self.assertIn("immutable full baseline Git object ID", validation)
+        self.assertIn("current-versus-baseline package manifests", validation)
+        self.assertIn("Resolve pre-adoption ready specifications", readiness)
+        self.assertIn("without claiming independent review", readiness)
+        self.assertIn("Git blob OID", readiness)
+        self.assertIn("baseline revision is an ancestor", readiness)
+        self.assertIn("not a prerequisite for constructing the candidate", readiness)
+        self.assertIn("baseline package manifest with every path", readiness)
+        self.assertIn("separate recording handoff", task_linkage)
+        self.assertIn("legacy_ready_baseline", task_linkage)
+        self.assertIn("existing ready status", task_linkage)
+        self.assertIn("Reread the persisted tuple", task_linkage)
+        self.assertIn("complete path/OID set", task_linkage)
 
 
 if __name__ == "__main__":

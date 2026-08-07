@@ -17,6 +17,21 @@ spec is independently reviewed and merged into the canonical branch. Record
 the resolvable merged revision when project policy requires it. Do not close
 the implementation Issue for a spec-publication pull request.
 
+For a task that was already implementation-ready before planning publication
+was adopted, accept a separate recording handoff from `execute-project-task`
+only after that workflow verifies every configured legacy-ready adoption gate.
+Require the adoption baseline itself to be an ancestor of the current
+specification-owner authority base.
+Record Task ID, specification-owner repository, canonical spec entrypoint, the
+complete sorted baseline package manifest with every task-owned path and Git
+blob OID, derived last-package-change revision, adoption baseline revision, and
+evidence kind `legacy_ready_baseline` as one exact-task record. Preserve the
+existing ready status, state explicitly that independent review is not claimed,
+and do not use this path when the sorted current package manifest differs from
+its baseline manifest. Reread the persisted tuple and require exact equality of
+the complete path/OID set before returning it to `execute-project-task`; a
+missing criterion or readback mismatch routes to `publish-planning-change`.
+
 If either side points to another Task ID, stop and resolve the identity conflict before writing.
 
 ## Link pull requests

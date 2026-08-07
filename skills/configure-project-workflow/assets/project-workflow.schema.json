@@ -212,6 +212,78 @@
             "implementation_base_must_contain_publication_revision": {
               "const": true,
               "description": "Require ancestry in the repository that owns the specification revision, not across unrelated Git histories."
+            },
+            "legacy_ready_adoption": {
+              "type": "object",
+              "default": {"enabled": false},
+              "required": ["enabled"],
+              "properties": {
+                "enabled": {"type": "boolean", "default": false},
+                "baseline_revision": {
+                  "type": "string",
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                  "description": "Immutable full Git object ID for the canonical-target revision captured before planning-publication adoption; supports SHA-1 and SHA-256 repositories."
+                },
+                "baseline_must_be_ancestor_of_current_authority_base": {
+                  "const": true,
+                  "default": true
+                },
+                "evidence_mode": {
+                  "const": "canonical_baseline_package_manifest",
+                  "default": "canonical_baseline_package_manifest"
+                },
+                "current_package_manifest_must_match_baseline": {
+                  "const": true,
+                  "default": true
+                },
+                "persist_complete_baseline_package_manifest": {
+                  "const": true,
+                  "default": true
+                },
+                "ready_verdict_must_exist_at_baseline": {
+                  "const": true,
+                  "default": true
+                },
+                "derive_revision_from_last_spec_change_at_or_before_baseline": {
+                  "const": true,
+                  "default": true
+                },
+                "record_evidence_kind": {
+                  "const": "legacy_ready_baseline",
+                  "default": "legacy_ready_baseline"
+                },
+                "claim_independent_review": {
+                  "const": false,
+                  "default": false
+                },
+                "on_mismatch": {
+                  "const": "publish_planning_change",
+                  "default": "publish_planning_change"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {"enabled": {"const": true}},
+                    "required": ["enabled"]
+                  },
+                  "then": {
+                    "required": [
+                      "baseline_revision",
+                      "baseline_must_be_ancestor_of_current_authority_base",
+                      "evidence_mode",
+                      "current_package_manifest_must_match_baseline",
+                      "persist_complete_baseline_package_manifest",
+                      "ready_verdict_must_exist_at_baseline",
+                      "derive_revision_from_last_spec_change_at_or_before_baseline",
+                      "record_evidence_kind",
+                      "claim_independent_review",
+                      "on_mismatch"
+                    ]
+                  }
+                }
+              ],
+              "additionalProperties": true
             }
           },
           "additionalProperties": true

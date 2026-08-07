@@ -42,7 +42,9 @@ When a workspace does not exist:
 2. fetch and prune when network and policy allow;
 3. verify the intended remote-tracking base;
 4. when this repository also owns the canonical task specification, verify that
-   the base contains or descends from the exact publication revision;
+   the base contains or descends from the exact publication revision, including
+   a valid recorded `legacy_ready_baseline` revision when that configured
+   migration path supplied the publication tuple;
 5. when the specification owner is a different repository, verify the recorded
    exact-task publication tuple — Task ID, owner repository, canonical spec
    path, and merged revision — instead of requiring impossible shared Git

@@ -80,6 +80,19 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   Git histories, require a resolvable exact-task publication tuple containing
   Task ID, owner repository, canonical spec path, and merged revision instead
   of impossible shared ancestry.
+- For an existing project with pre-adoption implementation-ready specs, verify
+  legacy-ready adoption uses one immutable full baseline Git object ID captured
+  from the canonical target before workflow mutations, accepts the repository's
+  40-hex SHA-1 or 64-hex SHA-256 format, and verifies that revision is an
+  ancestor of the current specification-owner authority base. Require exact
+  equality of sorted current-versus-baseline package manifests containing every
+  task-owned path and Git blob OID, a ready verdict in the baseline entrypoint,
+  a derived last-package-change revision that is an ancestor of the baseline
+  and current authority base, persistence and readback comparison of the
+  complete sorted baseline manifest, explicit `legacy_ready_baseline` evidence,
+  and no independent review claim. A missing or mismatched criterion must route to ordinary
+  `publish-planning-change`; it is not a user override. For schema v2 projects
+  that omit this optional policy, resolve it as disabled in memory.
 
 ## Installation
 
@@ -123,6 +136,10 @@ Evaluate representative prompts without performing their mutations:
   revision in the specification-owner authority base and, for a separate
   component repository, require the exact-task publication tuple without
   shared ancestry;
+- request implementation for a pre-adoption ready spec -> accept only a
+  configured, recorded `legacy_ready_baseline` tuple whose canonical package-
+  manifest and ancestry checks still pass; otherwise stop and recommend
+  `--publish-spec`;
 - request the next spec with one active work graph -> verify the previous task
   read-only, select the unique next eligible task by dependencies, and enter
   the configured specification workflow;
