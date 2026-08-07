@@ -26,7 +26,21 @@ INTERVIEW = (
     / "references"
     / "configuration-interview.md"
 )
-ALIASES = REPOSITORY_ROOT / "docs" / "workflow-aliases.md"
+PUBLIC_ALIASES_CANDIDATES = (
+    REPOSITORY_ROOT / "docs" / "workflow-aliases.md",
+    REPOSITORY_ROOT / "workflows" / "agent_commands.md",
+)
+
+
+def resolve_public_aliases() -> Path:
+    for candidate in PUBLIC_ALIASES_CANDIDATES:
+        if candidate.is_file():
+            return candidate
+    searched = ", ".join(str(candidate) for candidate in PUBLIC_ALIASES_CANDIDATES)
+    raise FileNotFoundError(f"Public alias contract not found; searched: {searched}")
+
+
+ALIASES = resolve_public_aliases()
 
 
 class RoadmapManifestContractTest(unittest.TestCase):
