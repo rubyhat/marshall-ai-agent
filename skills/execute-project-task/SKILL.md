@@ -79,21 +79,26 @@ Read [check-task-readiness.md](references/check-task-readiness.md).
 Require the configured ready verdict or equivalent readiness evidence. Check unresolved decisions, acceptance criteria, dependencies, repository ownership, required quality gates, and conflicts with current architecture or higher-priority instructions.
 
 When specifications are file-backed and planning publication is configured,
-require exactly one complete readiness path:
+select one complete readiness path in this precedence order:
 
-- ordinary publication evidence: a clean independent spec review, a merged
+- prefer ordinary publication evidence whenever it is complete: a clean
+  independent spec review, a merged
   canonical specification revision, and proof that the specification-owner
-  authority base contains or descends from that revision; or
-- when project policy explicitly enables it for specs that were already
+  authority base contains or descends from that revision;
+- otherwise, when project policy explicitly enables it for specs that were already
   implementation-ready before planning publication was configured, the
   deterministic baseline evidence defined in
   [check-task-readiness.md](references/check-task-readiness.md).
 
+An ordinary publication record supersedes legacy evidence for readiness
+selection even when the historical legacy record remains available for audit.
+
 For an implementation repository with a separate Git history, require the
 matching exact-task record for the selected path: the ordinary publication
 tuple with its merged revision, or the `legacy_ready_baseline` tuple with its
-complete package manifest, derived revision, and adoption baseline. Do not
-require cross-repository ancestry. The legacy path must not claim that
+explicit evidence kind, complete package manifest, derived revision, and
+adoption baseline. Do not require cross-repository ancestry. The legacy path
+must not claim that
 independent review occurred and is not a user override. An open PR, local file,
 dirty main checkout, content verdict alone, incomplete record, or baseline
 mismatch is insufficient. Route any unresolved publication gate to
