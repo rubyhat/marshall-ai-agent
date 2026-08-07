@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.2...v0.6.3) (2026-08-07)
+
+
+### Исправления
+
+* **workflow:** enforce planning publication schema guards ([b84ab0a](https://github.com/rubyhat/marshall-ai-agent/commit/b84ab0a0ceee0fb16a2bbb800e1eb234c3c2d226))
+
 ## [0.6.2](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.1...v0.6.2) (2026-08-07)
 
 
