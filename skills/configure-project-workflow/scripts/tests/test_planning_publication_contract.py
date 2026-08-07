@@ -48,6 +48,12 @@ class PlanningPublicationContractTest(unittest.TestCase):
             properties["readiness"]["properties"]
             ["implementation_base_must_contain_publication_revision"]["const"]
         )
+        self.assertIn(
+            "repository that owns the specification revision",
+            properties["readiness"]["properties"]
+            ["implementation_base_must_contain_publication_revision"]
+            ["description"],
+        )
         publication_condition = schema["allOf"][0]
         self.assertEqual(
             publication_condition["if"]["properties"]["workflow_kit"]

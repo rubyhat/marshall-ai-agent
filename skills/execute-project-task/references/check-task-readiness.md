@@ -33,8 +33,12 @@ Check the configured requirements:
 - the specification has the configured implementation-ready content verdict;
 - when file-backed planning publication is configured, the exact specification
   passed independent review, is merged into the canonical target branch, has a
-  recorded resolvable revision, and the intended implementation base contains
-  or descends from that revision;
+  recorded resolvable revision, and the specification-owner repository base
+  used as implementation authority contains or descends from that revision;
+- when implementation occurs in a different repository, the component base
+  resolves the exact task's recorded publication tuple — Task ID,
+  specification-owner repository, canonical spec path, and merged revision —
+  but is not required to share Git ancestry with it;
 - outcome, in-scope behavior, non-goals, acceptance criteria, and ownership are stable;
 - blocking questions and product decisions are resolved;
 - affected repositories and dependency order are known;

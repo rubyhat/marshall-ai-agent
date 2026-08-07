@@ -59,6 +59,11 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   `publish-planning-change` before implementation and that
   `execute-project-task` has a canonical-publication gate when the module is
   selected.
+- Confirm publication ancestry is required only in the repository that owns
+  the specification revision. For implementation repositories with separate
+  Git histories, require a resolvable exact-task publication tuple containing
+  Task ID, owner repository, canonical spec path, and merged revision instead
+  of impossible shared ancestry.
 
 ## Installation
 
@@ -97,7 +102,9 @@ Evaluate representative prompts without performing their mutations:
 - request implementation with a local or PR-only unmerged spec -> stop before
   task lookup or workspace mutation and recommend `--publish-spec`;
 - request implementation with a reviewed merged spec -> require the canonical
-  revision to be present in the implementation base;
+  revision in the specification-owner authority base and, for a separate
+  component repository, require the exact-task publication tuple without
+  shared ancestry;
 - request the next spec with one active work graph -> verify the previous task
   read-only, select the unique next eligible task by dependencies, and enter
   the configured specification workflow;
