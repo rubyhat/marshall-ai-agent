@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.7](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.6...v0.6.7) (2026-08-07)
+
+
+### Исправления
+
+* **workflow:** bind review evidence to published specs ([#45](https://github.com/rubyhat/marshall-ai-agent/issues/45)) ([69df005](https://github.com/rubyhat/marshall-ai-agent/commit/69df005228a84e61702608ea44d3dd667f327a6d))
+
 ## [0.6.6](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.5...v0.6.6) (2026-08-07)
 
 
