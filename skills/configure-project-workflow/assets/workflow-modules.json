@@ -47,6 +47,9 @@
         "write-task-spec",
         "deliver-reviewed-change",
         "manage-project-work"
+      ],
+      "trigger_aliases": [
+        "--prepare-spec"
       ]
     }
   ],
