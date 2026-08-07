@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.4](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.3...v0.6.4) (2026-08-07)
+
+
+### Исправления
+
+* **workflow:** preserve legacy spec readiness ([#39](https://github.com/rubyhat/marshall-ai-agent/issues/39)) ([550e07c](https://github.com/rubyhat/marshall-ai-agent/commit/550e07c45453cb1c19245062090094f27d80f79b))
+
 ## [0.6.3](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.2...v0.6.3) (2026-08-07)
 
 
