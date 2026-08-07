@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.5.0...v0.5.1) (2026-08-07)
+
+
+### Исправления
+
+* **workflow:** support cross-repository spec provenance ([#28](https://github.com/rubyhat/marshall-ai-agent/issues/28)) ([2a50159](https://github.com/rubyhat/marshall-ai-agent/commit/2a501599b1c75693293525aaf675ce37f4b59a85))
+
 ## [0.5.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.4.3...v0.5.0) (2026-08-07)
 
 
