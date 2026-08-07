@@ -37,7 +37,12 @@ Validate the configured workflow without executing ordinary project work.
   implementation, implementation delivery, Issue closure, release, deploy, or
   production mutation. Verify the independent reviewer process runs with the
   exact planning worktree as its working directory so an uncommitted review
-  cannot accidentally inspect the clean main checkout.
+  cannot accidentally inspect the clean main checkout. For an existing schema
+  v2 configuration that predates the reviewer-worktree fields, resolve the
+  effective values from the schema defaults before validation or use; verify
+  the effective worktree, placeholder, and branch-readback contract, and
+  materialize the fields only in the next approved reconfiguration. A missing
+  legacy field must not fall back to the invoking checkout.
 - Verify no unresolved template placeholders.
 - Verify every generated relative link.
 - Verify no configured path escapes its intended root.
