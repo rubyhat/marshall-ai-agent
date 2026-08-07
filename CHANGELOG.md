@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.0...v0.6.1) (2026-08-07)
+
+
+### Исправления
+
+* **workflow:** support vendored roadmap contract test ([#33](https://github.com/rubyhat/marshall-ai-agent/issues/33)) ([6592754](https://github.com/rubyhat/marshall-ai-agent/commit/6592754e74115fdedb9af8182f909779eaa277df))
+
 ## [0.6.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.5.1...v0.6.0) (2026-08-07)
 
 
