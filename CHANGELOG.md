@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.6](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.5...v0.6.6) (2026-08-07)
+
+
+### Исправления
+
+* **workflow:** prioritize reviewed publication evidence ([#43](https://github.com/rubyhat/marshall-ai-agent/issues/43)) ([382e687](https://github.com/rubyhat/marshall-ai-agent/commit/382e687a73c2a86a190a5475fdf11566bd9e57db))
+
 ## [0.6.5](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.4...v0.6.5) (2026-08-07)
 
 
