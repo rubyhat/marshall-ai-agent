@@ -56,32 +56,6 @@ Include only selected modules. Record:
 - persistent artifact destinations and exact output-form precedence;
 - applicable task, spec, implementation, delivery, context, and domain sections.
 
-When automatic ready-spec delivery is selected, generate no additional alias.
-Configure the existing specification command to hand only its exact
-`Ready for implementation` documentation package to the delivery skill. Define
-one narrow capability, task branch and PR requirement, deterministic gates,
-provider-check semantics, open-Issue semantics, and the execution-ready status
-applied after verified merge. Absence of reported checks or branch-protection
-evidence must not block this mode; any reported check must be terminal and
-non-failing, and provider-enforced rules must never be bypassed. Record
-`specification_documentation_delivery` in `modules.enabled_capabilities` and
-include every module required by its catalog entry. Require reference-only
-Issue linkage and bind deterministic validation evidence to both the exact PR
-head and base SHA.
-Automatic ready-spec delivery must require the documentation-only fast path to
-be enabled with non-empty eligible roots and file types. Do not generate the
-automatic handoff as an independent switch that can bypass or contradict the
-delivery classifier.
-
-When a documentation-only delivery fast path is selected, require an explicit
-allowlist of roots and non-executable file types plus exclusions for workflow
-skills, runbooks, configuration, schemas, scripts, generated files, secrets,
-temporary files, and symlinks. One ineligible file must return the whole PR to
-ordinary reviewed delivery. Require deterministic validation, exact PR head,
-exact base SHA, mergeability, and merge authority. Treat absent provider checks
-and absent branch-protection evidence as allowed, while blocking on pending or
-failing reported checks and never bypassing provider-enforced rules.
-
 Generate only aliases listed in the approved
 `modules.enabled_aliases` setup-state field. For every ordinary alias, require
 its owning module to be selected. For every conditional alias, additionally
@@ -145,9 +119,7 @@ sequences. Do not generate expanded prompt copies that duplicate `SKILL.md`;
 the owning skill remains the procedural source of truth.
 
 When planning-session behavior is enabled, show an explicit new-conversation
-boundary before implementation and ordinary delivery. A configured
-`specification_documentation_delivery` exception may remain inside the
-specification command but must be path- and capability-bounded. Do not describe a later
+boundary before implementation and delivery. Do not describe a later
 implementation or delivery alias as an implicit release of a sticky planning
 profile.
 

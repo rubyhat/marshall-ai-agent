@@ -7,32 +7,15 @@ Run this sequence only when the authorized endpoint includes full delivery.
 Confirm:
 
 - exact repository and pull request belong to the current task;
-- current head SHA equals either the clean reviewed head or the exact
-  deterministic-gate head of a verified documentation-only fast path;
-- for a documentation-only fast path, current base SHA equals the validated
-  base SHA; otherwise classification and deterministic validation have been
-  rerun against the current head/base pair;
-- for ordinary delivery, no new actionable review event appeared after the
-  clean verdict;
-- for a documentation-only fast path, the complete current PR diff still
-  satisfies its configured roots, file types, and exclusions;
-- an automatic ready-spec PR uses reference-only Issue linkage;
-- for ordinary delivery, required CI and branch-protection checks pass, or a
-  configured external-provider exception is evidenced and the merge can
-  proceed without bypassing provider-enforced rules;
-- for a documentation-only fast path, absence of reported checks or
-  branch-protection evidence is allowed, while every reported check for the
-  exact head is terminal and non-failing and the provider permits an ordinary
-  merge without bypass;
+- current head SHA equals the clean reviewed head;
+- no new actionable review event appeared after the clean verdict;
+- required CI and branch-protection checks pass, or a configured external-provider exception is evidenced and the merge can proceed without bypassing branch protection;
 - dependencies and multi-repository merge order are satisfied;
 - pull request is open and mergeable;
 - merge authority matches project policy;
-- review heartbeat is already deleted or was never created for the
-  documentation-only fast path.
+- review heartbeat is already deleted.
 
-If a required or reported check is pending, do not reuse the review heartbeat.
-Continue synchronously or create a separate check/merge monitor only when the
-authorized endpoint or an explicit request permits it.
+If CI is pending, do not reuse the review heartbeat. Continue synchronously or create a separate CI/merge monitor only when the authorized endpoint or an explicit request permits it.
 
 ## Merge the exact pull request
 
@@ -44,10 +27,8 @@ Verify the resulting merge commit and PR state from the provider.
 
 Through `manage-project-work`:
 
-- after automatic ready-spec delivery, keep the task Issue open and apply only
-  the configured execution-ready status;
-- otherwise apply the configured done status and close the exact task Issue
-  when policy requires it;
+- apply the configured done status;
+- close the exact implementation Issue when policy requires it;
 - reconcile parent state only from acceptance and remaining scope, not child count alone;
 - read back Issue and Project state.
 

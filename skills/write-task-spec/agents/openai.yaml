@@ -1,4 +1,4 @@
 interface:
   display_name: "Write Task Spec"
-  short_description: "Создаёт, проверяет и при политике доставляет spec"
-  default_prompt: "Use $write-task-spec to create an implementation-ready task specification and, when configured and authorized, deliver only its exact documentation package through the documentation fast path."
+  short_description: "Создаёт и проверяет task specifications"
+  default_prompt: "Use $write-task-spec to create an implementation-ready task specification from the agreed project scope."

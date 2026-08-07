@@ -2,14 +2,6 @@
 
 Use a fresh configured reviewer before commit, push, or pull-request creation.
 
-Do not run this reviewer when `verify-delivery-readiness` returned `Ready for
-documentation fast path` and the authorized endpoint includes commit or later
-delivery mutations. That path substitutes configured deterministic
-documentation gates for independent local and GitHub review; any eligibility
-failure returns to the ordinary reviewed flow. For a local-review-only
-endpoint, run the reviewer and stop with its findings even when the same diff
-would qualify for fast delivery.
-
 ## Prepare neutral context
 
 Give the reviewer only what is needed:

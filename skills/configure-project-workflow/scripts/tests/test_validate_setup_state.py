@@ -1,16 +1,11 @@
 import copy
 import importlib.util
-import json
-import re
 import unittest
 from pathlib import Path
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "validate_setup_state.py"
 CATALOG = Path(__file__).resolve().parents[2] / "assets" / "workflow-modules.json"
-PROJECT_SCHEMA = (
-    Path(__file__).resolve().parents[2] / "assets" / "project-workflow.schema.json"
-)
 
 
 def load_module():
@@ -50,7 +45,6 @@ class ValidateSetupStateTest(unittest.TestCase):
                     "maintain-project-context",
                 ],
                 "enabled_aliases": ["--workflow-check", "--context-audit"],
-                "enabled_capabilities": [],
             },
             "questions": [
                 {"id": "SAFE-01", "stage": "safety", "status": "answered", "answer": "confirmed"}
@@ -152,96 +146,6 @@ class ValidateSetupStateTest(unittest.TestCase):
         del state["modules"]["enabled_aliases"]
         errors, _ = self.module.validate(state, self.catalog)
         self.assertIn("modules.enabled_aliases is required", errors)
-
-    def test_enabled_capability_requires_runtime_modules(self):
-        state = self.valid_state()
-        state["modules"]["selected"] = [
-            "configure-project-workflow",
-            "record-project-context",
-            "shape-project-work",
-            "write-task-spec",
-        ]
-        state["modules"]["enabled_aliases"] = ["--prepare-spec"]
-        state["modules"]["enabled_capabilities"] = [
-            "specification_documentation_delivery"
-        ]
-        errors, _ = self.module.validate(state, self.catalog)
-        self.assertIn(
-            "Capability specification_documentation_delivery requires module deliver-reviewed-change",
-            errors,
-        )
-        self.assertIn(
-            "Capability specification_documentation_delivery requires module manage-project-work",
-            errors,
-        )
-
-    def test_enabled_capability_passes_with_complete_runtime(self):
-        state = self.valid_state()
-        state["modules"]["selected"] = [
-            "configure-project-workflow",
-            "record-project-context",
-            "shape-project-work",
-            "write-task-spec",
-            "manage-project-work",
-            "execute-project-task",
-            "deliver-reviewed-change",
-        ]
-        state["modules"]["enabled_aliases"] = ["--prepare-spec"]
-        state["modules"]["enabled_capabilities"] = [
-            "specification_documentation_delivery"
-        ]
-        errors, _ = self.module.validate(state, self.catalog)
-        self.assertEqual(errors, [])
-
-    def test_enabled_capability_requires_trigger_alias(self):
-        state = self.valid_state()
-        state["modules"]["selected"] = [
-            "configure-project-workflow",
-            "record-project-context",
-            "shape-project-work",
-            "write-task-spec",
-            "manage-project-work",
-            "execute-project-task",
-            "deliver-reviewed-change",
-        ]
-        state["modules"]["enabled_aliases"] = []
-        state["modules"]["enabled_capabilities"] = [
-            "specification_documentation_delivery"
-        ]
-        errors, _ = self.module.validate(state, self.catalog)
-        self.assertIn(
-            "Capability specification_documentation_delivery requires enabled alias --prepare-spec",
-            errors,
-        )
-
-    def test_fast_path_schema_requires_all_exclusion_categories(self):
-        schema = json.loads(PROJECT_SCHEMA.read_text(encoding="utf-8"))
-        fast_path = schema["properties"]["delivery"]["properties"][
-            "documentation_fast_path"
-        ]
-        enabled_rules = fast_path["allOf"][0]["then"]["properties"]
-        exclusions = enabled_rules["excluded_paths"]
-
-        self.assertEqual(exclusions["minItems"], 4)
-        patterns = [rule["contains"]["pattern"] for rule in exclusions["allOf"]]
-        category_samples = [
-            "docs/skills",
-            "docs/workflows",
-            ".codex",
-            "docs/tasks/_template",
-        ]
-        matched_patterns = []
-        for sample in category_samples:
-            matches = [pattern for pattern in patterns if re.search(pattern, sample)]
-            self.assertEqual(len(matches), 1, f"invalid exclusion category for {sample}")
-            matched_patterns.extend(matches)
-        self.assertEqual(len(set(matched_patterns)), len(category_samples))
-
-    def test_unknown_enabled_capability_fails(self):
-        state = self.valid_state()
-        state["modules"]["enabled_capabilities"] = ["missing-capability"]
-        errors, _ = self.module.validate(state, self.catalog)
-        self.assertIn("Unknown enabled capability: missing-capability", errors)
 
 
 if __name__ == "__main__":

@@ -187,47 +187,6 @@ def alias_index(
     return result
 
 
-def capability_index(
-    catalog: Dict[str, Any], modules: Dict[str, Dict[str, Any]]
-) -> Dict[str, Dict[str, List[str]]]:
-    entries = catalog.get("capabilities", [])
-    if not isinstance(entries, list):
-        raise ValueError("Catalog capabilities must be an array")
-    result: Dict[str, Dict[str, List[str]]] = {}
-    available_aliases = alias_index(modules)
-    for index, entry in enumerate(entries):
-        if not isinstance(entry, dict):
-            raise ValueError(f"capabilities[{index}] must be an object")
-        name = entry.get("name")
-        requirements = entry.get("requires")
-        trigger_aliases = entry.get("trigger_aliases", [])
-        if not isinstance(name, str) or not name:
-            raise ValueError(f"capabilities[{index}] needs a non-empty name")
-        if name in result:
-            raise ValueError(f"Duplicate capability in catalog: {name}")
-        if not isinstance(requirements, list) or not requirements or not all(
-            isinstance(item, str) for item in requirements
-        ):
-            raise ValueError(f"Capability {name} requires a non-empty module list")
-        for dependency in requirements:
-            if dependency not in modules:
-                raise ValueError(f"Capability {name} requires unknown module {dependency}")
-        if not isinstance(trigger_aliases, list) or not all(
-            isinstance(item, str) and item for item in trigger_aliases
-        ):
-            raise ValueError(f"Capability {name} trigger_aliases must be an array")
-        if len(trigger_aliases) != len(set(trigger_aliases)):
-            raise ValueError(f"Capability {name} trigger_aliases contains duplicates")
-        for command in trigger_aliases:
-            if command not in available_aliases:
-                raise ValueError(f"Capability {name} requires unknown alias {command}")
-        result[name] = {
-            "requires": requirements,
-            "trigger_aliases": trigger_aliases,
-        }
-    return result
-
-
 def validate(state: Dict[str, Any], catalog: Dict[str, Any]) -> Tuple[List[str], List[str]]:
     errors: List[str] = []
     warnings: List[str] = []
@@ -274,19 +233,14 @@ def validate(state: Dict[str, Any], catalog: Dict[str, Any]) -> Tuple[List[str],
 
     try:
         available = module_index(catalog)
-        capabilities = capability_index(catalog, available)
     except ValueError as error:
         errors.append(str(error))
         available = {}
-        capabilities = {}
 
     modules = state.get("modules", {})
     selected = modules.get("selected", []) if isinstance(modules, dict) else []
     enabled_aliases = (
         modules.get("enabled_aliases", []) if isinstance(modules, dict) else []
-    )
-    enabled_capabilities = (
-        modules.get("enabled_capabilities", []) if isinstance(modules, dict) else []
     )
     if isinstance(modules, dict) and "enabled_aliases" not in modules:
         errors.append("modules.enabled_aliases is required")
@@ -298,17 +252,10 @@ def validate(state: Dict[str, Any], catalog: Dict[str, Any]) -> Tuple[List[str],
     ):
         errors.append("modules.enabled_aliases must be an array of commands")
         enabled_aliases = []
-    if not isinstance(enabled_capabilities, list) or not all(
-        isinstance(item, str) for item in enabled_capabilities
-    ):
-        errors.append("modules.enabled_capabilities must be an array of names")
-        enabled_capabilities = []
     if len(selected) != len(set(selected)):
         errors.append("modules.selected contains duplicates")
     if len(enabled_aliases) != len(set(enabled_aliases)):
         errors.append("modules.enabled_aliases contains duplicates")
-    if len(enabled_capabilities) != len(set(enabled_capabilities)):
-        errors.append("modules.enabled_capabilities contains duplicates")
 
     selected_set = set(selected)
     for name in sorted(selected_set):
@@ -330,17 +277,6 @@ def validate(state: Dict[str, Any], catalog: Dict[str, Any]) -> Tuple[List[str],
         for dependency in requirements:
             if dependency not in selected_set:
                 errors.append(f"Alias {command} requires module {dependency}")
-
-    for name in sorted(set(enabled_capabilities)):
-        if name not in capabilities:
-            errors.append(f"Unknown enabled capability: {name}")
-            continue
-        for dependency in capabilities[name]["requires"]:
-            if dependency not in selected_set:
-                errors.append(f"Capability {name} requires module {dependency}")
-        for command in capabilities[name]["trigger_aliases"]:
-            if command not in enabled_aliases:
-                errors.append(f"Capability {name} requires enabled alias {command}")
 
     manifest = state.get("manifest", [])
     if isinstance(manifest, list):

@@ -1,6 +1,6 @@
 ---
 name: deliver-reviewed-change
-description: Deliver an exact current task from a verified local handoff through commit, push, pull-request creation, authorized merge, synchronization, and cleanup. Use independent local and GitHub review for ordinary changes; use a configured documentation-only fast path when the complete diff satisfies its exact path and file-type allowlist. Use when the user explicitly asks to review, publish, deliver, finish, or merge the current task; invokes `--deliver-task`; receives an authorized ready-spec delivery handoff from `write-task-spec`; resumes the exact task pull request; or continues its configured review cycle. Verify active conversation authority, reported checks, provider-enforced merge rules, merge ownership, and exact-diff gates according to the configured delivery mode.
+description: Deliver an exact current implementation task from an uncommitted local-review handoff through independent local review, intentional commit and push, pull-request creation, review-feedback handling, GitHub Codex review monitoring, authorized merge, tracker closure, synchronization, and workspace cleanup. Use when the user explicitly asks to review, publish, deliver, finish, or merge the current task; invokes `--deliver-task` with a Task ID, Issue URL, PR URL, spec path, or current task anchor; asks to resume or address feedback on that exact task's pull request; or when a configured heartbeat resumes its active review cycle. Verify active conversation authority before review or delivery mutations and respect narrower requested endpoints. Do not use for initial implementation, unrelated pull requests, generic GitHub orientation, force-push, deployment, production mutations, or broad repository cleanup.
 ---
 
 # Deliver Reviewed Change
@@ -9,9 +9,7 @@ Move one exact implementation task through review and delivery without losing ta
 
 ## Keep the responsibility narrow
 
-- Receive verified uncommitted changes from `execute-project-task`, or one exact
-  content-ready specification package from an authorized `write-task-spec`
-  handoff when project policy enables automatic specification delivery.
+- Receive verified uncommitted changes from `execute-project-task` or an equivalent configured local-review handoff.
 - Own independent local review, finding assessment, commit, push, pull-request creation, review monitoring, authorized merge, operational closure, sync, and task-workspace cleanup.
 - Preserve the agreed specification and non-goals while addressing findings.
 - Do not perform initial feature implementation, silently expand scope, select an unrelated pull request, force-push, deploy, mutate production, or bypass required gates.
@@ -37,13 +35,6 @@ that no task, Git, pull-request, heartbeat, or file state changed.
 A heartbeat may resume only an already authorized delivery cycle. It cannot
 release or broaden a later sticky conversation constraint.
 
-A project may define one narrow `specification_documentation_delivery`
-capability that `--prepare-spec` is allowed to inherit inside a planning
-session. This exception authorizes only the exact ready specification package,
-task branch, commit, push, pull request, merge, and readiness-status handoff.
-It does not release the planning lock for implementation, ordinary task
-delivery, workflow/configuration files, or any additional path.
-
 ## Establish mode and endpoint
 
 Choose one mode:
@@ -62,10 +53,7 @@ Resolve the authorized endpoint from the user's request:
 - a heartbeat inherits the existing endpoint and cannot broaden it;
 - ambiguity about task, pull request, repository, or merge target blocks mutations.
 
-Neither an alias nor the documentation fast path authorizes force-push,
-unrelated pull requests, Project schema changes, deployment, production data
-access, destructive recovery, bypassing provider-enforced rules, merging with
-pending or failing reported checks, or weakening the configured file allowlist.
+The alias does not authorize force-push, unrelated pull requests, Project schema changes, deployment, production data access, destructive recovery, or bypassing review and CI.
 
 ## Resolve project policy
 
@@ -78,8 +66,6 @@ Read project instructions and workflow configuration. Resolve:
 - heartbeat cadence, persistent state, retry budgets, and stop conditions;
 - CI and merge gates, merge authorization, dependency order, and multi-repository policy;
 - post-merge synchronization, task closure, recording, and cleanup rules.
-- documentation-only fast-path roots, excluded subtrees, allowed file types,
-  deterministic validation, and mode-specific post-merge task status.
 
 Keep project names, paths, models, commands, languages, status labels, bot identities, intervals, and retry counts out of this reusable skill.
 
@@ -91,53 +77,19 @@ Read [verify-delivery-readiness.md](references/verify-delivery-readiness.md).
 
 Confirm the exact task, authorized endpoint, repository/worktree/branch mapping, current diff, specification, gate evidence, task status, and ownership. Do not absorb unrelated dirty changes.
 
-Classify the complete change set before review. Use the documentation-only fast
-path only when every changed and untracked file intended for Git satisfies the
-configured roots, file types, and exclusions. One ineligible, unfamiliar,
-generated, executable, configuration, workflow, schema, or symlinked path
-returns the whole delivery to the ordinary reviewed flow.
-
-Record the exact head and base SHAs used for classification and deterministic
-validation. Reclassify and rerun those gates if either SHA changes before
-merge.
-
 ### 2. Run independent local review
 
 Read [run-independent-local-review.md](references/run-independent-local-review.md).
 
-For the ordinary flow, use a fresh configured reviewer without implementation
-discussion history. Evaluate every finding against code, tests, architecture,
-specification, and scope. Fix real findings locally, rerun affected gates, and
-repeat review as required. Do not commit until the local-review gate passes or
-an allowed blocker is explicit.
-
-For a verified documentation-only fast path whose authorized endpoint includes
-delivery mutations, skip independent local review. Still require the exact-diff
-check, specification/document structure checks, link and identity validation,
-secret/temporary-file rejection, and every configured deterministic gate before
-commit. When the authorized endpoint is local review only, run the configured
-independent reviewer even if the diff would otherwise qualify for the fast
-path, then stop after reporting that review result.
+Use a fresh configured reviewer without implementation discussion history. Evaluate every finding against code, tests, architecture, specification, and scope. Fix real findings locally, rerun affected gates, and repeat review as required. Do not commit until the local-review gate passes or an allowed blocker is explicit.
 
 ### 3. Commit, push, and open or reconcile the pull request
 
 Read [commit-push-and-open-pr.md](references/commit-push-and-open-pr.md).
 
-Create intentional task-scoped commits, push without force, create or reuse the
-exact pull request, verify target and head branches, and link the task through
-`manage-project-work`. Apply the configured PR-review status only for ordinary
-reviewed delivery. An automatic ready-spec fast path uses reference-only Issue
-linkage and does not enter a review status. An ordinary documentation task uses
-the project's configured close/reference linkage while still skipping review
-statuses on the fast path. Read back external mutations.
+Create intentional task-scoped commits, push without force, create or reuse the exact pull request, verify target and head branches, link the task, and apply the configured PR-review status through `manage-project-work`. Read back external mutations.
 
 Stop here when the authorized endpoint is only pull-request creation.
-
-For a verified documentation-only fast path, skip steps 4–8: do not request
-GitHub Codex review, create a review heartbeat, or require a clean-review
-status. Continue directly to exact-head, reported-check, mergeability, and
-authority verification for the same pull request. Absence of reported checks
-or branch-protection evidence is not a blocker in this mode.
 
 ### 4. Start one GitHub review generation
 
@@ -208,20 +160,7 @@ Do not keep the review heartbeat alive for CI, merge, or closure. Continue throu
 
 Read [merge-close-and-clean.md](references/merge-close-and-clean.md).
 
-For ordinary delivery, verify clean review, required checks, current head,
-dependency order, and merge authority immediately before merge. For the
-documentation-only fast path, replace the review requirement with the verified
-fast-path classification and current deterministic-gate evidence. Require all
-reported checks for the exact head to be terminal and non-failing, but do not
-require checks or branch-protection evidence to exist. Always merge only the
-exact current task pull request and never bypass provider-enforced rules. If
-the base SHA differs from the validated base, rerun fast-path classification
-and deterministic validation against the current head/base pair before merge.
-
-After an automatic ready-spec merge, keep the implementation or research Issue
-open and apply only the configured execution-ready status. After delivery of a
-completed documentation task, use the ordinary completion lifecycle. Then
-synchronize configured local branches and clean only proven task-owned state.
+Verify clean review, required checks, current head, dependency order, and merge authority immediately before merge. Merge only the exact current task pull request. Then close/reconcile the task, synchronize configured local branches, run the recording closing cycle, and remove task worktrees/branches only after merge and safety checks.
 
 Report any dirty workspace, unavailable tracker, failed sync, or cleanup blocker without destroying unfamiliar work.
 
@@ -243,8 +182,6 @@ Update the automation prompt after every state transition. If durable state cann
 ## Coordinate with adjacent skills
 
 - Receive the local-review handoff from `execute-project-task`.
-- Receive an exact automatic ready-spec delivery handoff from
-  `write-task-spec` only when project policy enables it.
 - Use `manage-project-work` for PR, merge-readiness, done, and closure checkpoints.
 - Use `record-project-context` for durable findings, active handoff, and the closing cycle.
 - Return material scope or contract changes to `shape-project-work` or `write-task-spec`.
