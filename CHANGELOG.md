@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.5.1...v0.6.0) (2026-08-07)
+
+
+### Новые возможности
+
+* **workflow:** make roadmap task identity issue-first ([#32](https://github.com/rubyhat/marshall-ai-agent/issues/32)) ([79047f9](https://github.com/rubyhat/marshall-ai-agent/commit/79047f999414d403825b8c0b8e9cd6ee8c3767a7))
+
+
+### Документация
+
+* **release:** protect Release Please PR body ([#30](https://github.com/rubyhat/marshall-ai-agent/issues/30)) ([2c90288](https://github.com/rubyhat/marshall-ai-agent/commit/2c90288d41e1be4a033cbc7dc463f4b77df3e509))
+
 ## [0.5.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.5.0...v0.5.1) (2026-08-07)
 
 
