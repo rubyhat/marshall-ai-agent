@@ -114,7 +114,9 @@ When `publish-planning-change` is selected, generate:
 - exact primary/supporting artifact classes and forbidden implementation,
   release, deployment, production, secret, and unrelated paths;
 - fresh independent spec-review configuration with model and effort owned by
-  project configuration, scope guards, and bounded attempts;
+  project configuration, scope guards, bounded attempts, and an explicit
+  process working directory bound to the exact planning worktree rather than
+  the checkout from which the publication alias was invoked;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
   specification-owner ancestry, exact-task publication evidence, sync, and
   cleanup gates; require the publication record to bind Task ID, owner

@@ -35,7 +35,9 @@ Validate the configured workflow without executing ordinary project work.
   `planning_artifact_publication`, is allowed without releasing the planning
   profile, requires one exact task/spec anchor, and cannot authorize
   implementation, implementation delivery, Issue closure, release, deploy, or
-  production mutation.
+  production mutation. Verify the independent reviewer process runs with the
+  exact planning worktree as its working directory so an uncommitted review
+  cannot accidentally inspect the clean main checkout.
 - Verify no unresolved template placeholders.
 - Verify every generated relative link.
 - Verify no configured path escapes its intended root.
