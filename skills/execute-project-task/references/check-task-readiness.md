@@ -49,13 +49,53 @@ Check the configured requirements:
 
 Inspect only enough current code to verify that named surfaces and critical assumptions still exist. Do not begin broad implementation during readiness checking.
 
+## Resolve pre-adoption ready specifications
+
+If the ordinary publication tuple is missing, inspect the configured
+legacy-ready adoption policy before declaring the task blocked. Use this path
+only when it is explicitly enabled for an existing project and supplies one
+immutable full baseline revision captured from the canonical target before
+planning-publication adoption.
+
+First build candidate evidence and require all of the following:
+
+1. the baseline revision is an ancestor of the current specification-owner
+   authority base, and the exact canonical spec package paths exist at both;
+2. project policy or the exact task package resolves every task-owned primary
+   spec and required annex path. For both revisions, build the same sorted
+   manifest of project-relative path and Git blob OID; require byte-for-byte
+   manifest equality so no post-baseline package change is grandfathered. Use a
+   Git tree OID only when the whole tree is exactly the owned package;
+3. the baseline spec contains the exact Task ID, tracker link, and configured
+   implementation-ready verdict, and current tracker identity still agrees;
+4. the evidence revision is the last revision that changed any manifest path at
+   or before the baseline, contains the same package manifest, and is an
+   ancestor of both the baseline and current authority base.
+
+Only after those candidate checks pass, ask `manage-project-work` to record
+Task ID, owner repository, canonical spec entrypoint, the complete sorted
+baseline package manifest with every path and blob OID, derived revision,
+baseline revision, and evidence kind `legacy_ready_baseline` as one exact-task
+record. Then reread the tracker record, require the same complete manifest and
+verify every persisted value against the candidate, including the exact path
+set and each blob OID. Verify it explicitly states that independent review is
+not claimed. The persisted and verified tuple is the final readiness evidence;
+it is not a prerequisite for constructing the candidate.
+
+This is deterministic migration evidence for work accepted by the previous
+workflow, not permission to weaken the new publication gate. Do not mass-mark
+tasks ready, choose a newer baseline, compare only the entrypoint when annexes
+exist, accept approximate content equality, or use a user assertion in place of
+Git and tracker evidence. If any check or persisted readback fails, route the
+task to `publish-planning-change`.
+
 ## Classify gaps
 
 Use these routes:
 
 - missing or inconsistent specification detail: `write-task-spec`;
-- missing independent spec review, canonical merge, or publication revision:
-  `publish-planning-change`;
+- missing independent spec review, canonical merge, publication revision, or
+  valid configured legacy-ready baseline evidence: `publish-planning-change`;
 - changed outcome, scope, task decomposition, architecture, or dependency direction: `shape-project-work`;
 - missing or inconsistent task identity or tracker state: `manage-project-work`;
 - missing domain-specific evidence: the configured domain workflow;
@@ -77,5 +117,7 @@ User acceptance cannot override safety restrictions, repository policy, access c
 ## Return one result
 
 - `Ready to execute`: every required gate is satisfied.
-- `Ready by configured exception`: the allowed exception and risk are explicit.
+- `Ready by configured migration evidence`: the exact legacy baseline tuple is
+  recorded without claiming independent review.
+- `Ready by configured exception`: another allowed exception and risk are explicit.
 - `Not ready`: name the blocking gate and owning workflow.

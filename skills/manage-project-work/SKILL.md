@@ -154,6 +154,13 @@ Never report a mutation as successful from a command exit alone.
 - Establish required Task ID and tracker anchors for `write-task-spec` only when project policy makes that handoff explicit.
 - Apply canonical spec linkage and the implementation-ready status only from a
   verified `publish-planning-change` handoff when that workflow is configured.
+- Accept a verified `legacy_ready_baseline` recording handoff from
+  `execute-project-task` only when project policy explicitly enables the
+  migration path and all configured baseline-ancestry, package-manifest,
+  identity, verdict, and evidence-revision ancestry candidate checks passed.
+  Record and read back the evidence tuple
+  without claiming
+  independent review or reapplying implementation-ready status.
 - Let `execute-project-task` establish implementation start and local-review checkpoints.
 - Let `deliver-reviewed-change` establish PR, review, merge-readiness, and merge checkpoints.
 - Use `record-project-context` before changing local project documentation or rolling task context; do not copy GitHub operational state into memory.

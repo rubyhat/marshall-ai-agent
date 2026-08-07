@@ -134,7 +134,8 @@ Resolve the following; ask only unresolved decision-changing items:
    supporting artifact classes, deterministic gates, PR target, merge authority,
    and canonical-revision evidence;
 10. specification readiness verdicts and the separate implementation authority
-    gate.
+    gate, including deterministic adoption evidence for specifications already
+    ready on the canonical target before planning publication was enabled.
 
 ## Stage 6 — task management
 

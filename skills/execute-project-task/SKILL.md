@@ -84,10 +84,17 @@ revision, and proof that the specification-owner authority base contains or
 descends from that revision. For an implementation repository with a separate
 Git history, require the exact task's recorded publication tuple: Task ID,
 specification-owner repository, canonical spec path, and merged revision. Do
-not require cross-repository ancestry. An open PR, local file, dirty main
-checkout, or content verdict alone is insufficient. Route a missing
-publication gate to `publish-planning-change` and recommend
-`--publish-spec <Task ID>`.
+not require cross-repository ancestry.
+
+When project policy explicitly enables legacy-ready adoption for specs that
+were already implementation-ready before planning publication was configured,
+allow only the deterministic baseline evidence defined in
+[check-task-readiness.md](references/check-task-readiness.md). This migration
+path must record a distinct `legacy_ready_baseline` publication tuple, must not
+claim that independent review occurred, and is not a user override. An open PR,
+local file, dirty main checkout, content verdict alone, or a baseline mismatch
+is insufficient. Route any unresolved publication gate to
+`publish-planning-change` and recommend `--publish-spec <Task ID>`.
 
 Route material outcome or decomposition gaps to `shape-project-work`. Route specification content gaps to `write-task-spec`. Apply a user override only when project policy permits it and after stating the exact missing gate and risk.
 

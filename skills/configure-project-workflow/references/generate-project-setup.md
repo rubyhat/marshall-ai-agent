@@ -122,6 +122,19 @@ When `publish-planning-change` is selected, generate:
   cleanup gates; require the publication record to bind Task ID, owner
   repository, canonical spec path, and merged revision, and never require a
   component repository with a separate Git history to contain that commit;
+- for an existing project with specifications already marked implementation-ready
+  on the canonical target, capture its exact full Git object ID before workflow
+  mutations as an adoption baseline without asking the user to choose one.
+  Accept full 40-hex SHA-1 and 64-hex SHA-256 object IDs. Require that baseline
+  to be an ancestor of the current specification-
+  owner authority base. Enable legacy-ready adoption only when the deterministic
+  current package manifest of every task-owned spec path and Git blob OID must
+  equal its baseline manifest, the ready verdict existed at that baseline, the
+  evidence revision is derived from the last package change at or before the
+  baseline, the complete sorted baseline manifest is persisted and compared on
+  every readback, and the record is explicitly classified as
+  `legacy_ready_baseline` rather than an independent review. Disable this path
+  for a new project or when no pre-adoption ready specifications exist;
 - `planning_artifact_publication` as a separately allowed planning-session
   capability that does not release implementation or delivery locks;
 - a `--publish-spec` handoff after `Spec ready` and a hard implementation gate
