@@ -124,6 +124,102 @@
       },
       "additionalProperties": true
     },
+    "task_specs": {
+      "type": "object",
+      "properties": {
+        "automatic_delivery": {
+          "type": "object",
+          "required": [
+            "enabled",
+            "capability",
+            "require_content_verdict",
+            "require_documentation_fast_path",
+            "keep_task_open_after_merge",
+            "issue_linkage"
+          ],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "capability": {"const": "specification_documentation_delivery"},
+            "require_content_verdict": {"const": "ready_for_implementation"},
+            "require_documentation_fast_path": {"const": true},
+            "keep_task_open_after_merge": {"const": true},
+            "issue_linkage": {"const": "reference_only"}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "delivery": {
+      "type": "object",
+      "properties": {
+        "documentation_fast_path": {
+          "type": "object",
+          "required": ["enabled"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "allowed_roots": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 1},
+              "uniqueItems": true
+            },
+            "allowed_file_types": {
+              "type": "array",
+              "items": {"type": "string", "pattern": "^\\.[A-Za-z0-9]+$"},
+              "uniqueItems": true
+            },
+            "excluded_paths": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 1},
+              "uniqueItems": true
+            },
+            "reject_generated_files": {"const": true},
+            "reject_secret_or_temporary_files": {"const": true},
+            "skip_independent_local_review": {"const": true},
+            "skip_github_codex_review": {"const": true},
+            "require_deterministic_validation": {"const": true},
+            "deterministic_validation_binding": {"const": "head_and_base_sha"},
+            "reported_checks_policy": {"const": "terminal_non_failing_when_present"},
+            "no_checks_reported_is_blocker": {"const": false},
+            "branch_protection_evidence_required": {"const": false},
+            "never_bypass_provider_enforced_rules": {"const": true},
+            "require_pull_request": {"const": true}
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {"enabled": {"const": true}},
+                "required": ["enabled"]
+              },
+              "then": {
+                "required": [
+                  "allowed_roots",
+                  "allowed_file_types",
+                  "excluded_paths",
+                  "reject_generated_files",
+                  "reject_secret_or_temporary_files",
+                  "skip_independent_local_review",
+                  "skip_github_codex_review",
+                  "require_deterministic_validation",
+                  "deterministic_validation_binding",
+                  "reported_checks_policy",
+                  "no_checks_reported_is_blocker",
+                  "branch_protection_evidence_required",
+                  "never_bypass_provider_enforced_rules",
+                  "require_pull_request"
+                ],
+                "properties": {
+                  "allowed_roots": {"minItems": 1},
+                  "allowed_file_types": {"minItems": 1}
+                }
+              }
+            }
+          ],
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
     "commands": {
       "type": "object",
       "required": [
@@ -207,5 +303,41 @@
       "additionalProperties": true
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "task_specs": {
+            "properties": {
+              "automatic_delivery": {
+                "properties": {"enabled": {"const": true}},
+                "required": ["enabled"]
+              }
+            },
+            "required": ["automatic_delivery"]
+          }
+        },
+        "required": ["task_specs"]
+      },
+      "then": {
+        "required": ["delivery"],
+        "properties": {
+          "delivery": {
+            "required": ["documentation_fast_path"],
+            "properties": {
+              "documentation_fast_path": {
+                "properties": {
+                  "enabled": {"const": true},
+                  "allowed_roots": {"minItems": 1},
+                  "allowed_file_types": {"minItems": 1}
+                },
+                "required": ["enabled", "allowed_roots", "allowed_file_types"]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "additionalProperties": true
 }

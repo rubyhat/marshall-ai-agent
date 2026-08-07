@@ -70,4 +70,31 @@ commands:
     recommend_exact_next_alias_or_action: true
   aliases: {}
 
+task_specs:
+  automatic_delivery:
+    enabled: false
+    capability: specification_documentation_delivery
+    require_content_verdict: ready_for_implementation
+    require_documentation_fast_path: true
+    keep_task_open_after_merge: true
+    issue_linkage: reference_only
+
+delivery:
+  documentation_fast_path:
+    enabled: false
+    allowed_roots: []
+    allowed_file_types: []
+    excluded_paths: []
+    reject_generated_files: true
+    reject_secret_or_temporary_files: true
+    skip_independent_local_review: true
+    skip_github_codex_review: true
+    require_deterministic_validation: true
+    deterministic_validation_binding: head_and_base_sha
+    reported_checks_policy: terminal_non_failing_when_present
+    no_checks_reported_is_blocker: false
+    branch_protection_evidence_required: false
+    never_bypass_provider_enforced_rules: true
+    require_pull_request: true
+
 # Add only sections required by selected modules.

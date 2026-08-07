@@ -40,7 +40,10 @@ For each selected module:
    or report why the requested command cannot be enabled;
 7. store the exact enabled command set in setup state as
    `modules.enabled_aliases`;
-8. validate uniqueness across ordinary and enabled conditional aliases.
+8. store each selected optional cross-skill capability in
+   `modules.enabled_capabilities`, add every module required by its catalog
+   entry, and report any impossible dependency;
+9. validate uniqueness across aliases and capabilities.
 
 Removing a module disables its routing and configuration only. Do not delete its existing task specs, memory, references, Issues, or historical artifacts automatically.
 

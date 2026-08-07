@@ -23,6 +23,20 @@ Validate the configured workflow without executing ordinary project work.
   parallel-candidate handling, explicit specification authority, and no
   previous-task status mutation.
 - Verify no unresolved template placeholders.
+- When automatic ready-spec delivery is enabled, verify that it uses no new
+  alias, accepts only `Ready for implementation`, requires a task branch and
+  PR, keeps the task open, applies only execution-ready status after merge,
+  cannot authorize implementation, uses reference-only Issue linkage, records
+  its enabled capability, and includes every module required by the capability
+  catalog entry. Require the documentation-only fast path to be enabled with
+  non-empty eligible roots and file types whenever automatic delivery is
+  enabled.
+- When documentation-only fast delivery is enabled, verify exact roots,
+  non-executable file types, workflow/configuration/script/schema exclusions,
+  deterministic validation bound to exact head and base SHAs, merge authority,
+  non-failing terminal reported checks when present, allowance for no reported
+  checks or branch-protection evidence, non-bypass of provider-enforced rules,
+  and all-or-nothing fallback to ordinary review for a mixed or uncertain diff.
 - Verify every generated relative link.
 - Verify no configured path escapes its intended root.
 - Verify `paths.project_topology` resolves to exactly one canonical topology
@@ -85,6 +99,15 @@ Evaluate representative prompts without performing their mutations:
 - accept current recommendations -> only the latest recommended question set;
 - request implementation -> readiness and explicit authority gate;
 - request delivery -> exact endpoint gate;
+- prepare a ready spec with automatic documentation delivery -> exact spec-only
+  branch, deterministic gates, PR, no independent review, merge, open Issue,
+  and execution-ready status;
+- deliver an eligible documentation-only PR -> skip independent local and
+  GitHub Codex review, require deterministic validation, exact head and merge
+  authority, allow absent checks and branch-protection evidence, reject pending
+  or failing reported checks, and never bypass provider-enforced rules;
+- add one workflow, configuration, schema, script, executable, or excluded file
+  to that PR -> return the entire delivery to the ordinary reviewed flow;
 - planning session then request implementation -> stop before task lookup or
   mutations and require the configured release action;
 - planning session then request delivery -> stop before review or delivery

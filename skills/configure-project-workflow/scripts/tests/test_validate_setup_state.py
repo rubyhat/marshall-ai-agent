@@ -45,6 +45,7 @@ class ValidateSetupStateTest(unittest.TestCase):
                     "maintain-project-context",
                 ],
                 "enabled_aliases": ["--workflow-check", "--context-audit"],
+                "enabled_capabilities": [],
             },
             "questions": [
                 {"id": "SAFE-01", "stage": "safety", "status": "answered", "answer": "confirmed"}
@@ -146,6 +147,52 @@ class ValidateSetupStateTest(unittest.TestCase):
         del state["modules"]["enabled_aliases"]
         errors, _ = self.module.validate(state, self.catalog)
         self.assertIn("modules.enabled_aliases is required", errors)
+
+    def test_enabled_capability_requires_runtime_modules(self):
+        state = self.valid_state()
+        state["modules"]["selected"] = [
+            "configure-project-workflow",
+            "record-project-context",
+            "shape-project-work",
+            "write-task-spec",
+        ]
+        state["modules"]["enabled_aliases"] = ["--prepare-spec"]
+        state["modules"]["enabled_capabilities"] = [
+            "specification_documentation_delivery"
+        ]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn(
+            "Capability specification_documentation_delivery requires module deliver-reviewed-change",
+            errors,
+        )
+        self.assertIn(
+            "Capability specification_documentation_delivery requires module manage-project-work",
+            errors,
+        )
+
+    def test_enabled_capability_passes_with_complete_runtime(self):
+        state = self.valid_state()
+        state["modules"]["selected"] = [
+            "configure-project-workflow",
+            "record-project-context",
+            "shape-project-work",
+            "write-task-spec",
+            "manage-project-work",
+            "execute-project-task",
+            "deliver-reviewed-change",
+        ]
+        state["modules"]["enabled_aliases"] = ["--prepare-spec"]
+        state["modules"]["enabled_capabilities"] = [
+            "specification_documentation_delivery"
+        ]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertEqual(errors, [])
+
+    def test_unknown_enabled_capability_fails(self):
+        state = self.valid_state()
+        state["modules"]["enabled_capabilities"] = ["missing-capability"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn("Unknown enabled capability: missing-capability", errors)
 
 
 if __name__ == "__main__":

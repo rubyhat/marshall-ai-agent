@@ -41,8 +41,11 @@ tracker state. Never infer the next task from numbering alone.
 Recommend the project-configured implementation command with the exact task
 anchor only when the content verdict is `Ready for implementation` and all
 operational prerequisites and dependency gates are currently satisfied. When
-content is ready but operational work is blocked, name the missing gate and
-recommend the action that clears it. Do not start implementation automatically.
+automatic ready-spec delivery is configured, recommend implementation only
+after the exact specification PR is merged and the execution-ready status is
+read back. When content is ready but operational work is blocked, name the
+missing gate and recommend the action that clears it. Do not start
+implementation automatically.
 
 ## Suggested presentation
 
@@ -54,6 +57,7 @@ Repositories: <one or more owners>
 
 Content verdict: <Draft spec | Spec ready | Ready for implementation>
 Project status: <configured status or pending/unavailable>
+Spec delivery: <merged PR and revision | not configured | blocker>
 
 Expected outcome:
 <one short observable result>
