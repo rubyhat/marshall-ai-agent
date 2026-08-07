@@ -31,17 +31,18 @@ Check the configured requirements:
 
 - required Task ID, Issue, Project item, parent, and specification links agree;
 - the specification has the configured implementation-ready content verdict;
-- when file-backed planning publication is configured, exactly one complete
-  evidence path passes: either ordinary independent review plus canonical merge
-  and its recorded revision, or the explicitly enabled and fully verified
-  `legacy_ready_baseline` path below;
+- when file-backed planning publication is configured, select one complete
+  evidence path: prefer ordinary independent review plus canonical merge and
+  its recorded revision whenever complete; otherwise use the explicitly
+  enabled and fully verified `legacy_ready_baseline` path below;
 - the specification-owner authority base contains or descends from the
   selected path's ordinary merged revision or legacy derived revision;
 - when implementation occurs in a different repository, the component resolves
   the matching exact-task record — ordinary Task ID, owner repository,
   canonical spec path, and merged revision, or the legacy tuple with its full
-  package manifest, derived revision, and adoption baseline — without requiring
-  cross-repository Git ancestry;
+  package manifest, explicit `legacy_ready_baseline` evidence kind, derived
+  revision, and adoption baseline — without requiring cross-repository Git
+  ancestry;
 - outcome, in-scope behavior, non-goals, acceptance criteria, and ownership are stable;
 - blocking questions and product decisions are resolved;
 - affected repositories and dependency order are known;
@@ -54,11 +55,12 @@ Inspect only enough current code to verify that named surfaces and critical assu
 
 ## Resolve pre-adoption ready specifications
 
-If the ordinary publication tuple is missing, inspect the configured
-legacy-ready adoption policy before declaring the task blocked. Use this path
-only when it is explicitly enabled for an existing project and supplies one
-immutable full baseline revision captured from the canonical target before
-planning-publication adoption.
+If the ordinary publication readiness path is missing or incomplete, inspect
+the configured legacy-ready adoption policy before declaring the task blocked.
+Use this path only when it is explicitly enabled for an existing project and
+supplies one immutable full baseline revision captured from the canonical
+target before planning-publication adoption. A partial ordinary record neither
+blocks this fallback nor counts as ordinary publication evidence.
 
 First build candidate evidence and require all of the following:
 
