@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.4.0...v0.4.1) (2026-08-07)
+
+
+### Исправления
+
+* **workflow:** enforce documentation fast-path guards ([#19](https://github.com/rubyhat/marshall-ai-agent/issues/19)) ([bf643a5](https://github.com/rubyhat/marshall-ai-agent/commit/bf643a5da6f4aabcb2fc4c7237ee6cd8710d5aad))
+
 ## [0.4.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.3.0...v0.4.0) (2026-08-07)
 
 
