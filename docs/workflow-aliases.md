@@ -231,7 +231,10 @@ task lookup, status transition, Git, dependency и file mutations и реком�
 
 - проверяет `Ready for implementation`;
 - при configured planning publication проверяет independent spec review,
-  merged canonical revision и ancestry implementation base;
+  merged canonical revision и ancestry specification-owner authority base;
+- для component repository с отдельной Git history проверяет recorded tuple из
+  Task ID, spec-owner repository, canonical spec path и merged revision без
+  требования невозможной общей ancestry;
 - выбирает только затронутые repositories;
 - создаёт или возобновляет isolated task workspaces;
 - защищает параллельную работу;

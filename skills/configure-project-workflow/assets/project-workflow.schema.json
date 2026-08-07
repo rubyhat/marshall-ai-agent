@@ -192,7 +192,10 @@
           "properties": {
             "input_content_verdict": {"const": "spec_ready"},
             "canonical_merge_required_before_implementation": {"const": true},
-            "implementation_base_must_contain_publication_revision": {"const": true}
+            "implementation_base_must_contain_publication_revision": {
+              "const": true,
+              "description": "Require ancestry in the repository that owns the specification revision, not across unrelated Git histories."
+            }
           },
           "additionalProperties": true
         },

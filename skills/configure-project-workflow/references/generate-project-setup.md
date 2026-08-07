@@ -92,7 +92,10 @@ When `publish-planning-change` is selected, generate:
 - fresh independent spec-review configuration with model and effort owned by
   project configuration, scope guards, and bounded attempts;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
-  ancestry, sync, and cleanup gates;
+  specification-owner ancestry, exact-task publication evidence, sync, and
+  cleanup gates; require the publication record to bind Task ID, owner
+  repository, canonical spec path, and merged revision, and never require a
+  component repository with a separate Git history to contain that commit;
 - `planning_artifact_publication` as a separately allowed planning-session
   capability that does not release implementation or delivery locks;
 - a `--publish-spec` handoff after `Spec ready` and a hard implementation gate

@@ -80,10 +80,14 @@ Require the configured ready verdict or equivalent readiness evidence. Check unr
 
 When specifications are file-backed and planning publication is configured,
 also require a clean independent spec review, a merged canonical specification
-revision, and proof that every implementation workspace base contains or
-descends from that revision. An open PR, local file, dirty main checkout, or
-content verdict alone is insufficient. Route a missing publication gate to
-`publish-planning-change` and recommend `--publish-spec <Task ID>`.
+revision, and proof that the specification-owner authority base contains or
+descends from that revision. For an implementation repository with a separate
+Git history, require the exact task's recorded publication tuple: Task ID,
+specification-owner repository, canonical spec path, and merged revision. Do
+not require cross-repository ancestry. An open PR, local file, dirty main
+checkout, or content verdict alone is insufficient. Route a missing
+publication gate to `publish-planning-change` and recommend
+`--publish-spec <Task ID>`.
 
 Route material outcome or decomposition gaps to `shape-project-work`. Route specification content gaps to `write-task-spec`. Apply a user override only when project policy permits it and after stating the exact missing gate and risk.
 

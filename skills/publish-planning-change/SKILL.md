@@ -60,8 +60,8 @@ Read project instructions and workflow configuration. Resolve:
   budget;
 - deterministic validators, commit convention, PR policy, required checks,
   merge authority, and allowed endpoint;
-- Issue/spec linkage, operational status, canonical revision recording, and
-  implementation-base ancestry requirements.
+- Issue/spec linkage, operational status, canonical revision recording,
+  specification-owner ancestry, and cross-repository linkage requirements.
 
 Use the configured spec root. A newly configured project should normally use
 `docs_ai/tasks` without asking the user to choose a path unless the user has

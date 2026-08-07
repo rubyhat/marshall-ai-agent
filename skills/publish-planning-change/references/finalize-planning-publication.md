@@ -12,7 +12,12 @@ After merge, verify:
 - the canonical branch contains the spec entrypoint and required annexes;
 - task identity, links, and content verdict are unchanged;
 - the merged revision is recorded and can be resolved later;
-- the future implementation base contains or descends from that revision.
+- the specification-owner repository base used as future implementation
+  authority contains or descends from that revision;
+- a component repository with a separate Git history resolves the recorded
+  exact-task publication tuple — Task ID, owner repository, canonical spec
+  path, and merged revision — and is not required to claim impossible
+  cross-repository ancestry.
 
 If any item is uncertain, keep publication incomplete and do not unlock
 implementation.
@@ -21,7 +26,8 @@ implementation.
 
 Ask `manage-project-work` to:
 
-- link the canonical spec path and revision to the exact task;
+- record the Task ID, specification-owner repository, canonical spec path, and
+  merged revision as one resolvable publication tuple on the exact task;
 - apply the configured implementation-ready status only after publication
   evidence passes;
 - preserve the implementation Issue as open;
