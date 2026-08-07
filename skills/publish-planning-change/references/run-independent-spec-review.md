@@ -61,3 +61,22 @@ on repeated dismissed findings or scope instability.
 
 Report the clean-review evidence without copying the full review transcript
 into the specification.
+
+## Capture a bindable clean-review record
+
+Before accepting a clean verdict, capture a bounded durable candidate record:
+
+- exact reviewer run or session identifier, model, effort, completion time, and
+  terminal clean verdict;
+- review target kind, canonical base revision, planning worktree, branch, and
+  the reviewed commit when the target was already committed;
+- the complete sorted publication-package manifest with every allowed
+  project-relative path and content blob OID.
+
+Do not treat model and effort alone, a PR-description claim, or an unbound
+verdict as review evidence. A full private reasoning transcript is neither
+required nor copied into the specification. When the clean review targeted
+uncommitted content, keep the manifest as candidate evidence; the publication
+workflow must bind it to the eventual committed PR head by exact path/OID
+equality before merge. Any manifest change invalidates the clean verdict and
+requires a fresh review.

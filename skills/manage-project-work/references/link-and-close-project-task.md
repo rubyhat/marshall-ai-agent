@@ -17,6 +17,16 @@ spec is independently reviewed and merged into the canonical branch. Record
 the resolvable merged revision when project policy requires it. Do not close
 the implementation Issue for a spec-publication pull request.
 
+For ordinary reviewed publication, accept the handoff only with one complete
+`reviewed_canonical_publication` record: Task ID, owner repository, canonical
+spec entrypoint, pull request URL, merged revision/tree OID, bound reviewed-head
+revision/tree OID, complete sorted reviewed package path/blob-OID manifest,
+reviewer run/evidence identifier, model, effort, completion time, terminal
+clean verdict, review target kind, canonical base revision, binding method, and
+explicit reviewed-versus-merged package-manifest equality. Persist the record
+on the exact task, reread it, and require exact equality of every field. Do not
+infer clean review from PR prose, status, model selection, or merge alone.
+
 For a task that was already implementation-ready before planning publication
 was adopted, accept a separate recording handoff from `execute-project-task`
 only after that workflow verifies every configured legacy-ready adoption gate.

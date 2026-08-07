@@ -33,16 +33,16 @@ Check the configured requirements:
 - the specification has the configured implementation-ready content verdict;
 - when file-backed planning publication is configured, select one complete
   evidence path: prefer ordinary independent review plus canonical merge and
-  its recorded revision whenever complete; otherwise use the explicitly
-  enabled and fully verified `legacy_ready_baseline` path below;
+  its complete recorded `reviewed_canonical_publication` evidence whenever
+  available; otherwise use the explicitly enabled and fully verified
+  `legacy_ready_baseline` path below;
 - the specification-owner authority base contains or descends from the
   selected path's ordinary merged revision or legacy derived revision;
 - when implementation occurs in a different repository, the component resolves
-  the matching exact-task record — ordinary Task ID, owner repository,
-  canonical spec path, and merged revision, or the legacy tuple with its full
-  package manifest, explicit `legacy_ready_baseline` evidence kind, derived
-  revision, and adoption baseline — without requiring cross-repository Git
-  ancestry;
+  the matching exact-task record — ordinary reviewed-publication evidence or
+  the legacy tuple with its full package manifest, explicit
+  `legacy_ready_baseline` evidence kind, derived revision, and adoption baseline
+  — without requiring cross-repository Git ancestry;
 - outcome, in-scope behavior, non-goals, acceptance criteria, and ownership are stable;
 - blocking questions and product decisions are resolved;
 - affected repositories and dependency order are known;
@@ -52,6 +52,19 @@ Check the configured requirements:
 - current project instructions and architecture do not contradict the intended work.
 
 Inspect only enough current code to verify that named surfaces and critical assumptions still exist. Do not begin broad implementation during readiness checking.
+
+For the ordinary path, require one persisted and reread record with evidence
+kind `reviewed_canonical_publication`, Task ID, owner repository, canonical spec
+entrypoint, PR URL, merged revision/tree OID, bound reviewed-head revision/tree
+OID, complete sorted reviewed package path/blob-OID manifest, reviewer run or
+evidence identifier, model, effort, completion time, terminal clean verdict,
+review target kind, canonical base revision, binding method, and explicit
+reviewed-versus-merged package-manifest equality. Resolve all revisions and tree
+OIDs, require the current specification-owner authority base to contain the
+merged revision, and rebuild the canonical package manifest at that revision.
+It must equal the persisted reviewed manifest exactly. PR prose, an open or
+merged PR, a status field, or a model/effort pair without the bound clean record
+is insufficient.
 
 ## Resolve pre-adoption ready specifications
 

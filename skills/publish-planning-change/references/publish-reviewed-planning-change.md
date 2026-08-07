@@ -15,6 +15,15 @@ Publish only after the exact current spec head has a clean independent review.
 6. Stage only explicit paths. Do not use a broad add when other changes exist.
 7. Create an intentional planning/spec commit using project conventions.
 
+After commit, resolve the exact PR-head revision and tree OID and rebuild the
+complete sorted publication-package path/blob-OID manifest. Bind the candidate
+clean-review record to that head only when the manifest exactly equals the one
+seen by the reviewer; require exact path/OID equality. Record whether binding
+was a direct committed-base-diff
+review or verified uncommitted-manifest equivalence. If identity, path set, or
+any blob OID differs, invalidate the candidate and run a fresh independent
+review for the new exact head before push or merge.
+
 Do not include generated application output, implementation code, unrelated
 memory, or a release-version mutation.
 
@@ -38,6 +47,8 @@ publication.
 - Treat missing, pending, or failed checks according to configured project
   policy; do not invent success.
 - Re-review the exact current head after a content-changing PR update.
+- Preserve the bound reviewed-head revision, tree OID, package manifest, clean
+  verdict, and reviewer-run identity for the final exact-task record.
 - Merge only the exact reviewed head when user and project authority allow it.
 - Never force-push, merge an unrelated PR, publish a release, deploy, or mutate
   production as part of this workflow.

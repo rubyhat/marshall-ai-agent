@@ -119,9 +119,13 @@ When `publish-planning-change` is selected, generate:
   the checkout from which the publication alias was invoked;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
   specification-owner ancestry, exact-task publication evidence, sync, and
-  cleanup gates; require the publication record to bind Task ID, owner
-  repository, canonical spec path, and merged revision, and never require a
-  component repository with a separate Git history to contain that commit;
+  cleanup gates; require an ordinary publication record with evidence kind,
+  Task ID, owner repository, canonical spec path, PR URL, merged revision/tree,
+  bound reviewed-head revision/tree, full package path/blob-OID manifest,
+  reviewer run identity and clean-verdict metadata, review base/target/binding
+  method, and explicit reviewed-versus-merged manifest equality. Reread every
+  field before cleanup, and never require a component repository with a
+  separate Git history to contain that commit;
 - for an existing project with specifications already marked implementation-ready
   on the canonical target, capture its exact full Git object ID before workflow
   mutations as an adoption baseline without asking the user to choose one.

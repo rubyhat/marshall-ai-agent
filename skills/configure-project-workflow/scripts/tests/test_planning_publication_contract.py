@@ -17,6 +17,18 @@ PUBLISH_REVIEW = (
     / "references"
     / "run-independent-spec-review.md"
 )
+PUBLISH_PREPARE = (
+    SKILL_ROOT.parent
+    / "publish-planning-change"
+    / "references"
+    / "publish-reviewed-planning-change.md"
+)
+PUBLISH_FINALIZE = (
+    SKILL_ROOT.parent
+    / "publish-planning-change"
+    / "references"
+    / "finalize-planning-publication.md"
+)
 
 
 class PlanningPublicationContractTest(unittest.TestCase):
@@ -234,6 +246,35 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("existing ready status", task_linkage)
         self.assertIn("Reread the persisted tuple", task_linkage)
         self.assertIn("complete path/OID set", task_linkage)
+
+    def test_review_evidence_is_bound_to_the_published_head(self):
+        review = PUBLISH_REVIEW.read_text(encoding="utf-8")
+        prepare = PUBLISH_PREPARE.read_text(encoding="utf-8")
+        finalize = PUBLISH_FINALIZE.read_text(encoding="utf-8")
+        readiness = (
+            SKILL_ROOT.parent
+            / "execute-project-task"
+            / "references"
+            / "check-task-readiness.md"
+        ).read_text(encoding="utf-8")
+        task_linkage = (
+            SKILL_ROOT.parent
+            / "manage-project-work"
+            / "references"
+            / "link-and-close-project-task.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("Capture a bindable clean-review record", review)
+        self.assertIn("reviewer run or session identifier", review)
+        self.assertIn("complete sorted publication-package manifest", review)
+        self.assertIn("Bind the candidate", prepare)
+        self.assertIn("exact path/OID equality", prepare)
+        self.assertIn("reviewed_canonical_publication", finalize)
+        self.assertIn("bound reviewed-head revision and tree OID", finalize)
+        self.assertIn("reviewed_package_manifest_equals_merged: true", finalize)
+        self.assertIn("reviewed_canonical_publication", readiness)
+        self.assertIn("reviewer run or", readiness)
+        self.assertIn("infer clean review from PR prose", task_linkage)
 
 
 if __name__ == "__main__":
