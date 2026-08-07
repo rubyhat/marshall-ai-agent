@@ -42,13 +42,13 @@ When a workspace does not exist:
 2. fetch and prune when network and policy allow;
 3. verify the intended remote-tracking base;
 4. when this repository also owns the canonical task specification, verify that
-   the base contains or descends from the exact publication revision, including
-   a valid recorded `legacy_ready_baseline` revision when that configured
-   migration path supplied the publication tuple;
+   the base contains or descends from the selected path's ordinary merged
+   revision or valid recorded `legacy_ready_baseline` derived revision;
 5. when the specification owner is a different repository, verify the recorded
-   exact-task publication tuple — Task ID, owner repository, canonical spec
-   path, and merged revision — instead of requiring impossible shared Git
-   ancestry;
+   matching exact-task record — the ordinary tuple with Task ID, owner
+   repository, canonical spec path, and merged revision, or the legacy tuple
+   with its complete package manifest, derived revision, and adoption baseline
+   — instead of requiring impossible shared Git ancestry;
 6. derive the configured task branch and workspace path;
 7. ensure neither collides with another task;
 8. create the feature branch and worktree from that base;

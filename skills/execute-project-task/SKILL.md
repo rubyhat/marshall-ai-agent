@@ -79,21 +79,24 @@ Read [check-task-readiness.md](references/check-task-readiness.md).
 Require the configured ready verdict or equivalent readiness evidence. Check unresolved decisions, acceptance criteria, dependencies, repository ownership, required quality gates, and conflicts with current architecture or higher-priority instructions.
 
 When specifications are file-backed and planning publication is configured,
-also require a clean independent spec review, a merged canonical specification
-revision, and proof that the specification-owner authority base contains or
-descends from that revision. For an implementation repository with a separate
-Git history, require the exact task's recorded publication tuple: Task ID,
-specification-owner repository, canonical spec path, and merged revision. Do
-not require cross-repository ancestry.
+require exactly one complete readiness path:
 
-When project policy explicitly enables legacy-ready adoption for specs that
-were already implementation-ready before planning publication was configured,
-allow only the deterministic baseline evidence defined in
-[check-task-readiness.md](references/check-task-readiness.md). This migration
-path must record a distinct `legacy_ready_baseline` publication tuple, must not
-claim that independent review occurred, and is not a user override. An open PR,
-local file, dirty main checkout, content verdict alone, or a baseline mismatch
-is insufficient. Route any unresolved publication gate to
+- ordinary publication evidence: a clean independent spec review, a merged
+  canonical specification revision, and proof that the specification-owner
+  authority base contains or descends from that revision; or
+- when project policy explicitly enables it for specs that were already
+  implementation-ready before planning publication was configured, the
+  deterministic baseline evidence defined in
+  [check-task-readiness.md](references/check-task-readiness.md).
+
+For an implementation repository with a separate Git history, require the
+matching exact-task record for the selected path: the ordinary publication
+tuple with its merged revision, or the `legacy_ready_baseline` tuple with its
+complete package manifest, derived revision, and adoption baseline. Do not
+require cross-repository ancestry. The legacy path must not claim that
+independent review occurred and is not a user override. An open PR, local file,
+dirty main checkout, content verdict alone, incomplete record, or baseline
+mismatch is insufficient. Route any unresolved publication gate to
 `publish-planning-change` and recommend `--publish-spec <Task ID>`.
 
 Route material outcome or decomposition gaps to `shape-project-work`. Route specification content gaps to `write-task-spec`. Apply a user override only when project policy permits it and after stating the exact missing gate and risk.

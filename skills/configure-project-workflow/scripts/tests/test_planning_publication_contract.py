@@ -192,6 +192,15 @@ class PlanningPublicationContractTest(unittest.TestCase):
             / "references"
             / "check-task-readiness.md"
         ).read_text(encoding="utf-8")
+        execution_skill = (
+            SKILL_ROOT.parent / "execute-project-task" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        workspace = (
+            SKILL_ROOT.parent
+            / "execute-project-task"
+            / "references"
+            / "create-or-resume-task-workspace.md"
+        ).read_text(encoding="utf-8")
         task_linkage = (
             SKILL_ROOT.parent
             / "manage-project-work"
@@ -210,6 +219,12 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("baseline revision is an ancestor", readiness)
         self.assertIn("not a prerequisite for constructing the candidate", readiness)
         self.assertIn("baseline package manifest with every path", readiness)
+        self.assertIn("exactly one complete readiness path", execution_skill)
+        self.assertIn("matching exact-task record for the selected path", execution_skill)
+        self.assertRegex(readiness, r"exactly one complete\s+evidence path passes")
+        self.assertIn("legacy tuple with its full", readiness)
+        self.assertIn("ordinary merged", workspace)
+        self.assertIn("or the legacy tuple", workspace)
         self.assertIn("separate recording handoff", task_linkage)
         self.assertIn("legacy_ready_baseline", task_linkage)
         self.assertIn("existing ready status", task_linkage)
