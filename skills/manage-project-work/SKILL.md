@@ -1,6 +1,6 @@
 ---
 name: manage-project-work
-description: Manage the operational lifecycle of configured GitHub Issues and Projects. Use when the user explicitly asks to create, find, reconcile, reparent, link, close, or update a backlog/roadmap task; invokes `--task-check` or `--task-status`; or when an authorized shaping, QA, specification, implementation, review, or delivery workflow reaches a configured task checkpoint. Handle Task ID uniqueness, hierarchy, Issue/Project state, fields, existing labels, spec/PR links, status transitions, and post-merge closure. Do not use for product discovery, substantive spec writing, implementation workspaces or code, deciding review/merge readiness, broad roadmap synchronization, or Project schema/view changes.
+description: Manage the operational lifecycle of configured GitHub Issues and Projects. Use when the user explicitly asks to create, find, reconcile, reparent, link, close, or update a backlog/roadmap task; invokes `--task-check` or `--task-status`; or when an authorized shaping, QA, specification, implementation, review, or delivery workflow reaches a configured task checkpoint. Handle Task ID derivation or validation, hierarchy, Issue/Project state, fields, existing labels, spec/PR links, status transitions, and post-merge closure. Do not use for product discovery, substantive spec writing, implementation workspaces or code, deciding review/merge readiness, broad roadmap synchronization, or Project schema/view changes.
 ---
 
 # Manage Project Work
@@ -23,7 +23,7 @@ Read project instructions and the project workflow configuration. Resolve:
 - task-tracking enablement and provider;
 - Issue repository and Project owner/number;
 - hierarchy levels, maximum depth, parent policy, and standalone exceptions;
-- Task ID formats, scope prefixes, uniqueness sources, and spec roots;
+- Task identity strategy, ID formats, scope prefixes, legacy uniqueness sources, and spec roots;
 - configured fields, field values, statuses, transition order, and existing-label policy;
 - Issue body requirements and source-of-truth boundaries;
 - spec and pull-request linkage patterns;
@@ -45,7 +45,8 @@ Proceed without an extra confirmation for routine mutations that are:
 - part of the user-authorized current task;
 - required by a configured lifecycle checkpoint;
 - supplied by an owning workflow whose configured handoff explicitly authorizes the required task anchors;
-- limited to the exact resolved Issue and Project item.
+- contained in one exact semantic roadmap manifest already approved through the configured shaping workflow;
+- limited to the exact resolved Issue or approved Issue set and corresponding Project items.
 
 Request confirmation before:
 
@@ -58,23 +59,35 @@ Request confirmation before:
 
 ## Run the management workflow
 
-### 1. Resolve one exact task
+### 1. Resolve the exact task scope
 
-Use the strongest available anchor: Issue URL/number, exact Task ID, spec path, or current authorized task. Search open and closed Issues plus configured local spec roots before creating anything.
+Use the strongest available anchor: Issue URL/number, exact Task ID, spec path,
+current authorized task, or one approved semantic roadmap manifest. Search open
+and closed Issues plus configured local spec roots before creating anything.
+For new roadmap nodes, use their stable semantic correlation markers to recover
+partial success and search for semantic duplicates; do not search for a future
+provider number.
 
-If zero matches exist and creation is authorized, continue to allocation. If one match exists, reconcile it. If multiple plausible matches exist, stop and ask which task is canonical.
+If zero matches exist and creation is authorized, continue to identity
+establishment. If one match exists, reconcile it. If multiple plausible
+matches exist, stop and ask which task is canonical.
 
 ### 2. Validate identity and hierarchy
 
 Read [task-identity-and-hierarchy.md](references/task-identity-and-hierarchy.md).
 
-Confirm the owning repository, task type, Task ID, semantic domain, parent, hierarchy depth, and standalone exception if applicable. Treat the conceptual work breakdown as input; reject invalid operational hierarchy without reshaping the product scope inside this skill.
+Confirm the owning repository, task type, identity strategy, semantic domain,
+parent, hierarchy depth, and standalone exception if applicable. Confirm an
+existing Task ID when one already exists; for a new provider-number-derived
+task, validate the configured ID pattern and derive the final ID only after the
+Issue exists. Treat the conceptual work breakdown as input; reject invalid
+operational hierarchy without reshaping the product scope inside this skill.
 
 ### 3. Prepare the intended state
 
 Before writing, summarize the exact intended:
 
-- Issue repository, Task ID, title, and body scope;
+- Issue repository, existing Task ID or new semantic key and configured ID pattern, title, and complete concise body;
 - task type and parent;
 - Project and field values;
 - existing labels to apply;
@@ -87,7 +100,16 @@ This summary is an internal mutation plan, not a mandatory confirmation for rout
 
 Read [create-or-reconcile-project-task.md](references/create-or-reconcile-project-task.md).
 
-Recheck Task ID availability immediately before Issue creation. Create or update one Issue, add it to the configured Project once, set configured fields, apply only existing labels, and establish the parent relationship. Recover from partial success by reusing the created Issue and Project item.
+For provider-number-derived identity, recover by semantic marker before every
+create attempt, create the Issue first, derive its Task ID from the immutable
+assigned number, and finalize the Issue identity in the same operation. For an
+explicitly configured custom allocator, use its legacy availability checks.
+Create or update each Issue once, add it to the configured Project once, set
+configured fields, apply only existing labels, and establish the parent
+relationship. Process an approved roadmap manifest in topological order and
+include both parent-to-child and dependency precedence edges. Stop on a cycle
+in that combined graph. Recover from partial success by reusing the created
+Issue and Project item.
 
 ### 5. Transition status
 
@@ -112,6 +134,9 @@ After mutations, reread the exact task and confirm:
 - spec and pull-request links;
 - status;
 - any missing, skipped, or failed mutation.
+
+For a roadmap manifest, also return the complete mapping from semantic key to
+final Task ID and canonical Issue URL.
 
 Never report a mutation as successful from a command exit alone.
 

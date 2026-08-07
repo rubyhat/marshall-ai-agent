@@ -102,7 +102,7 @@ flowchart LR
 1. `load-project-context` — загрузить минимально достаточный контекст.
 2. `shape-project-work` — согласовать outcome, scope, решения, риски и декомпозицию.
 3. `design-frontend-flow` — при необходимости определить frontend interaction contract.
-4. `manage-project-work` — создать или сверить Task ID, Issue, hierarchy и Project state.
+4. `manage-project-work` — создать или сверить Issue, установить Task ID, hierarchy и Project state.
 5. `write-task-spec` — создать и самостоятельно проверить specification до `Spec ready`.
 6. `publish-planning-change` — независимо проверить specification, опубликовать её через PR в canonical branch и зафиксировать merged revision.
 7. `execute-project-task` — выполнить одну явно разрешённую задачу и подготовить незакоммиченные изменения к local review.
@@ -184,7 +184,7 @@ analyze-product-reference
 | `--task-status <Task ID или Issue URL> <status>` | Изменить только статус одной точной задачи. |
 | `--planning-session [scope]` | Зафиксировать sticky discussion/shaping профиль до конца текущей сессии. |
 | `--shape-work <идея или task anchor>` | Запустить guided shaping без автоматических mutations. |
-| `--shape-roadmap <идея или task anchor>` | Подготовить roadmap decomposition и mutation preview без full specs. |
+| `--shape-roadmap <сформированный outcome или exact anchor>` | Одной итерацией оформить Epic и подзадачи, утвердить semantic mutation preview и создать tracker graph без full specs или локальных файлов. |
 | `--prepare-spec <Task ID или task anchor>` | Обсудить точную задачу и после ответов создать task-spec. |
 | `--next-spec [Epic, предыдущая задача или plan anchor]` | Проверить прошлую задачу и подготовить следующую spec из активного work graph. |
 | `--accept-recommended` | Принять рекомендации только в текущем наборе вопросов. |

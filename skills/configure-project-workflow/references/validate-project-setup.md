@@ -22,6 +22,15 @@ Validate the configured workflow without executing ordinary project work.
   resolution, read-only prior-completion checks, dependency-graph selection,
   parallel-candidate handling, explicit specification authority, and no
   previous-task status mutation.
+- For a roadmap-shaping alias, verify a shaped-outcome prerequisite, one
+  coherent semantic manifest preview, a single approved task-management
+  handoff, semantic reapproval rules, no predicted Issue numbers or Task IDs,
+  and no local roadmap or coordination artifact.
+- When provider-number-derived task identity is configured, verify that new
+  tasks are recovered by a deterministic semantic marker, created before Task
+  ID derivation, use a cross-repository-safe namespace, and preserve existing
+  legacy IDs. For multi-node manifests, verify combined dependency and
+  parent-to-child precedence with cycle detection.
 - When planning publication is selected, verify `--publish-spec` maps only to
   `planning_artifact_publication`, is allowed without releasing the planning
   profile, requires one exact task/spec anchor, and cannot authorize
@@ -92,7 +101,9 @@ Evaluate representative prompts without performing their mutations:
 - start a planning-only conversation -> planning-session profile;
 - start a substantive task -> context loading;
 - discuss a new idea -> shaping;
-- request roadmap decomposition -> read-only preview before tracker mutations;
+- request roadmap decomposition from a shaped outcome -> one semantic preview
+  before tracker mutations, followed by Issue-first identity establishment only
+  after approval;
 - request a full spec -> configured task/spec handoff;
 - finish a file-backed spec -> stop at `Spec ready` and recommend
   `--publish-spec` rather than implementation;

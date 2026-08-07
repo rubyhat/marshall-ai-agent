@@ -11,10 +11,12 @@ Turn unclear project intent into an agreed and traceable work definition. Preser
 
 - Own problem framing, option analysis, clarification, decisions, scope, conceptual hierarchy, repository ownership, dependencies, and shaping readiness.
 - Perform only bounded research needed to make a shaping decision. Route a substantial research deliverable to the relevant research or analysis workflow.
-- Let `manage-project-work` allocate Task IDs, validate operational hierarchy, and mutate Issues or Projects.
+- Let `manage-project-work` establish Task IDs, validate operational hierarchy, and mutate Issues or Projects.
 - Let `write-task-spec` create, update, or audit full task specifications when that workflow is available.
 - Let domain workflows own detailed frontend flow design, QA reproduction, legal analysis, migrations, or external product-reference analysis.
-- Do not create a local planning document by default. Preserve durable decisions or research only through `record-project-context`.
+- Outside roadmap shaping, do not create a local planning document by default.
+  Preserve an approved durable decision or research result only through
+  `record-project-context`.
 
 ## Resolve the user's intent
 
@@ -23,7 +25,7 @@ Classify the request before shaping:
 - `planning session`: keep the current conversation focused on discussion,
   product and architecture shaping, roadmap work, and specification preparation;
 - `discussion`: explore an idea and return a synthesis without writing files or creating tasks;
-- `roadmap shaping`: define durable Epic, Feature/Story, or Implementation Task candidates and hand authorized operational work to `manage-project-work`;
+- `roadmap shaping`: accept an already shaped outcome, decide how to represent it as one coherent Epic/Feature/Implementation work graph, and hand one approved semantic tracker manifest to `manage-project-work`;
 - `specification requested`: finish shaping, then hand the agreed task to `write-task-spec`;
 - `next specification requested`: verify the prior planning handoff, resolve the
   next eligible task from the same canonical work graph, and then run the
@@ -90,6 +92,18 @@ or acceptance behavior materially unstable.
 
 ## Run the shaping workflow
 
+For `roadmap shaping`, first verify that the input already contains a stable
+outcome, scope, decisions, non-goals, and material risks from `--shape-work` or
+an equivalent exact source. Do not reopen the product question of what to build.
+If that input is raw, contradictory, or materially unstable, stop and route it
+to `--shape-work` instead of hiding product discovery inside decomposition.
+
+Run the roadmap discussion as one coherent iteration. Ask only questions whose
+answers change Epic/Feature/Task boundaries, tracker wording, ownership,
+dependencies, ordering, or integration gates. Describe the Epic and every
+child together so the user can judge the complete work graph rather than
+approving fragments in separate rounds.
+
 ### 1. Restate the problem and intended outcome
 
 Read [shape-outcome-scope-and-risks.md](references/shape-outcome-scope-and-risks.md).
@@ -139,7 +153,10 @@ Read [work-decomposition.md](references/work-decomposition.md) whenever the resu
 
 Read [cross-repo-decomposition.md](references/cross-repo-decomposition.md) when more than one repository, service, client, team, or deployable unit is involved.
 
-Produce a conceptual work graph rather than operational Issue IDs. Give each proposed unit a bounded outcome, owner, dependency position, acceptance outline, and major risks.
+Produce a conceptual work graph rather than operational Issue IDs. Give each
+proposed unit a stable semantic manifest key, bounded outcome, owner,
+dependency position, acceptance outline, and major risks. A semantic key is an
+idempotency anchor for the approved roadmap operation, not a public Task ID.
 
 ### 6. Assess shaping readiness
 
@@ -174,9 +191,30 @@ Keep the result usable as input to task management without pretending it is a fu
 ## Persist and hand off deliberately
 
 - For discussion-only work, do not create files, Issues, or Project items.
-- When the user commits the result to backlog or roadmap, pass the agreed work graph to `manage-project-work`; do not perform its mutations inside this skill.
-- Do not create a separate local planning artifact unless the analysis has unique durable value beyond the Issue and future specification.
-- Use `record-project-context` for an approved durable decision, research result, risk, or active handoff; prefer updating an existing canonical source.
+- For roadmap shaping, present one exact semantic mutation preview containing
+  one stable roadmap-operation key plus every create/update action, semantic
+  node key, title, complete concise Issue body, task type, parent key or
+  existing parent, repository, dependencies, Project fields, and status. Do
+  not predict provider numbers or final Task IDs; an informational configured
+  ID family is allowed.
+- Require one explicit approval for that complete preview. After approval,
+  pass the exact manifest to `manage-project-work` and let it create or
+  reconcile the tracker graph in a combined hierarchy-and-dependency
+  topological order.
+- If reconciliation changes the meaning, task count, create/update choice,
+  title/body scope, parent, repository, dependency, or Project fields, stop and
+  present a new semantic preview. Provider-assigned Issue numbers and Task IDs
+  derived from those numbers do not change the approved meaning and do not
+  require another approval.
+- Do not create or update a local roadmap, coordination, memory, or documentation
+  artifact as an output of `--shape-roadmap`. GitHub Issues and the configured
+  Project are the roadmap source of truth. Represent a shared contract,
+  rollout, or cross-repository deliverable as an explicit tracked work unit;
+  its later task-spec owns the detail.
+- Outside `--shape-roadmap`, use `record-project-context` for an approved
+  durable decision, research result, risk, or active handoff; prefer updating
+  an existing canonical source. During `--shape-roadmap`, keep that information
+  in the approved tracker graph and do not invoke durable local recording.
 - If a full specification was explicitly requested, resolve the project's required task anchors. When project policy says that request authorizes their creation, hand the exact shaped task to `manage-project-work`, verify the anchors, and then hand it to `write-task-spec` without asking for duplicate permission. Otherwise ask only for the missing anchor authority.
 - When file-backed planning publication is configured, ask
   `publish-planning-change` to establish the isolated planning workspace before
@@ -200,12 +238,14 @@ Keep the result usable as input to task management without pretending it is a fu
 - `--shape-work <idea or task anchor>`: start discussion or guided shaping. The
   alias does not authorize file creation, Issue/Project mutation, or a full
   task specification.
-- `--shape-roadmap <idea or task anchor>`: run roadmap shaping and produce a
-  conceptual work graph without full specifications. After questions are
-  resolved, present the exact proposed tracker and optional durable-artifact
-  mutations. Require a separate approval of that preview before handing
-  operational changes to `manage-project-work` or durable recording to
-  `record-project-context`.
+- `--shape-roadmap <shaped outcome or exact anchor>`: verify that the product
+  outcome is already shaped, then decide only how to express it as one complete
+  Epic/Feature/Implementation graph. Ask decomposition-changing questions in
+  one coherent iteration and present one exact semantic tracker manifest
+  without full specifications, local files, coordination artifacts, provider
+  numbers, or promised final Task IDs. Require one separate approval before
+  handing the exact manifest to `manage-project-work`. Route an unstable or raw
+  idea back to `--shape-work`.
 - `--prepare-spec <Task ID or exact task anchor>`: treat this as an explicit
   request for one complete task specification. First validate workflow order,
   shape the exact task, explain the proposed bounded direction, and resolve all

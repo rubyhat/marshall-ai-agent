@@ -2,27 +2,70 @@
 
 Use this reference before creating an Issue, assigning a Task ID, changing a parent, or validating a multi-repository task tree.
 
-## Allocate a Task ID
+## Establish a Task ID
 
-1. Resolve the owning repository and configured scope prefix.
-2. Choose the stable semantic domain supplied by the owning workflow. Do not encode the full ancestry in the ID.
-3. Apply the configured format for ordinary tasks, epics, sibling subdivisions, and direct fixes.
-4. Search the exact candidate ID in:
-   - open Issues;
-   - closed Issues;
-   - configured task-spec roots;
-   - any additional uniqueness source named by project policy.
-5. Select the next free number within the exact configured prefix/domain line.
-6. Recheck remote and local uniqueness immediately before Issue creation.
-7. Create the Issue promptly after allocation so the Issue becomes the durable reservation.
+Resolve the owning repository, configured scope prefix, stable semantic domain,
+task type, and identity strategy. Do not encode the full hierarchy in the ID.
 
-If a parallel actor claims the same ID, do not overwrite or repurpose its Issue. Recompute the next ID and update only artifacts created by the current operation.
+### Provider-number-derived identity
 
-When the user supplies an ID, validate both syntax and uniqueness. An existing exact match means reconcile the existing task, not reuse the ID for new work. Never recycle a closed or not-planned ID.
+Prefer this strategy when the tracker supplies an immutable, human-visible
+Issue number and no coherent project convention requires an independent
+sequence.
+
+1. Validate that configured scope/domain prefixes keep IDs unambiguous across
+   every Issue repository. Stop on a cross-repository namespace collision.
+2. Apply the configured ID pattern for ordinary tasks, epics, sibling
+   subdivisions, and direct fixes without predicting the numeric part.
+3. Resolve one deterministic semantic correlation key supplied by the owning
+   workflow or derived from the exact authorized task anchor. It must remain
+   identical across retries; stop before creation when no stable key exists.
+4. Recover an already created Issue through that configured correlation marker
+   before every create retry.
+5. If no correlated Issue exists, create the Issue first and read its immutable
+   provider number.
+6. Derive the final Task ID from the configured semantic prefix and that
+   number. Examples of pattern shapes are
+   `<SCOPE>-<DOMAIN>-<ISSUE_NUMBER>` and
+   `<SCOPE>-<DOMAIN>-EPIC-<ISSUE_NUMBER>`; project configuration owns the
+   actual format.
+7. Update the Issue title and body with the final Task ID in the same operation,
+   then complete hierarchy, Project fields, and links.
+
+Do not search for the “next free” custom number under this strategy. The
+provider assigns and reserves the number atomically; the semantic marker makes
+partial creation recoverable.
+
+### Explicit custom allocator
+
+Use an independent sequence only when project configuration explicitly
+preserves an existing convention or the provider lacks a suitable immutable
+number.
+
+1. Apply the configured format.
+2. Search the exact candidate ID in open Issues, closed Issues, configured
+   task-spec roots, and every additional uniqueness source named by policy.
+3. Select the next free number in the configured line.
+4. Recheck uniqueness immediately before Issue creation and create promptly so
+   the Issue becomes the durable reservation.
+
+If a parallel actor claims a custom ID, do not overwrite or repurpose its
+Issue. Recompute the next ID and update only artifacts created by the current
+operation.
+
+When the user supplies an existing ID, validate its syntax and resolve it as an
+anchor. An exact match means reconcile the existing task, not reuse the ID for
+new work. Never recycle a closed or not-planned ID. Under a
+provider-number-derived strategy, do not accept a guessed future Task ID for a
+new Issue; establish it from the assigned number.
 
 Keep Task ID uppercase in operational systems. Use the configured lowercase form only for filesystem slugs. Preserve existing legacy IDs unless the user requests a migration; do not rename history merely to fit current conventions.
 
-If a newly created Issue accidentally lacks its required Task ID and implementation has not begun, repair the identity consistently in the same operation: Issue title, filesystem slug/spec path, configured Project spec-path field, spec metadata, and durable local links. Once implementation or external history exists, treat the rename as a migration and request confirmation instead of silently rewriting identity.
+If a newly created Issue is left in provisional identity state after partial
+failure, recover it by semantic marker and finish the configured title/body
+update before creating any local spec. If a task with implementation or
+external history needs an identity change, treat it as a migration and request
+confirmation instead of silently rewriting identity.
 
 ## Validate hierarchy
 
