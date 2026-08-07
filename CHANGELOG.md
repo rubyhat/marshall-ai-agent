@@ -7,6 +7,25 @@
 
 * **workflow:** make roadmap task identity issue-first ([#32](https://github.com/rubyhat/marshall-ai-agent/issues/32)) ([79047f9](https://github.com/rubyhat/marshall-ai-agent/commit/79047f999414d403825b8c0b8e9cd6ee8c3767a7))
 
+### Миграция
+
+* Изменение затрагивает проекты с `--shape-roadmap` и GitHub task tracking,
+  которые заранее подбирают свободный custom Task ID либо сохраняют отдельный
+  local roadmap/coordination artifact.
+* После установки всех выбранных skills из `v0.6.0` запустите
+  `--workflow-setup` в режиме reconfigure. Для новых задач настройте
+  provider-number-derived identity, формат с `<ISSUE_NUMBER>`, нейтральный
+  correlation marker и namespace, уникальный между Issue repositories;
+  preallocation custom-номера для новых GitHub Issues отключите.
+* `--shape-roadmap` теперь принимает уже сформированный outcome, утверждает один
+  semantic tracker manifest и не создаёт локальные roadmap, memory или
+  coordination files. Существующие Task IDs остаются legacy anchors и не
+  переименовываются.
+* Rollback skills на предыдущий tag безопасен до создания задач с новым
+  форматом. После появления Issue-number-derived IDs сохраняйте совместимый
+  validation/search contract либо оставайтесь на `v0.6.0`; не переписывайте
+  созданную историю ради rollback.
+
 
 ### Документация
 
