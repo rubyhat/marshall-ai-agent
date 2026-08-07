@@ -1,11 +1,16 @@
 import copy
 import importlib.util
+import json
+import re
 import unittest
 from pathlib import Path
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "validate_setup_state.py"
 CATALOG = Path(__file__).resolve().parents[2] / "assets" / "workflow-modules.json"
+PROJECT_SCHEMA = (
+    Path(__file__).resolve().parents[2] / "assets" / "project-workflow.schema.json"
+)
 
 
 def load_module():
@@ -208,6 +213,29 @@ class ValidateSetupStateTest(unittest.TestCase):
             "Capability specification_documentation_delivery requires enabled alias --prepare-spec",
             errors,
         )
+
+    def test_fast_path_schema_requires_all_exclusion_categories(self):
+        schema = json.loads(PROJECT_SCHEMA.read_text(encoding="utf-8"))
+        fast_path = schema["properties"]["delivery"]["properties"][
+            "documentation_fast_path"
+        ]
+        enabled_rules = fast_path["allOf"][0]["then"]["properties"]
+        exclusions = enabled_rules["excluded_paths"]
+
+        self.assertEqual(exclusions["minItems"], 4)
+        patterns = [rule["contains"]["pattern"] for rule in exclusions["allOf"]]
+        category_samples = [
+            "docs/skills",
+            "docs/workflows",
+            ".codex",
+            "docs/tasks/_template",
+        ]
+        matched_patterns = []
+        for sample in category_samples:
+            matches = [pattern for pattern in patterns if re.search(pattern, sample)]
+            self.assertEqual(len(matches), 1, f"invalid exclusion category for {sample}")
+            matched_patterns.extend(matches)
+        self.assertEqual(len(set(matched_patterns)), len(category_samples))
 
     def test_unknown_enabled_capability_fails(self):
         state = self.valid_state()

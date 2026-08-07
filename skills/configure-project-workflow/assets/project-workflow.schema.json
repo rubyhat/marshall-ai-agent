@@ -220,7 +220,36 @@
                 ],
                 "properties": {
                   "allowed_roots": {"minItems": 1},
-                  "allowed_file_types": {"minItems": 1}
+                  "allowed_file_types": {"minItems": 1},
+                  "excluded_paths": {
+                    "minItems": 4,
+                    "allOf": [
+                      {
+                        "contains": {
+                          "type": "string",
+                          "pattern": "(^|/)skills?($|/)"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "type": "string",
+                          "pattern": "(^|/)(workflows?|runbooks?)($|/)"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "type": "string",
+                          "pattern": "(^|/)(\\.codex|AGENTS\\.md|[^/]*(config|configuration)[^/]*)($|/)"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "type": "string",
+                          "pattern": "(^|/)(_?templates?[^/]*)($|/)"
+                        }
+                      }
+                    ]
+                  }
                 }
               }
             }
