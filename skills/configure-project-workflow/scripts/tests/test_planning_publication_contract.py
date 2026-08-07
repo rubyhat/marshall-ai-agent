@@ -1,4 +1,5 @@
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -37,17 +38,65 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertEqual(spec_root["type"], "string")
         self.assertEqual(spec_root["default"], "docs_ai/tasks")
         self.assertNotIn("const", spec_root)
+        spec_root_pattern = re.compile(spec_root["pattern"])
+        for valid_root in ("docs_ai/tasks", "specifications", "docs/task specs"):
+            with self.subTest(valid_root=valid_root):
+                self.assertRegex(valid_root, spec_root_pattern)
+        for unsafe_root in (
+            "../other-repo",
+            "docs/../other-repo",
+            "/tmp/specs",
+            "C:\\tmp\\specs",
+            "C:..\\other-repo",
+            "D:specifications",
+        ):
+            with self.subTest(unsafe_root=unsafe_root):
+                self.assertNotRegex(unsafe_root, spec_root_pattern)
         self.assertFalse(
             artifact_policy["ask_for_spec_root_when_default_is_available"]["const"]
         )
+        independent_review = properties["independent_review"]
+        for required_key in (
+            "working_directory",
+            "working_directory_placeholder",
+            "verify_reported_workdir_and_branch",
+        ):
+            self.assertNotIn(required_key, independent_review["required"])
+            self.assertIn("default", independent_review["properties"][required_key])
+        self.assertEqual(
+            independent_review["properties"]["working_directory"]["const"],
+            "exact_planning_worktree",
+        )
+        self.assertEqual(
+            independent_review["properties"]["working_directory"]["default"],
+            "exact_planning_worktree",
+        )
+        self.assertEqual(
+            independent_review["properties"]["working_directory_placeholder"]
+            ["const"],
+            "<PLANNING_WORKTREE>",
+        )
+        self.assertEqual(
+            independent_review["properties"]["working_directory_placeholder"]
+            ["default"],
+            "<PLANNING_WORKTREE>",
+        )
         self.assertTrue(
-            properties["independent_review"]["properties"]["required"]["const"]
+            independent_review["properties"]
+            ["verify_reported_workdir_and_branch"]["const"]
+        )
+        self.assertTrue(
+            independent_review["properties"]
+            ["verify_reported_workdir_and_branch"]["default"]
+        )
+        self.assertTrue(
+            independent_review["properties"]["required"]["const"]
         )
         self.assertIn(
-            "model", properties["independent_review"]["required"]
+            "model", independent_review["required"]
         )
         self.assertIn(
-            "effort", properties["independent_review"]["required"]
+            "effort", independent_review["required"]
         )
         self.assertTrue(
             properties["readiness"]["properties"]
@@ -87,7 +136,9 @@ class PlanningPublicationContractTest(unittest.TestCase):
 
         self.assertIn("process working directory", generated)
         self.assertIn("exact planning worktree as its working directory", validation)
+        self.assertIn("effective values from the schema defaults", validation)
         self.assertIn("process working directory to the exact planning worktree", review)
+        self.assertIn("schema defaults in memory", review)
 
 
 if __name__ == "__main__":

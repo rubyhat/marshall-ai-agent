@@ -148,6 +148,7 @@
             "default_spec_root": {
               "type": "string",
               "minLength": 1,
+              "pattern": "^(?![/\\\\])(?![A-Za-z]:)(?!.*(?:^|[/\\\\])\\.\\.(?:[/\\\\]|$)).+$",
               "default": "docs_ai/tasks"
             },
             "ask_for_spec_root_when_default_is_available": {"const": false},
@@ -179,6 +180,18 @@
             "required": {"const": true},
             "fresh_context": {"const": true},
             "author_self_check_is_not_independent": {"const": true},
+            "working_directory": {
+              "const": "exact_planning_worktree",
+              "default": "exact_planning_worktree"
+            },
+            "working_directory_placeholder": {
+              "const": "<PLANNING_WORKTREE>",
+              "default": "<PLANNING_WORKTREE>"
+            },
+            "verify_reported_workdir_and_branch": {
+              "const": true,
+              "default": true
+            },
             "model": {"type": "string", "minLength": 1},
             "effort": {
               "enum": ["low", "medium", "high", "xhigh"]
