@@ -29,6 +29,7 @@ PUBLISH_FINALIZE = (
     / "references"
     / "finalize-planning-publication.md"
 )
+PUBLISH_SKILL = SKILL_ROOT.parent / "publish-planning-change" / "SKILL.md"
 
 
 class PlanningPublicationContractTest(unittest.TestCase):
@@ -278,7 +279,9 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("exact planning worktree as its working directory", validation)
         self.assertIn("effective values from the schema defaults", validation)
         self.assertIn("process working directory to the exact planning worktree", review)
-        self.assertIn("schema defaults in memory", review)
+        self.assertIn("schema-v3 pre-mutation gate", review)
+        self.assertIn("Do not apply schema-v2 defaults", review)
+        self.assertIn("direct publication must already have stopped", review)
 
     def test_existing_ready_specs_get_deterministic_adoption_evidence(self):
         generated = GENERATE.read_text(encoding="utf-8")
@@ -360,6 +363,15 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("reviewed_canonical_publication", readiness)
         self.assertIn("reviewer run or", readiness)
         self.assertIn("infer clean review from PR prose", task_linkage)
+
+    def test_direct_publication_requires_schema_v3(self):
+        publication_skill = PUBLISH_SKILL.read_text(encoding="utf-8")
+
+        self.assertIn("Before any publication workspace", publication_skill)
+        self.assertIn("require schema v3", publication_skill)
+        self.assertIn("direct\n  `--publish-spec` must stop", publication_skill)
+        self.assertIn("configure-project-workflow", publication_skill)
+        self.assertIn("not infer publication readiness", publication_skill)
 
 
 if __name__ == "__main__":
