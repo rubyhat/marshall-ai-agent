@@ -67,6 +67,15 @@ token позволяет Release PR пройти ту же обязательн�
 6. Release Please создаёт tag `vX.Y.Z` и опубликованный GitHub Release.
 7. Проверьте, что tag, GitHub Release, `version.txt` и manifest совпадают.
 
+Body Release Please PR генерируется и затем читается самой automation, поэтому
+его нельзя редактировать вручную. Перевод, подробное описание и migration notes
+до merge добавляйте только коммитом в `CHANGELOG.md` release-ветки; пояснения к
+ревью оставляйте отдельными PR comments. Держите `CHANGELOG.md` компактным:
+фиксируйте пользовательски значимые изменения, совместимость и действия по
+миграции, а не полную историю разработки. После создания tag расширенное
+русское описание можно добавить в notes опубликованного GitHub Release — это не
+изменяет machine-managed body Release Please PR.
+
 Не создавайте tag или GitHub Release вручную поверх незамерженного Release PR.
 Релиз не запускает deployment и не изменяет активные копии в `~/.codex/skills`
 или project-local sources.
