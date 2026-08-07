@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/rubyhat/marshall-ai-agent/compare/v0.4.1...v0.4.2) (2026-08-07)
+
+
+### Исправления
+
+* **workflow:** require fast-path exclusions ([#21](https://github.com/rubyhat/marshall-ai-agent/issues/21)) ([404f1af](https://github.com/rubyhat/marshall-ai-agent/commit/404f1af6c4f416e53588d088e0b9e7678cd4e3bd))
+
 ## [0.4.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.4.0...v0.4.1) (2026-08-07)
 
 
