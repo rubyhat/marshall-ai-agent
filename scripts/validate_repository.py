@@ -16,6 +16,12 @@ from urllib.parse import unquote
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = ROOT / "skills"
 README_PATH = ROOT / "README.md"
+WORKFLOW_MODULES_PATH = (
+    SKILLS_ROOT
+    / "configure-project-workflow"
+    / "assets"
+    / "workflow-modules.json"
+)
 
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
@@ -267,6 +273,113 @@ def validate_readme_catalog(validation: Validation, skill_names: list[str]) -> N
             )
 
 
+def validate_workflow_module_catalog(
+    validation: Validation, skill_names: list[str]
+) -> None:
+    try:
+        catalog = json.loads(WORKFLOW_MODULES_PATH.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        validation.error(WORKFLOW_MODULES_PATH, f"invalid module catalog: {error}")
+        return
+
+    modules = catalog.get("modules")
+    if not isinstance(modules, list):
+        validation.error(WORKFLOW_MODULES_PATH, "modules must be an array")
+        return
+
+    module_names = [
+        module.get("name")
+        for module in modules
+        if isinstance(module, dict) and isinstance(module.get("name"), str)
+    ]
+    if len(module_names) != len(modules):
+        validation.error(
+            WORKFLOW_MODULES_PATH, "every module must have a string name"
+        )
+
+    duplicate_modules = sorted(
+        name for name in set(module_names) if module_names.count(name) > 1
+    )
+    if duplicate_modules:
+        validation.error(
+            WORKFLOW_MODULES_PATH,
+            "duplicate modules: " + ", ".join(duplicate_modules),
+        )
+
+    skill_set = set(skill_names)
+    module_set = set(module_names)
+    missing_modules = sorted(skill_set - module_set)
+    unknown_modules = sorted(module_set - skill_set)
+    if missing_modules:
+        validation.error(
+            WORKFLOW_MODULES_PATH,
+            "skills missing from module catalog: " + ", ".join(missing_modules),
+        )
+    if unknown_modules:
+        validation.error(
+            WORKFLOW_MODULES_PATH,
+            "catalog modules without matching skills: " + ", ".join(unknown_modules),
+        )
+
+    module_index = {
+        module["name"]: module
+        for module in modules
+        if isinstance(module, dict) and isinstance(module.get("name"), str)
+    }
+    valid_dependencies: dict[str, list[str]] = {}
+    for name, module in module_index.items():
+        dependencies = module.get("requires", [])
+        if not isinstance(dependencies, list) or not all(
+            isinstance(dependency, str) for dependency in dependencies
+        ):
+            validation.error(
+                WORKFLOW_MODULES_PATH,
+                f"module {name} requires must be an array of skill names",
+            )
+            valid_dependencies[name] = []
+            continue
+        valid_dependencies[name] = dependencies
+        for dependency in dependencies:
+            if dependency not in module_index:
+                validation.error(
+                    WORKFLOW_MODULES_PATH,
+                    f"module {name} requires unknown module {dependency}",
+                )
+
+    profiles = catalog.get("profiles")
+    if not isinstance(profiles, dict):
+        validation.error(WORKFLOW_MODULES_PATH, "profiles must be an object")
+        return
+    for profile_name, selected in profiles.items():
+        if not isinstance(selected, list) or not all(
+            isinstance(name, str) for name in selected
+        ):
+            validation.error(
+                WORKFLOW_MODULES_PATH,
+                f"profile {profile_name} must be an array of module names",
+            )
+            continue
+        if len(selected) != len(set(selected)):
+            validation.error(
+                WORKFLOW_MODULES_PATH,
+                f"profile {profile_name} contains duplicate modules",
+            )
+        selected_set = set(selected)
+        for name in selected:
+            if name not in module_index:
+                validation.error(
+                    WORKFLOW_MODULES_PATH,
+                    f"profile {profile_name} references unknown module {name}",
+                )
+                continue
+            for dependency in valid_dependencies[name]:
+                if dependency not in selected_set:
+                    validation.error(
+                        WORKFLOW_MODULES_PATH,
+                        f"profile {profile_name} selects {name} without {dependency}",
+                    )
+
+
 def validate_root_files(validation: Validation) -> None:
     release_config_path = ROOT / "release-please-config.json"
     for path in (
@@ -399,6 +512,7 @@ def main() -> int:
         )
 
     validate_readme_catalog(validation, skill_names)
+    validate_workflow_module_catalog(validation, skill_names)
     validate_root_files(validation)
 
     if validation.errors:

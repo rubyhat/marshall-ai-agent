@@ -38,11 +38,14 @@ tracker state. Never infer the next task from numbering alone.
 - Say that the next task is not established when canonical evidence does not
   define one; do not invent it.
 
-Recommend the project-configured implementation command with the exact task
-anchor only when the content verdict is `Ready for implementation` and all
+When independent planning publication is configured, recommend
+`--publish-spec <Task ID>` after the author reaches `Spec ready`. Recommend the
+project-configured implementation command only when the content verdict is
+`Ready for implementation`, canonical publication is verified, and all
 operational prerequisites and dependency gates are currently satisfied. When
-content is ready but operational work is blocked, name the missing gate and
-recommend the action that clears it. Do not start implementation automatically.
+content is ready but publication or operational work is blocked, name the
+missing gate and recommend the action that clears it. Do not start
+implementation automatically.
 
 ## Suggested presentation
 

@@ -12,4 +12,9 @@ authority. A later alias may narrow authority but cannot implicitly release a
 planning, no-code, no-implementation, no-delivery, or read-only constraint.
 Apply the same capability gate to equivalent natural-language requests.
 
+When configured, `--publish-spec` may use only the bounded
+`planning_artifact_publication` capability for one exact reviewed
+specification. It does not release the planning profile or authorize
+implementation, ordinary delivery, release, or deployment.
+
 {{COMMAND_CATALOG}}

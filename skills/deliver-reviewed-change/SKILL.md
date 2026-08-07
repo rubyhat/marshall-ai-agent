@@ -13,6 +13,8 @@ Move one exact implementation task through review and delivery without losing ta
 - Own independent local review, finding assessment, commit, push, pull-request creation, review monitoring, authorized merge, operational closure, sync, and task-workspace cleanup.
 - Preserve the agreed specification and non-goals while addressing findings.
 - Do not perform initial feature implementation, silently expand scope, select an unrelated pull request, force-push, deploy, mutate production, or bypass required gates.
+- Do not absorb a planning/specification publication pull request; route it to
+  `publish-planning-change` and preserve the implementation Issue as open.
 - Use `manage-project-work` for lifecycle mutations and `record-project-context` for durable findings or closing state.
 
 ## Resolve active conversation authority first

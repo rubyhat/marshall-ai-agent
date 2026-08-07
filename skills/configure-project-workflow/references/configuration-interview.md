@@ -19,10 +19,16 @@ Use this staged catalog to obtain complete setup information without presenting 
 
 ## Interview rules
 
-- Present 7–10 numbered prompts in each active stage.
-- Use a detected fact as a confirm-or-correct prompt instead of asking it from scratch.
+- Treat each stage list as a coverage checklist, not a question quota.
+- Apply documented safe defaults for ordinary paths and low-risk conventions,
+  record them as assumptions or decisions, and summarize them for optional
+  correction instead of asking.
+- Ask only decision-changing questions and factual unknowns that bounded
+  inspection cannot resolve. Prefer one to five numbered prompts in a round.
+- Use a detected fact directly when ownership and confidence are clear; ask a
+  confirm-or-correct question only when a wrong inference would be material.
 - Skip an entire conditional stage only when the selected profile makes it genuinely inapplicable.
-- Do not pad a stage with irrelevant questions; combine closely related confirmations into one prompt when needed.
+- Do not pad a stage with irrelevant questions; combine closely related decisions when needed.
 - Ask factual unknowns directly.
 - For material decisions, offer 2–3 mutually exclusive options with `А (Рекомендую)` first and a concise trade-off.
 - Accept compact answers such as `1 - А` and free-form alternatives.
@@ -34,7 +40,7 @@ Use this staged catalog to obtain complete setup information without presenting 
 
 Purpose: establish the setup protection layer before deeper inspection.
 
-Ask 7–10 prompts covering:
+Resolve the following; ask only unresolved decision-changing items:
 
 1. confirmation of the default forbidden reads;
 2. additional forbidden paths or repositories;
@@ -51,7 +57,7 @@ Ask 7–10 prompts covering:
 
 Purpose: define the target system and its ownership boundaries.
 
-Ask 7–10 prompts covering:
+Resolve the following; ask only unresolved decision-changing items:
 
 1. project name and concise purpose;
 2. product, library, service, internal tool, content project, or another type;
@@ -70,7 +76,7 @@ Ask 7–10 prompts covering:
 
 Purpose: prevent generated workflow rules from competing with existing project truth.
 
-Ask 7–10 prompts covering:
+Resolve the following; ask only unresolved decision-changing items:
 
 1. root and nested instruction ownership;
 2. architectural source of truth;
@@ -87,10 +93,12 @@ Ask 7–10 prompts covering:
 
 Purpose: choose a compact durable context model.
 
-Ask 7–10 prompts covering:
+Resolve the following; ask only unresolved decision-changing items:
 
-1. existing or default project-doc root;
-2. existing or default internal-memory root;
+1. an explicit existing project-doc root, otherwise the automatic `docs_ai`
+   default without a question;
+2. an explicit existing internal-memory root, otherwise the automatic
+   `local_memory_ai` default without a question;
 3. project context, project-topology, and engineering-rules destinations;
 4. context map and progressive-disclosure routing from topology to the owning
    component's instructions, architecture, memory, and runbooks;
@@ -106,7 +114,7 @@ Ask 7–10 prompts covering:
 
 Purpose: define how ideas become implementation-ready work.
 
-Ask 7–10 prompts covering:
+Resolve the following; ask only unresolved decision-changing items:
 
 1. work types that require shaping;
 2. clarification-question format;
@@ -115,16 +123,21 @@ Ask 7–10 prompts covering:
 5. when full versus lightweight specifications apply;
 6. explicit and configured specification handoffs, including whether a
    continuation command may resolve the next task from the active work graph;
-7. project-local templates and bundled fallback policy;
-8. required impact gates such as migration, localization, security, privacy, rollout, or accessibility;
-9. specification readiness verdicts;
-10. when implementation authority must be requested separately.
+7. canonical spec owner and root: reuse an explicit coherent owner, otherwise
+   default to the project root repository and `docs_ai/tasks` without asking;
+8. isolated planning/spec workspace and required publication before
+   implementation for Git-tracked specifications;
+9. independent spec-review policy, model/effort configuration, allowed
+   supporting artifact classes, deterministic gates, PR target, merge authority,
+   and canonical-revision evidence;
+10. specification readiness verdicts and the separate implementation authority
+    gate.
 
 ## Stage 6 — task management
 
 Activate only when operational task tracking is selected.
 
-Ask 7–10 prompts covering:
+Resolve the following; ask only unresolved decision-changing items:
 
 1. provider and issue repository;
 2. Project, board, or roadmap location;
@@ -142,7 +155,7 @@ Ask 7–10 prompts covering:
 
 Purpose: define safe local task execution.
 
-Ask 7–10 prompts covering:
+Resolve the following; ask only unresolved decision-changing items:
 
 1. readiness requirements;
 2. implementation repository selection;
@@ -159,24 +172,29 @@ Ask 7–10 prompts covering:
 
 Purpose: define publication and completion authority.
 
-Ask 7–10 prompts covering:
+Resolve the following; ask only unresolved decision-changing items:
 
-1. independent local review requirement;
-2. reviewer isolation and finding severity;
+1. distinct independent review requirements for specifications and
+   implementation changes;
+2. reviewer isolation, model/effort ownership, finding severity, scope guard,
+   and bounded retry policy;
 3. commit policy and message conventions;
 4. push and force-push rules;
-5. pull-request language, target, template, and linkage;
+5. pull-request language, target, template, and non-closing linkage for spec
+   publication versus closing linkage for implementation delivery;
 6. automated reviewer integration and bounded waiting;
 7. required CI/check policy;
 8. merge authority and allowed methods;
-9. post-merge closure, sync, and workspace cleanup;
+9. post-merge canonical spec evidence and planning-workspace cleanup versus
+   implementation Issue closure, sync, and task-workspace cleanup;
 10. deployment and production boundaries excluded from normal delivery.
 
 ## Stage 9 — domain modules
 
 Activate when frontend design, frontend QA, or product-reference analysis is selected.
 
-Present 7–10 prompts tailored to active modules, covering:
+Resolve the following for active modules; ask only unresolved
+decision-changing items:
 
 1. frontend repositories and architecture sources;
 2. visual source of truth;
@@ -193,7 +211,7 @@ Present 7–10 prompts tailored to active modules, covering:
 
 Purpose: finalize distribution, commands, and extension boundaries.
 
-Ask 7–10 prompts covering:
+Resolve the following; ask only unresolved decision-changing items:
 
 1. workflow-kit source repository and exact release tag or full commit SHA;
 2. centralized, vendored, or symlink installation;

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Publish Planning Change"
+  short_description: "Review and publish one task specification"
+  default_prompt: "Use $publish-planning-change to review and publish the current task specification."

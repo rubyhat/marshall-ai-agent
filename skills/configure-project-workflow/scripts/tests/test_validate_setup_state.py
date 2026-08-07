@@ -106,6 +106,20 @@ class ValidateSetupStateTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Duplicate alias --shape-work"):
             self.module.module_index(catalog)
 
+    def test_malformed_module_dependencies_fail_cleanly(self):
+        catalog = copy.deepcopy(self.catalog)
+        publisher = next(
+            item
+            for item in catalog["modules"]
+            if item["name"] == "publish-planning-change"
+        )
+        publisher["requires"] = None
+        with self.assertRaisesRegex(
+            ValueError,
+            "Module publish-planning-change requires must be an array of names",
+        ):
+            self.module.module_index(catalog)
+
     def test_enabled_conditional_alias_requires_selected_module(self):
         state = self.valid_state()
         state["modules"]["selected"] = [
@@ -146,6 +160,43 @@ class ValidateSetupStateTest(unittest.TestCase):
         del state["modules"]["enabled_aliases"]
         errors, _ = self.module.validate(state, self.catalog)
         self.assertIn("modules.enabled_aliases is required", errors)
+
+    def test_publish_spec_requires_spec_writer(self):
+        state = self.valid_state()
+        state["modules"]["selected"] = [
+            "configure-project-workflow",
+            "publish-planning-change",
+        ]
+        state["modules"]["enabled_aliases"] = ["--publish-spec"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn(
+            "Module publish-planning-change requires write-task-spec", errors
+        )
+
+    def test_publish_spec_alias_requires_selected_owner(self):
+        state = self.valid_state()
+        state["modules"]["enabled_aliases"] = ["--publish-spec"]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn(
+            "Alias --publish-spec requires owning module publish-planning-change",
+            errors,
+        )
+
+    def test_development_profiles_include_planning_publication(self):
+        for profile in ("full_product", "core_development"):
+            with self.subTest(profile=profile):
+                selected = self.catalog["profiles"][profile]
+                self.assertIn("write-task-spec", selected)
+                self.assertIn("publish-planning-change", selected)
+                self.assertIn("execute-project-task", selected)
+                self.assertLess(
+                    selected.index("write-task-spec"),
+                    selected.index("publish-planning-change"),
+                )
+                self.assertLess(
+                    selected.index("publish-planning-change"),
+                    selected.index("execute-project-task"),
+                )
 
 
 if __name__ == "__main__":

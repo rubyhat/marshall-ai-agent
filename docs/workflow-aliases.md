@@ -51,6 +51,9 @@ implementation-задач. Downstream specification блокируется то�
 Sticky negative constraint проверяется раньше alias authority и readiness.
 Поздний alias может сузить полномочия, но не может неявно снять
 planning/no-code/no-implementation/no-delivery/read-only ограничение.
+Отдельно настроенный `--publish-spec` может разрешить только публикацию одного
+exact planning-artifact manifest и не снимает planning lock для implementation
+или ordinary delivery.
 Natural-language запрос проходит тот же capability gate, что и alias.
 
 ## Основной workflow
@@ -61,6 +64,7 @@ Natural-language запрос проходит тот же capability gate, чт
   → --shape-roadmap <idea или feature anchor>
   → отдельное подтверждение точного roadmap mutation preview
   → --prepare-spec <Task ID>
+  → --publish-spec <Task ID>
 
 === ДЛЯ РЕАЛИЗАЦИИ КАЖДОЙ SPEC НУЖНА НОВАЯ СЕССИЯ CODEX ===
 
@@ -91,7 +95,9 @@ Domain-команды подключаются только при примен�
 
 Planning, roadmap, frontend-design, reference-analysis, task-check и
 specification aliases могут разрешить только свои bounded
-non-implementation workflows. `--execute-task`, `--deliver-task` и
+non-implementation workflows. Настроенный `--publish-spec` может провести
+exact reviewed specification через отдельный planning-publication flow, не
+разрешая код. `--execute-task`, `--deliver-task` и
 эквивалентные natural-language запросы не отменяют профиль. Агент
 останавливается до mutations и требует новую сессию.
 
@@ -131,12 +137,15 @@ Issues, Project items или coordination artifact начинается толь
 4. decision-changing questions;
 5. создание требуемых project anchors;
 6. создание и проверка full или lightweight task specification;
-7. linkage и разрешённый operational status;
+7. pre-publication linkage и разрешённый operational status;
 8. стандартизированный specification handoff.
 
 Alias является явным запросом на specification, поэтому после разрешения
 вопросов повторное подтверждение «создавать ли spec» не требуется. Alias не
-разрешает implementation или delivery.
+разрешает Git publication, implementation или delivery. Если настроен
+`publish-planning-change`, tracked spec создаётся в isolated planning worktree,
+а результатом авторской проверки становится максимум `Spec ready`; следующий
+шаг — `--publish-spec <Task ID>`.
 
 ### `--next-spec [Epic, предыдущая Task или exact plan anchor]`
 
@@ -158,7 +167,8 @@ Alias является явным запросом на specification, поэт�
 6. при нескольких равноправных parallel candidates показывает варианты,
    рекомендует один и ждёт выбор;
 7. после ответов выполняет тот же specification handoff, что и
-   `--prepare-spec`.
+   `--prepare-spec`, включая isolated planning workspace и последующий
+   `--publish-spec`, когда planning publication настроена.
 
 Если active Epic или предыдущая задача не определяются однозначно, агент не
 ищет просто «последнюю» задачу во всём проекте, а запрашивает exact anchor.
@@ -185,6 +195,28 @@ Alias не отвечает на factual questions, не распростран�
 Запускает read-only completeness и readiness audit через `write-task-spec`.
 Не изменяет specification, tracker или status.
 
+### `--publish-spec <Task ID, Issue URL или spec path>`
+
+Запускает `publish-planning-change` для одной exact specification:
+
+- проверяет isolated planning workspace и полный diff;
+- формирует точный allowlisted publication manifest;
+- запускает fresh independent bounded spec review;
+- возвращает реальные content findings в `write-task-spec` и повторяет review
+  только после изменений;
+- выполняет deterministic documentation gates;
+- делает intentional commit и push без force;
+- создаёт или сверяет Pull Request в canonical target branch;
+- ждёт обязательные checks и merge только при configured authority;
+- проверяет merged canonical revision, обновляет exact task linkage/status,
+  синхронизирует и очищает planning workspace.
+
+Alias можно использовать в активной planning-сессии только через отдельную
+capability `planning_artifact_publication`. Он не снимает planning lock, не
+разрешает implementation, обычный `--deliver-task`, закрытие implementation
+Issue, release, deploy или production mutations. Более узкий запрос ограничивает
+endpoint, но unmerged PR не делает specification доступной для implementation.
+
 ## Implementation и delivery
 
 ### `--execute-task <Task ID, Issue URL или spec path>`
@@ -198,6 +230,8 @@ task lookup, status transition, Git, dependency и file mutations и реком�
 `execute-project-task`:
 
 - проверяет `Ready for implementation`;
+- при configured planning publication проверяет independent spec review,
+  merged canonical revision и ancestry implementation base;
 - выбирает только затронутые repositories;
 - создаёт или возобновляет isolated task workspaces;
 - защищает параллельную работу;
@@ -308,6 +342,15 @@ tracker artifacts. Затем каждая implementation task обсуждае�
 repositories, content verdict, Project status, expected outcome, следующий
 task/action и material warnings.
 
+Если настроена planning publication, следующий шаг после `Spec ready`:
+
+```text
+--publish-spec <Task ID>
+```
+
+Только после independent review и merge spec в canonical branch задача может
+получить operational implementation-ready status.
+
 ### Реализация готовой задачи
 
 В новой task session достаточно:
@@ -334,6 +377,13 @@ task/action и material warnings.
 --prepare-spec <Task ID>
 ```
 
+Если specification готова локально, но не опубликована в canonical branch,
+агент останавливается до task lookup и workspace mutations и рекомендует:
+
+```text
+--publish-spec <Task ID>
+```
+
 Если `--deliver-task` отправлен до завершённой implementation и local-review
 handoff, агент сообщает недостающий checkpoint и рекомендует сначала:
 
@@ -356,12 +406,19 @@ Reusable aliases сохраняют одинаковый смысл, но кон
 - Task ID и hierarchy policy;
 - task tracker, fields и statuses;
 - spec templates и readiness gates;
+- canonical spec owner, default `docs_ai/tasks`, planning worktree,
+  independent spec review и publication policy;
 - worktree, branch, test и delivery policy;
 - production, security, privacy и domain restrictions.
 
 Alias, owning skill или dependency, не включённые в project configuration,
 считаются недоступными. Агент должен предложить `--workflow-setup` или другой
 явный способ конфигурации, а не имитировать отсутствующий workflow.
+
+Существующий schema v2 проект, где Git-tracked task specs являются source of
+truth для implementation, но отсутствует `publish-planning-change`, должен
+пройти `--workflow-setup` reconfigure. До этого локальная spec или открытый
+spec PR не считаются достаточным implementation gate.
 
 ## Переход с workflow schema v1
 

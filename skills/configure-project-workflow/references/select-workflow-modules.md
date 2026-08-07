@@ -4,8 +4,11 @@ Use `assets/workflow-modules.json` as the machine-readable module catalog.
 
 ## Recommend a profile
 
-- `full_product`: long-lived product development with context, roadmap, specifications, implementation, delivery, frontend, QA, and external references.
-- `core_development`: context, shaping, specifications, implementation, and delivery without domain-specific modules.
+- `full_product`: long-lived product development with context, roadmap,
+  reviewed specification publication, implementation, delivery, frontend, QA,
+  and external references.
+- `core_development`: context, shaping, reviewed specification publication,
+  implementation, and delivery without domain-specific modules.
 - `product_discovery`: context, shaping, frontend interaction design, and product-reference analysis.
 - `context_only`: context loading, recording, and manual maintenance.
 - `custom`: exact user-selected modules.
@@ -21,6 +24,10 @@ Base selection on:
 - operational tracker availability;
 - whether project documentation should persist;
 - implementation and delivery needs;
+- whether Git-tracked specifications must be independently reviewed and merged
+  before implementation; default to yes when `write-task-spec` and
+  `execute-project-task` are selected and no external canonical spec owner is
+  explicitly configured;
 - frontend, QA, or reference-analysis work;
 - user restrictions and existing workflows.
 

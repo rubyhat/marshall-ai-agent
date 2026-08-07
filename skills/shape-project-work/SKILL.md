@@ -33,12 +33,15 @@ Classify the request before shaping:
 A planning-session profile is a sticky conversation constraint, not a host
 application mode. It remains active for the current conversation. It does not
 authorize artifacts or tracker mutations by itself, and it blocks
-implementation and delivery capabilities. Later planning, roadmap,
-task-management, frontend-design, reference-analysis, or specification
-requests may authorize only their bounded non-implementation workflows.
-Implementation or delivery aliases and equivalent natural-language requests
-never release the profile implicitly. Require a new conversation when project
-policy defines `new_conversation_only` release semantics.
+implementation and implementation-delivery capabilities. Later planning,
+roadmap, task-management, frontend-design, reference-analysis, or
+specification requests may authorize only their bounded non-implementation
+workflows. A dedicated planning-publication alias may authorize one exact
+reviewed planning artifact manifest when project policy enables that
+capability; it does not release the profile. Implementation or ordinary
+delivery aliases and equivalent natural-language requests never release the
+profile implicitly. Require a new conversation when project policy defines
+`new_conversation_only` release semantics.
 
 Do not treat silence as authorization to create a full task specification.
 
@@ -175,6 +178,11 @@ Keep the result usable as input to task management without pretending it is a fu
 - Do not create a separate local planning artifact unless the analysis has unique durable value beyond the Issue and future specification.
 - Use `record-project-context` for an approved durable decision, research result, risk, or active handoff; prefer updating an existing canonical source.
 - If a full specification was explicitly requested, resolve the project's required task anchors. When project policy says that request authorizes their creation, hand the exact shaped task to `manage-project-work`, verify the anchors, and then hand it to `write-task-spec` without asking for duplicate permission. Otherwise ask only for the missing anchor authority.
+- When file-backed planning publication is configured, ask
+  `publish-planning-change` to establish the isolated planning workspace before
+  `write-task-spec` creates or updates tracked specification files. After the
+  writer returns `Spec ready`, recommend the explicit configured publication
+  alias; do not publish automatically.
 - If the specification workflow is unavailable, stop after shaping and report the missing dependency instead of writing an ad hoc specification.
 
 ## Interpret quick aliases
@@ -183,10 +191,12 @@ Keep the result usable as input to task management without pretending it is a fu
   optional text only to bound the conversation. Do not create artifacts or
   require a task anchor merely to acknowledge the profile. Keep the profile
   active for the current conversation. Permit only separately authorized
-  bounded planning and specification capabilities, and block implementation
-  and delivery. When either is requested, stop before mutations, name the
-  active profile and conflict, confirm that no mutation occurred, and require
-  the configured release action.
+  bounded planning and specification capabilities and, when configured, one
+  exact `planning_artifact_publication` workflow through its dedicated alias.
+  Block implementation and implementation delivery. When either blocked
+  capability is requested, stop before mutations, name the active profile and
+  conflict, confirm that no mutation occurred, and require the configured
+  release action.
 - `--shape-work <idea or task anchor>`: start discussion or guided shaping. The
   alias does not authorize file creation, Issue/Project mutation, or a full
   task specification.
@@ -200,9 +210,12 @@ Keep the result usable as input to task management without pretending it is a fu
   request for one complete task specification. First validate workflow order,
   shape the exact task, explain the proposed bounded direction, and resolve all
   decision-changing questions. When no shaping blocker remains, establish any
-  project-required task anchors through `manage-project-work` and hand the task
-  to `write-task-spec` without asking again whether to create the specification.
-  The alias does not authorize implementation or delivery.
+  project-required task anchors through `manage-project-work`, establish an
+  isolated planning workspace through `publish-planning-change` when
+  configured, and hand the task to `write-task-spec` without asking again
+  whether to create the specification. The alias does not authorize Git
+  publication, implementation, or implementation delivery. Recommend
+  `--publish-spec <Task ID>` after a `Spec ready` handoff.
 - `--next-spec [Epic, previous Task, or exact plan anchor]`: treat this as an
   explicit request to select, discuss, and create the next complete
   specification in the active planning sequence. Resolve the last task prepared
@@ -219,8 +232,8 @@ Keep the result usable as input to task management without pretending it is a fu
   ownership, or acceptance behavior materially unstable. Once the exact next
   task is resolved, follow the same shaping, clarification, task-anchor, and
   `write-task-spec` handoff as `--prepare-spec` without asking again whether to
-  create the specification. The alias does not authorize implementation,
-  delivery, or mutation of completion evidence.
+  create the specification. The alias does not authorize Git publication,
+  implementation, implementation delivery, or mutation of completion evidence.
 
 Ask for a missing required argument. An absent optional `--next-spec` anchor is
 valid only when the current planning continuity is unambiguous. Treat trailing

@@ -43,6 +43,8 @@ Read the project workflow configuration for:
 - source-of-truth ownership;
 - project-topology location and repository-registry ownership;
 - context map location;
+- tracked versus local-only context classes and the active planning workspace
+  when a planning publication workflow is configured;
 - exceptional recording requirements.
 
 Keep project-specific names and paths out of this reusable skill. If recording configuration is absent, use project instructions and existing canonical artifacts. Avoid inventing a new folder structure unless the user's request requires project setup.
@@ -105,6 +107,10 @@ Search the likely canonical destination before creating a file or section. Do no
 - Add a source or verification date only when provenance or staleness matters.
 - Link to detailed specs, ADRs, reports, issues, pull requests, code, or external documentation instead of copying them.
 - Follow the configured language policy.
+- When a Git-tracked planning artifact is being prepared in an isolated
+  planning workspace, write directly into that workspace. Do not dirty the
+  canonical main checkout or assume every internal note belongs in the
+  publication manifest.
 
 Read [update-canonical-context.md](references/update-canonical-context.md) when changing stable memory, runbooks, configuration, architecture, known issues, or a context map.
 

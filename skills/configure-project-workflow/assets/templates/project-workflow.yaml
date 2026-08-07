@@ -20,13 +20,17 @@ interaction:
   clarifying_questions:
     options_per_decision: "2-3"
     recommended_option_first: true
+    ask_only_decision_changing_or_unknown_facts: true
+    question_quota: false
+    apply_safe_defaults_before_asking: true
   conflict_and_risk_gate:
     enabled: true
 
 paths:
   root_instructions: "AGENTS.md"
-  project_docs: "{{PROJECT_DOCS_ROOT}}"
-  internal_memory: "{{INTERNAL_MEMORY_ROOT}}"
+  project_docs: "docs_ai"
+  task_specs: "docs_ai/tasks"
+  internal_memory: "local_memory_ai"
   project_topology: "{{PROJECT_TOPOLOGY_PATH}}"
 
 protection:

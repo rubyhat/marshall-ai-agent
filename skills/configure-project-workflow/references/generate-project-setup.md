@@ -4,8 +4,12 @@ Generate only the files and sections listed in the approved manifest.
 
 ## Preserve existing structure
 
-- Reuse coherent docs, memory, task, template, and workflow roots.
-- Recommend `docs_ai` and `local_memory_ai` only when the project has no suitable convention.
+- Reuse explicit coherent docs, memory, task, template, and workflow roots.
+- When no explicit coherent convention exists, create `docs_ai` for project
+  documentation, `docs_ai/tasks` for task specifications, and
+  `local_memory_ai` for internal memory without asking the user to choose path
+  names. Record the defaults in the manifest and allow an explicit user
+  override.
 - Update canonical files rather than creating parallel sources of truth.
 - Do not create empty module directories without an immediate tracked artifact.
 - Do not rewrite completed historical specifications or reports.
@@ -54,7 +58,8 @@ Include only selected modules. Record:
 - sticky session profiles, capability allow/block rules, precedence, lifetime,
   and release semantics;
 - persistent artifact destinations and exact output-form precedence;
-- applicable task, spec, implementation, delivery, context, and domain sections.
+- applicable task, spec, planning-publication, implementation, delivery,
+  context, and domain sections.
 
 Generate only aliases listed in the approved
 `modules.enabled_aliases` setup-state field. For every ordinary alias, require
@@ -76,6 +81,22 @@ For a next-specification continuation alias, generate:
   materially equivalent;
 - the same explicit specification authority and implementation exclusion as
   the ordinary specification-preparation alias.
+
+When `publish-planning-change` is selected, generate:
+
+- canonical spec owner and default `docs_ai/tasks` root unless an explicit
+  coherent project convention overrides it;
+- an isolated planning worktree and task-scoped branch policy;
+- exact primary/supporting artifact classes and forbidden implementation,
+  release, deployment, production, secret, and unrelated paths;
+- fresh independent spec-review configuration with model and effort owned by
+  project configuration, scope guards, and bounded attempts;
+- deterministic validation, commit, push, PR, checks, merge, canonical-revision,
+  ancestry, sync, and cleanup gates;
+- `planning_artifact_publication` as a separately allowed planning-session
+  capability that does not release implementation or delivery locks;
+- a `--publish-spec` handoff after `Spec ready` and a hard implementation gate
+  until the reviewed spec is merged into the canonical target.
 
 Do not copy project-specific values from an example project.
 
@@ -119,9 +140,10 @@ sequences. Do not generate expanded prompt copies that duplicate `SKILL.md`;
 the owning skill remains the procedural source of truth.
 
 When planning-session behavior is enabled, show an explicit new-conversation
-boundary before implementation and delivery. Do not describe a later
-implementation or delivery alias as an implicit release of a sticky planning
-profile.
+boundary before implementation and implementation delivery. A configured
+`--publish-spec` may publish only one exact reviewed planning manifest inside
+the planning session. Do not describe it, an implementation alias, or a
+delivery alias as an implicit release of the sticky planning profile.
 
 Use assets from owning skills for task-spec or reference templates. Do not duplicate those assets in this skill.
 

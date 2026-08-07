@@ -13,8 +13,12 @@ Produce a coherent implementation specification without reopening settled shapin
 - Receive outcome, scope, decisions, and decomposition from `shape-project-work`, or an equivalent evidence and scope packet from a configured authorized domain handoff.
 - Let `manage-project-work` establish required task identity, tracker anchors, links, and operational status.
 - Use `record-project-context` to create or update project-local specification files.
+- Let `publish-planning-change` establish an isolated planning workspace and
+  own independent review, Git publication, canonical-revision evidence, and
+  cleanup when file-backed publication is configured.
 - Let domain workflows define specialized requirements for frontend design, migrations, QA, legal behavior, or other configured impacts.
-- Do not implement code, create worktrees, open pull requests, or write implementation reports.
+- Do not implement code, create implementation worktrees, open pull requests,
+  publish an unreviewed specification, or write implementation reports.
 - Do not create a full implementation spec for an Epic or Feature by default. Use a shared coordination or contract artifact only when project policy explicitly calls for one.
 
 ## Establish authority and mode
@@ -45,6 +49,8 @@ Read the project workflow configuration and resolve:
 - selection rules for spec depth and annexes;
 - required impacts and domain workflows;
 - readiness labels and operational status mapping;
+- planning workspace, publication, independent-review, and canonical-revision
+  gates when specifications are Git-tracked;
 - recording and task-management handoffs.
 
 Keep repository names, framework assumptions, languages, status labels, commands, and directory layouts out of this reusable skill.
@@ -56,6 +62,12 @@ Keep repository names, framework assumptions, languages, status labels, commands
 Identify one implementation task, its shaped outcome, scope, owning unit, dependencies, and current specification if any.
 
 When project policy requires a stable Task ID or tracker item, use `manage-project-work` before creating the specification. If the configured policy says an explicit specification request authorizes those required anchors, treat it as an exact handoff rather than asking for duplicate permission. If anchor creation is not authorized, stop and request only that authority. If multiple tasks or specs plausibly match, stop and resolve the identity conflict.
+
+When the project publishes file-backed specifications, ask
+`publish-planning-change` to create or resume the exact task planning workspace
+before the first file mutation. Write into that workspace rather than dirtying
+the canonical main checkout. This internal workspace handoff does not authorize
+commit, push, pull request, merge, implementation, or delivery.
 
 ### 2. Check shaping readiness
 
@@ -131,7 +143,13 @@ Return exactly one content verdict:
 - `Spec ready`;
 - `Ready for implementation`.
 
-The verdict describes specification content. Let `manage-project-work` apply the configured operational status after the write is verified.
+The verdict describes specification content. When independent planning
+publication is configured, an author's create or update self-check may return
+at most `Spec ready`. Promote the exact reviewed head to `Ready for
+implementation` only from a clean independent-review handoff during
+`publish-planning-change`. Let `manage-project-work` apply the configured
+operational implementation-ready status only after canonical publication is
+verified.
 
 ### 10. Record, link, and read back
 
@@ -140,12 +158,15 @@ For create or update mode:
 1. use `record-project-context` to write the project-local files;
 2. reread the written spec and every created annex;
 3. verify relative links and task identity;
-4. ask `manage-project-work` to link the spec and apply the authorized status;
+4. ask `manage-project-work` to link the local spec and apply only the
+   authorized pre-publication status;
 5. read [report-specification-handoff.md](references/report-specification-handoff.md);
 6. report the standardized task identity, artifacts, verdicts, outcome,
    blockers, and next action.
 
 Do not start implementation automatically when the user requested only a specification.
+When planning publication is configured and the result is `Spec ready`, report
+`--publish-spec <Task ID>` as the next action instead of `--execute-task`.
 
 ## Update existing specifications safely
 

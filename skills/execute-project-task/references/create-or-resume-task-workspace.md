@@ -41,10 +41,12 @@ When a workspace does not exist:
 1. resolve the configured remote and default branch;
 2. fetch and prune when network and policy allow;
 3. verify the intended remote-tracking base;
-4. derive the configured task branch and workspace path;
-5. ensure neither collides with another task;
-6. create the feature branch and worktree from that base;
-7. verify branch, `HEAD`, worktree registration, and clean initial state.
+4. when configured, verify that the base contains or descends from the exact
+   canonical task-spec publication revision;
+5. derive the configured task branch and workspace path;
+6. ensure neither collides with another task;
+7. create the feature branch and worktree from that base;
+8. verify branch, `HEAD`, worktree registration, and clean initial state.
 
 A typical command shape is:
 

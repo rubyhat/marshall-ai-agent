@@ -22,9 +22,17 @@ Validate the configured workflow without executing ordinary project work.
   resolution, read-only prior-completion checks, dependency-graph selection,
   parallel-candidate handling, explicit specification authority, and no
   previous-task status mutation.
+- When planning publication is selected, verify `--publish-spec` maps only to
+  `planning_artifact_publication`, is allowed without releasing the planning
+  profile, requires one exact task/spec anchor, and cannot authorize
+  implementation, implementation delivery, Issue closure, release, deploy, or
+  production mutation.
 - Verify no unresolved template placeholders.
 - Verify every generated relative link.
 - Verify no configured path escapes its intended root.
+- When no explicit coherent project convention overrides it, verify project
+  docs, task specs, and internal memory use `docs_ai`, `docs_ai/tasks`, and
+  `local_memory_ai` without an unresolved path-selection question.
 - Verify `paths.project_topology` resolves to exactly one canonical topology
   artifact.
 - Verify every configured repository or deployable unit has one topology entry
@@ -47,6 +55,10 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
 - Confirm selected modules match configuration and `AGENTS.md` routing.
 - Confirm disabled or removed modules have no active alias or generated routing.
 - Confirm domain handoffs target installed modules.
+- Confirm `write-task-spec` hands file-backed specs to
+  `publish-planning-change` before implementation and that
+  `execute-project-task` has a canonical-publication gate when the module is
+  selected.
 
 ## Installation
 
@@ -77,6 +89,15 @@ Evaluate representative prompts without performing their mutations:
 - discuss a new idea -> shaping;
 - request roadmap decomposition -> read-only preview before tracker mutations;
 - request a full spec -> configured task/spec handoff;
+- finish a file-backed spec -> stop at `Spec ready` and recommend
+  `--publish-spec` rather than implementation;
+- publish a spec in a planning session -> allow only the exact planning
+  publication manifest, require independent review, and preserve the
+  implementation and delivery locks;
+- request implementation with a local or PR-only unmerged spec -> stop before
+  task lookup or workspace mutation and recommend `--publish-spec`;
+- request implementation with a reviewed merged spec -> require the canonical
+  revision to be present in the implementation base;
 - request the next spec with one active work graph -> verify the previous task
   read-only, select the unique next eligible task by dependencies, and enter
   the configured specification workflow;
