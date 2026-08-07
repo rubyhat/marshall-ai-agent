@@ -77,9 +77,10 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   selected.
 - Confirm publication ancestry is required only in the repository that owns
   the specification revision. For implementation repositories with separate
-  Git histories, require a resolvable exact-task publication tuple containing
-  Task ID, owner repository, canonical spec path, and merged revision instead
-  of impossible shared ancestry.
+  Git histories, require the same resolvable exact-task reviewed-publication
+  record without impossible shared ancestry. Verify it binds the clean reviewer
+  run and complete package manifest to the reviewed head and merged revision,
+  is persisted and reread before cleanup, and does not rely on PR prose.
 - For an existing project with pre-adoption implementation-ready specs, verify
   legacy-ready adoption uses one immutable full baseline Git object ID captured
   from the canonical target before workflow mutations, accepts the repository's

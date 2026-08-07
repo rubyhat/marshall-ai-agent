@@ -84,7 +84,9 @@ select one complete readiness path in this precedence order:
 - prefer ordinary publication evidence whenever it is complete: a clean
   independent spec review, a merged
   canonical specification revision, and proof that the specification-owner
-  authority base contains or descends from that revision;
+  authority base contains or descends from that revision. Require the complete
+  persisted and reread `reviewed_canonical_publication` record defined in
+  [check-task-readiness.md](references/check-task-readiness.md);
 - otherwise, when project policy explicitly enables it for specs that were already
   implementation-ready before planning publication was configured, the
   deterministic baseline evidence defined in
@@ -95,9 +97,10 @@ selection even when the historical legacy record remains available for audit.
 
 For an implementation repository with a separate Git history, require the
 matching exact-task record for the selected path: the ordinary publication
-tuple with its merged revision, or the `legacy_ready_baseline` tuple with its
-explicit evidence kind, complete package manifest, derived revision, and
-adoption baseline. Do not require cross-repository ancestry. The legacy path
+record with its reviewed-head, package-manifest, clean-review, and merged-
+revision evidence, or the `legacy_ready_baseline` tuple with its explicit
+evidence kind, complete package manifest, derived revision, and adoption
+baseline. Do not require cross-repository ancestry. The legacy path
 must not claim that
 independent review occurred and is not a user override. An open PR, local file,
 dirty main checkout, content verdict alone, incomplete record, or baseline
