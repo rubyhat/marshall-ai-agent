@@ -31,14 +31,17 @@ Check the configured requirements:
 
 - required Task ID, Issue, Project item, parent, and specification links agree;
 - the specification has the configured implementation-ready content verdict;
-- when file-backed planning publication is configured, the exact specification
-  passed independent review, is merged into the canonical target branch, has a
-  recorded resolvable revision, and the specification-owner repository base
-  used as implementation authority contains or descends from that revision;
-- when implementation occurs in a different repository, the component base
-  resolves the exact task's recorded publication tuple — Task ID,
-  specification-owner repository, canonical spec path, and merged revision —
-  but is not required to share Git ancestry with it;
+- when file-backed planning publication is configured, exactly one complete
+  evidence path passes: either ordinary independent review plus canonical merge
+  and its recorded revision, or the explicitly enabled and fully verified
+  `legacy_ready_baseline` path below;
+- the specification-owner authority base contains or descends from the
+  selected path's ordinary merged revision or legacy derived revision;
+- when implementation occurs in a different repository, the component resolves
+  the matching exact-task record — ordinary Task ID, owner repository,
+  canonical spec path, and merged revision, or the legacy tuple with its full
+  package manifest, derived revision, and adoption baseline — without requiring
+  cross-repository Git ancestry;
 - outcome, in-scope behavior, non-goals, acceptance criteria, and ownership are stable;
 - blocking questions and product decisions are resolved;
 - affected repositories and dependency order are known;
@@ -94,8 +97,8 @@ task to `publish-planning-change`.
 Use these routes:
 
 - missing or inconsistent specification detail: `write-task-spec`;
-- missing independent spec review, canonical merge, publication revision, or
-  valid configured legacy-ready baseline evidence: `publish-planning-change`;
+- neither complete ordinary publication evidence nor complete configured
+  legacy-ready baseline evidence: `publish-planning-change`;
 - changed outcome, scope, task decomposition, architecture, or dependency direction: `shape-project-work`;
 - missing or inconsistent task identity or tracker state: `manage-project-work`;
 - missing domain-specific evidence: the configured domain workflow;
