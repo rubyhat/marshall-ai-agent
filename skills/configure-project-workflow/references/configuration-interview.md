@@ -119,7 +119,10 @@ Resolve the following; ask only unresolved decision-changing items:
 1. work types that require shaping;
 2. clarification-question format;
 3. conflict and risk gate;
-4. conceptual hierarchy and decomposition expectations;
+4. conceptual hierarchy and decomposition expectations, including a
+   `--shape-roadmap` contract that receives a shaped outcome, discusses only
+   its tracker representation in one coherent iteration, approves one semantic
+   manifest, and creates no local roadmap or coordination artifact;
 5. when full versus lightweight specifications apply;
 6. explicit and configured specification handoffs, including whether a
    continuation command may resolve the next task from the active work graph;
@@ -141,7 +144,11 @@ Resolve the following; ask only unresolved decision-changing items:
 
 1. provider and issue repository;
 2. Project, board, or roadmap location;
-3. Task ID format and uniqueness scope;
+3. Task identity strategy, format, and namespace: when the provider supplies an
+   immutable human-visible Issue number, derive new Task IDs from that number
+   plus configured semantic prefixes by default without asking; preserve a
+   coherent existing custom allocator only when detected or explicitly
+   requested;
 4. hierarchy levels and parent rules;
 5. allowed standalone task types;
 6. fields, labels, milestones, or components;

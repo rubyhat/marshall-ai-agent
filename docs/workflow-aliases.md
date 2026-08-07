@@ -61,8 +61,8 @@ Natural-language запрос проходит тот же capability gate, чт
 ```text
 --planning-session
   → --shape-work <идея>
-  → --shape-roadmap <idea или feature anchor>
-  → отдельное подтверждение точного roadmap mutation preview
+  → --shape-roadmap <сформированный outcome или exact anchor>
+  → отдельное подтверждение semantic roadmap mutation preview
   → --prepare-spec <Task ID>
   → --publish-spec <Task ID>
 
@@ -109,23 +109,48 @@ initiative или крупной задачи.
 Результат: согласованный outcome, scope, решения, риски и shaping verdict.
 Alias не создаёт файлы, Issues или полноценную specification.
 
-### `--shape-roadmap <идея или task anchor>`
+### `--shape-roadmap <сформированный outcome или exact anchor>`
 
-Запускает roadmap shaping и conceptual decomposition:
+Получает уже согласованный результат `--shape-work` и одной итерацией решает,
+как оформить его в tracker:
 
 - Epic, Features/Stories и implementation-task candidates;
 - repository или deployable ownership;
 - dependencies, ordering и parallel tracks;
 - acceptance outline, integration gates и риски.
 
-После разрешения decision-changing вопросов агент показывает точный preview
-предлагаемых tracker и optional durable-document mutations. Создание Task IDs,
-Issues, Project items или coordination artifact начинается только после
-отдельного подтверждения этого preview. Полные task-spec не создаются.
+Alias не переоткрывает вопрос «что делаем?». Если outcome, scope, решения или
+риски ещё нестабильны, агент останавливается и рекомендует `--shape-work`.
+Уточняются только границы Epic/Features/Tasks, их описание, ownership,
+dependencies, порядок и integration gates; Epic и все дочерние задачи
+показываются как единое целое.
 
-Отдельный coordination artifact нужен только при уникальной durable ценности,
-например для shared contract, rollout order или cross-repository decisions. Не
-следует дублировать в нём Issue bodies и будущие task-spec.
+После вопросов агент показывает один exact semantic mutation preview с
+устойчивым roadmap-operation key. Для каждого узла он содержит create/update
+action, стабильный semantic key, title, полный concise Issue body, type,
+parent, repository, dependencies, Project fields и status. Будущие GitHub
+Issue numbers и окончательные Task IDs не угадываются. После одного отдельного
+подтверждения `manage-project-work` создаёт или обновляет graph в topological
+order одновременно по hierarchy (`parent → child`) и dependencies
+(`predecessor → dependent`) и возвращает mapping
+`semantic key → Task ID → Issue`.
+
+Для любой новой задачи с provider-number-derived identity Issue создаётся
+первым с детерминированным semantic marker, одинаковым при каждом retry. После
+ответа GitHub агент получает неизменяемый Issue number, механически строит из
+configured prefix/domain и этого номера финальный Task ID, сразу обновляет
+Issue и продолжает hierarchy/Project mutations. Существующие legacy Task IDs
+не переименовываются.
+
+Если reconciliation меняет смысл, количество задач, create/update action,
+title/body scope, parent, repository, dependencies или Project fields, нужен
+новый preview. Выданный GitHub номер и Task ID, механически полученный из него,
+повторного подтверждения не требуют.
+
+Alias не создаёт локальные roadmap, memory, coordination или documentation
+files и не создаёт full task-spec. GitHub Issues и Project остаются roadmap
+source of truth. Shared contract, rollout или cross-repository deliverable
+оформляется отдельной tracked task, а детали позже фиксируются в её task-spec.
 
 ### `--prepare-spec <Task ID или exact task anchor>`
 
@@ -313,7 +338,7 @@ approval точного manifest.
 ```
 
 После roadmap preview пользователь отдельно подтверждает создание configured
-tracker artifacts. Затем каждая implementation task обсуждается через
+tracker graph. Затем каждая implementation task обсуждается через
 `--prepare-spec`, а продолжение уже активной последовательности — через
 `--next-spec`.
 

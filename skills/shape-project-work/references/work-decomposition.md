@@ -16,6 +16,7 @@ Treat these as conceptual units. Let the task-management workflow validate opera
 
 For every proposed unit, state:
 
+- stable semantic manifest key;
 - bounded outcome;
 - actor or consumer;
 - why it is independently valuable or necessary;
@@ -27,6 +28,11 @@ For every proposed unit, state:
 - whether it is discovery, delivery, documentation, migration, QA, or another project-configured type.
 
 Do not invent implementation files, classes, endpoints, or schemas before they are verified.
+
+Use a short stable kebab-case semantic key such as `profile-change-epic` or
+`profile-request-api`. Keep the key stable through preview, approval, task
+creation, and retry. It correlates one approved manifest node with one tracker
+Issue and must not contain a predicted Issue number or Task ID.
 
 ## Prefer vertical and risk-aware slices
 

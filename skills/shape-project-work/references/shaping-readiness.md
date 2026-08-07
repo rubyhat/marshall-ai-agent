@@ -12,6 +12,11 @@ Use when a blocking question, unresolved conflict, unknown owner, unsafe assumpt
 
 Use when the outcome, scope, work units, owners, dependencies, and major risks are clear enough to create or update roadmap tasks. Detailed implementation contracts may still require later specification work.
 
+Before starting `--shape-roadmap`, require this verdict or equivalent evidence
+that the outcome, scope, decisions, non-goals, and material risks are already
+stable. Return a raw or materially changed idea to `--shape-work`; roadmap
+shaping owns representation and decomposition, not renewed product discovery.
+
 ### `ready for specification`
 
 Use when the selected implementation slice has stable product and lifecycle decisions, bounded scope, known ownership and dependencies, and enough verified context for a task-spec writer to investigate technical details without reopening the basic outcome.

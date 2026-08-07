@@ -69,6 +69,30 @@ excluded from the approved enabled set or an ineligible conditional alias in
 configuration, `AGENTS.md`, or the project command catalog.
 Add alias-specific interaction settings such as the bounded
 `--accept-recommended` scope only when the owning module and alias are enabled.
+For a roadmap-shaping alias, generate:
+
+- a required shaped-outcome or exact-anchor input and an explicit route back to
+  ordinary shaping when product meaning remains unstable;
+- one coherent Epic/Feature/Task iteration with only
+  decomposition-changing questions;
+- one exact semantic mutation preview whose stable node keys do not promise
+  provider numbers or final Task IDs;
+- a single post-approval handoff to task management, with a fresh preview when
+  reconciliation changes semantics but not when identity is mechanically
+  derived from a provider number;
+- no local roadmap, memory, coordination, or documentation artifact.
+
+When task management is enabled and the provider supplies an immutable,
+human-visible Issue number, generate provider-number-derived Task IDs as the
+safe default. Record semantic prefixes and a cross-repository-safe namespace,
+record a project-neutral correlation-marker format such as
+`project-task-key` for every new task, create or recover the Issue by that
+deterministic semantic marker before deriving the ID, and preserve existing
+legacy IDs. For roadmap manifests, namespace each task key with the stable
+roadmap-operation key. Generate a separate
+custom allocator only when an explicit coherent project convention requires
+it or the provider lacks a suitable immutable number.
+
 For a next-specification continuation alias, generate:
 
 - current-conversation continuity first and an optional exact anchor fallback;
