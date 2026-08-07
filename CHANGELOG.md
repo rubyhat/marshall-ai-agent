@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/rubyhat/marshall-ai-agent/compare/v0.4.2...v0.4.3) (2026-08-07)
+
+
+### Исправления
+
+* **workflow:** roll back documentation-only fast path ([525ec77](https://github.com/rubyhat/marshall-ai-agent/commit/525ec77e9d921926498d362af26c2d1735f1aae6))
+
 ## [0.4.2](https://github.com/rubyhat/marshall-ai-agent/compare/v0.4.1...v0.4.2) (2026-08-07)
 
 
