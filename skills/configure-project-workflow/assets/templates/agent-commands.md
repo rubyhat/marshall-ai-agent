@@ -11,5 +11,8 @@ Resolve sticky current-conversation constraints before alias-specific
 authority. A later alias may narrow authority but cannot implicitly release a
 planning, no-code, no-implementation, no-delivery, or read-only constraint.
 Apply the same capability gate to equivalent natural-language requests.
+A configured `specification_documentation_delivery` exception may be inherited
+only by the project-designated specification command; it does not release the
+constraint for implementation or ordinary delivery.
 
 {{COMMAND_CATALOG}}

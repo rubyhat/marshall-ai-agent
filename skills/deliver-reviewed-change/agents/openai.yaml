@@ -1,4 +1,4 @@
 interface:
   display_name: "Deliver Reviewed Change"
-  short_description: "Проводит review и доставляет изменения"
-  default_prompt: "Use $deliver-reviewed-change to review, publish, monitor, and safely complete delivery of the exact current project task."
+  short_description: "Проверяет и доставляет точные изменения"
+  default_prompt: "Use $deliver-reviewed-change to deliver the exact current task through the configured reviewed flow or eligible documentation-only fast path."

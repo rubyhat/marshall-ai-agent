@@ -87,7 +87,10 @@ flowchart LR
     C -- "Нет" --> E["Создать task identity и tracker anchors"]
     D --> E
     E --> F["Создать task-spec"]
-    F --> S["Открыть новую Codex-сессию"]
+    F --> P{"Включена auto-delivery spec?"}
+    P -- "Да" --> Q["PR и merge exact spec package"]
+    P -- "Нет" --> S["Открыть новую Codex-сессию"]
+    Q --> S
     S --> G{"Implementation явно разрешена?"}
     G -- "Да" --> H["Выполнить задачу"]
     G -- "Нет" --> I["Остановиться на готовой спецификации"]
@@ -100,15 +103,18 @@ flowchart LR
 2. `shape-project-work` — согласовать outcome, scope, решения, риски и декомпозицию.
 3. `design-frontend-flow` — при необходимости определить frontend interaction contract.
 4. `manage-project-work` — создать или сверить Task ID, Issue, hierarchy и Project state.
-5. `write-task-spec` — создать implementation-ready спецификацию.
+5. `write-task-spec` — создать implementation-ready спецификацию и при
+   включённой project policy передать только её exact documentation package в
+   автоматический PR/merge fast path.
 6. `execute-project-task` — выполнить одну явно разрешённую задачу и подготовить незакоммиченные изменения к local review.
 7. `deliver-reviewed-change` — провести independent review, PR, bounded review cycle, merge и cleanup в пределах разрешённого endpoint.
 
 `record-project-context` применяется в durable checkpoints по всему flow, а не только в конце. Готовая спецификация сама по себе не разрешает implementation, а выполненная implementation-задача сама по себе не разрешает commit, push или merge.
 
 Если shaping начат через `--planning-session`, переход к implementation всегда
-проходит через новую Codex-сессию: готовая specification или поздний
-implementation alias не снимают sticky planning lock.
+проходит через новую Codex-сессию. Проект может разрешить внутри planning
+только узкую доставку exact specification documents; она не снимает sticky
+implementation и ordinary-delivery lock.
 
 ## Дополнительные flows
 
@@ -154,9 +160,9 @@ analyze-product-reference
 | `maintain-project-context` | Аудирует, консолидирует и безопасно очищает project memory/documentation через двухфазный процесс. |
 | `manage-project-work` | Управляет Task ID, hierarchy, GitHub Issues/Projects, статусами и связями task/spec/PR. |
 | `shape-project-work` | Превращает идею или проблему в согласованный outcome, scope и conceptual work breakdown. |
-| `write-task-spec` | Создаёт, обновляет и проверяет full или lightweight task specifications. |
+| `write-task-spec` | Создаёт, обновляет и проверяет task specifications и при configured policy передаёт exact ready-spec package в fast path. |
 | `execute-project-task` | Выполняет одну implementation-ready задачу в изолированном workspace до local-review handoff. |
-| `deliver-reviewed-change` | Проводит точную задачу через independent review, PR, review feedback, merge и cleanup. |
+| `deliver-reviewed-change` | Проводит точную задачу через reviewed flow либо строго ограниченный documentation-only fast path. |
 | `design-frontend-flow` | Проектирует frontend surfaces, states, actions, recovery, responsive behavior и contract needs. |
 | `triage-frontend-qa` | Воспроизводит и классифицирует один конкретный frontend-дефект. |
 | `analyze-product-reference` | Исследует внешний продукт как bounded evidence и адаптирует findings к целевому проекту. |
@@ -177,7 +183,7 @@ analyze-product-reference
 | `--planning-session [scope]` | Зафиксировать sticky discussion/shaping профиль до конца текущей сессии. |
 | `--shape-work <идея или task anchor>` | Запустить guided shaping без автоматических mutations. |
 | `--shape-roadmap <идея или task anchor>` | Подготовить roadmap decomposition и mutation preview без full specs. |
-| `--prepare-spec <Task ID или task anchor>` | Обсудить точную задачу и после ответов создать task-spec. |
+| `--prepare-spec <Task ID или task anchor>` | Создать task-spec и при включённой policy автоматически доставить exact spec через PR. |
 | `--next-spec [Epic, предыдущая задача или plan anchor]` | Проверить прошлую задачу и подготовить следующую spec из активного work graph. |
 | `--accept-recommended` | Принять рекомендации только в текущем наборе вопросов. |
 | `--design-flow <идея или task anchor>` | Обсудить frontend-flow без создания кода или артефакта. |
@@ -190,7 +196,9 @@ analyze-product-reference
 Это plain-text соглашения проекта, а не встроенные пользовательские slash-команды Codex. Они начинают работать только после маршрутизации в project instructions и configuration. Alias не расширяет полномочия за пределы, явно описанные соответствующим skill и проектной политикой.
 
 `--planning-session` создаёт жёсткую границу текущего разговора:
-implementation и delivery требуют новой Codex-сессии. Поздние
+implementation и ordinary delivery требуют новой Codex-сессии. Узкая
+configured доставка exact ready-spec документов может выполняться внутри
+`--prepare-spec`; поздние
 `--execute-task`, `--deliver-task` или эквивалентные natural-language запросы
 не снимают planning/no-code lock.
 
@@ -268,7 +276,7 @@ Release Please поддерживает один Release PR:
 - Каждый skill работает только в своём scope и передаёт следующую фазу owning workflow.
 - Read-only alias не разрешает исправления или внешние mutations.
 - Task/spec readiness не означает разрешение на implementation.
-- Implementation не означает разрешение на publication или merge.
+- Implementation не означает разрешение на delivery или merge.
 - Cleanup, destructive actions, production mutations и broad synchronization требуют отдельной применимой authority.
 - Project-specific safety, privacy, tenant, billing, legal и deployment rules имеют приоритет над общим reusable flow.
 

@@ -28,6 +28,9 @@ The owning workflow decides whether a gate passed:
 - shaping or intake establishes discovery/spec readiness;
 - implementation establishes work start and local-review readiness;
 - delivery establishes PR creation, clean review, merge readiness, and merge completion.
+- an automatic ready-spec documentation merge may establish
+  `ready_for_implementation` without completing or closing the task when
+  project policy explicitly defines that lightweight checkpoint.
 
 This skill applies the corresponding status but does not invent gate evidence. For `--task-status`, treat the target as explicit intent while still reporting a missing configured prerequisite before applying a misleading readiness or completion status.
 

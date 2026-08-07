@@ -2,6 +2,10 @@
 
 Apply project Git and pull-request policy only after independent local review passes.
 
+For a verified documentation-only fast path, apply the same Git and
+pull-request policy after its deterministic gates pass; independent review is
+not a prerequisite for that exact classification.
+
 ## Create intentional commits
 
 Before commit:
@@ -34,6 +38,13 @@ Apply configured:
 - dependencies and merge order;
 - draft or ready state.
 
+For a documentation-only fast-path PR, state the exact eligible roots and
+deterministic gates, and state that local and GitHub Codex review are skipped by
+configured policy. For an automatic ready-spec PR, use reference-only Issue
+linkage so its merge cannot close the task. For an ordinary documentation task,
+retain the configured close/reference linkage. Do not request external review
+or create a review heartbeat.
+
 Do not create a duplicate PR after partial success.
 
 ## Establish the PR-review checkpoint
@@ -41,8 +52,9 @@ Do not create a duplicate PR after partial success.
 After PR creation or reconciliation:
 
 1. verify PR URL, repository, head, base, state, and current head SHA;
-2. link it through `manage-project-work`;
-3. apply the configured PR-review status;
+2. link it through `manage-project-work`, using reference-only linkage for an
+   automatic ready-spec PR;
+3. apply the configured PR-review status only for ordinary reviewed delivery;
 4. read back Issue, Project, and PR state;
 5. report any partial mutation honestly.
 

@@ -1,6 +1,6 @@
 ---
 name: write-task-spec
-description: Create, update, and audit full or lightweight project task specifications from an agreed shaped task or another configured authorized specification handoff. Use when the user explicitly asks for a complete task spec, approves specification as the next step after shaping, asks to revise an existing spec, invokes `--spec-check` for a read-only completeness and readiness audit, or receives an authorized exact task from a shaping or domain workflow such as confirmed QA. Select project-configured templates first and use bundled generic defaults as fallback; verify relevant code, contracts, dependencies, acceptance criteria, tests, and cross-cutting impacts. Do not trigger merely from an initial idea, roadmap commitment, or Issue creation, and do not allocate Task IDs, mutate task trackers, implement code, or silently resolve product-scope conflicts.
+description: Create, update, and audit full or lightweight project task specifications from an agreed shaped task or another configured authorized specification handoff. Use when the user explicitly asks for a complete task spec, invokes `--spec-check`, approves specification after shaping, or receives an authorized exact task from a shaping or domain workflow. Select project templates first and verify contracts, dependencies, acceptance criteria, tests, and cross-cutting impacts. When project policy and inherited authority enable automatic ready-spec delivery, hand the exact verified specification package to the configured documentation-only PR path; never implement product code or silently resolve product-scope conflicts.
 ---
 
 # Write Task Spec
@@ -14,7 +14,9 @@ Produce a coherent implementation specification without reopening settled shapin
 - Let `manage-project-work` establish required task identity, tracker anchors, links, and operational status.
 - Use `record-project-context` to create or update project-local specification files.
 - Let domain workflows define specialized requirements for frontend design, migrations, QA, legal behavior, or other configured impacts.
-- Do not implement code, create worktrees, open pull requests, or write implementation reports.
+- Do not implement code or write implementation reports. Create a branch or
+  pull request only through the configured automatic ready-spec handoff after
+  the exact package reaches `Ready for implementation`.
 - Do not create a full implementation spec for an Epic or Feature by default. Use a shared coordination or contract artifact only when project policy explicitly calls for one.
 
 ## Establish authority and mode
@@ -46,6 +48,8 @@ Read the project workflow configuration and resolve:
 - required impacts and domain workflows;
 - readiness labels and operational status mapping;
 - recording and task-management handoffs.
+- automatic ready-spec delivery policy, exact allowed package, deterministic
+  gates, planning-session capability, and post-merge execution-ready status.
 
 Keep repository names, framework assumptions, languages, status labels, commands, and directory layouts out of this reusable skill.
 
@@ -141,11 +145,26 @@ For create or update mode:
 2. reread the written spec and every created annex;
 3. verify relative links and task identity;
 4. ask `manage-project-work` to link the spec and apply the authorized status;
-5. read [report-specification-handoff.md](references/report-specification-handoff.md);
-6. report the standardized task identity, artifacts, verdicts, outcome,
+   when an authorized automatic delivery is about to run, apply only the
+   configured pre-merge specification status and defer the execution-ready
+   status;
+5. when the verdict is `Ready for implementation`, project policy enables
+   automatic ready-spec delivery, and the active handoff carries the narrow
+   `specification_documentation_delivery` capability, hand only the exact
+   specification package and required task link to `deliver-reviewed-change`;
+6. require that handoff to use a task branch and PR, skip independent local and
+   GitHub review, retain deterministic validation, allow absent checks and
+   branch-protection evidence, require any reported checks to finish without
+   failure, never bypass provider-enforced rules, merge the exact PR, keep the
+   task open, and apply the configured execution-ready status only after the
+   merged specification revision is read back;
+7. read [report-specification-handoff.md](references/report-specification-handoff.md);
+8. report the standardized task identity, artifacts, verdicts, outcome,
    blockers, and next action.
 
-Do not start implementation automatically when the user requested only a specification.
+Do not start implementation automatically when the user requested only a
+specification. Automatic delivery of the specification documents is not task
+implementation authority.
 
 ## Update existing specifications safely
 
