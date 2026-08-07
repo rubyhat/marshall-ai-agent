@@ -50,10 +50,7 @@ implementation-задач. Downstream specification блокируется то�
 
 Sticky negative constraint проверяется раньше alias authority и readiness.
 Поздний alias может сузить полномочия, но не может неявно снять
-planning/no-code/no-implementation/no-delivery/read-only ограничение. Только
-явно configured `specification_documentation_delivery` может быть унаследован
-`--prepare-spec` внутри planning-сессии; он не разрешает implementation или
-ordinary task delivery.
+planning/no-code/no-implementation/no-delivery/read-only ограничение.
 Natural-language запрос проходит тот же capability gate, что и alias.
 
 ## Основной workflow
@@ -64,7 +61,6 @@ Natural-language запрос проходит тот же capability gate, чт
   → --shape-roadmap <idea или feature anchor>
   → отдельное подтверждение точного roadmap mutation preview
   → --prepare-spec <Task ID>
-      ↳ при configured policy: exact spec branch → PR → merge без independent review
 
 === ДЛЯ РЕАЛИЗАЦИИ КАЖДОЙ SPEC НУЖНА НОВАЯ СЕССИЯ CODEX ===
 
@@ -95,9 +91,7 @@ Domain-команды подключаются только при примен�
 
 Planning, roadmap, frontend-design, reference-analysis, task-check и
 specification aliases могут разрешить только свои bounded
-non-implementation workflows. `--prepare-spec` может дополнительно унаследовать
-узкую доставку exact ready-spec документов, если она явно настроена.
-`--execute-task`, `--deliver-task` и
+non-implementation workflows. `--execute-task`, `--deliver-task` и
 эквивалентные natural-language запросы не отменяют профиль. Агент
 останавливается до mutations и требует новую сессию.
 
@@ -138,21 +132,11 @@ Issues, Project items или coordination artifact начинается толь
 5. создание требуемых project anchors;
 6. создание и проверка full или lightweight task specification;
 7. linkage и разрешённый operational status;
-8. при включённой для `--prepare-spec` policy — commit exact spec package в
-   task branch, push, PR в canonical branch и merge без independent local или
-   GitHub Codex review;
-9. read-back merged revision и execution-ready operational status при
-   сохранении открытого task Issue;
-10. стандартизированный specification handoff.
+8. стандартизированный specification handoff.
 
 Alias является явным запросом на specification, поэтому после разрешения
-вопросов повторное подтверждение «создавать ли spec» не требуется. Его
-configured automatic delivery разрешает только exact spec package и требует
-deterministic validation, exact PR identity и merge authority. Отсутствие
-reported checks или branch-protection evidence не является blocker; если
-checks опубликованы для exact PR head, они должны завершиться без failure, а
-реально применяемые provider rules нельзя обходить. Alias не разрешает
-implementation или ordinary delivery.
+вопросов повторное подтверждение «создавать ли spec» не требуется. Alias не
+разрешает implementation или delivery.
 
 ### `--next-spec [Epic, предыдущая Task или exact plan anchor]`
 
@@ -183,9 +167,8 @@ outcome, contract, scope, ownership или acceptance behavior остаются
 существенно нестабильными.
 
 Alias является явным разрешением создать следующую specification после
-уточняющих вопросов. Он не разрешает implementation, delivery, включая
-automatic ready-spec delivery, изменение статуса предыдущей задачи или
-автоматическое исправление completion evidence.
+уточняющих вопросов. Он не разрешает implementation, delivery, изменение
+статуса предыдущей задачи или автоматическое исправление completion evidence.
 
 ### `--accept-recommended`
 
@@ -231,17 +214,10 @@ task lookup, status transition, Git, dependency и file mutations и реком�
 heartbeat, merge, tracker mutations и cleanup.
 
 Проводит точную задачу через configured independent review и delivery flow.
-Если полный PR diff удовлетворяет documentation-only allowlist, skill
-пропускает local и GitHub Codex review и после deterministic gates сразу
-проверяет exact PR head, опубликованные checks и возможность обычного merge.
-Отсутствие checks либо branch protection не блокирует этот fast path. Один
-ineligible path возвращает весь PR в обычный reviewed flow.
 Точная конечная точка может быть сужена дополнительным текстом пользователя.
 
-Не разрешает bypass реально применяемых provider rules, merge при failed или
-pending reported checks, force-push, deploy, production data mutation или
-работу с unrelated PR. Review пропускается только по явно configured
-documentation-only fast path.
+Не разрешает bypass review/CI, force-push, deploy, production data mutation или
+работу с unrelated PR.
 
 ## Task management
 

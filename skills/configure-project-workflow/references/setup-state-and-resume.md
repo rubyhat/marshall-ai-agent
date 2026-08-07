@@ -29,12 +29,7 @@ Audit mode must not create it.
   "protection": {},
   "facts": [],
   "decisions": [],
-  "modules": {
-    "profile": null,
-    "selected": [],
-    "enabled_aliases": [],
-    "enabled_capabilities": []
-  },
+  "modules": {"profile": null, "selected": [], "enabled_aliases": []},
   "questions": [],
   "assumptions": [],
   "conflicts": [],
@@ -48,9 +43,6 @@ Use absolute `project_root` only in temporary state. Generated reusable instruct
 
 `modules.enabled_aliases` must list every alias intended for generated routing.
 Keep it synchronized with selected modules and conditional alias requirements.
-`modules.enabled_capabilities` must list every optional cross-skill capability
-selected during setup. A schema v2 tracker created before this field existed is
-treated as having an empty list until its next approved update.
 
 ## Track current state, not history
 

@@ -33,16 +33,12 @@ Classify the request before shaping:
 A planning-session profile is a sticky conversation constraint, not a host
 application mode. It remains active for the current conversation. It does not
 authorize artifacts or tracker mutations by itself, and it blocks
-implementation and ordinary delivery capabilities. Later planning, roadmap,
+implementation and delivery capabilities. Later planning, roadmap,
 task-management, frontend-design, reference-analysis, or specification
 requests may authorize only their bounded non-implementation workflows.
-A project may additionally let `--prepare-spec` inherit the narrow
-`specification_documentation_delivery` capability for only the exact ready-spec
-package. That exception does not release the profile for
-implementation or ordinary task delivery. Implementation or delivery aliases
-and equivalent natural-language requests never release the profile implicitly.
-Require a new conversation when project policy defines
-`new_conversation_only` release semantics.
+Implementation or delivery aliases and equivalent natural-language requests
+never release the profile implicitly. Require a new conversation when project
+policy defines `new_conversation_only` release semantics.
 
 Do not treat silence as authorization to create a full task specification.
 
@@ -60,9 +56,7 @@ Use an already sufficient project orientation or invoke `load-project-context` f
 - project dialogue and clarification policy;
 - roadmap commitment and artifact-recording rules;
 - domain workflows and sizing gates;
-- whether a task-spec writer and templates are configured;
-- whether `--prepare-spec` may inherit an automatic ready-spec delivery
-  capability and whether all required runtime modules are selected.
+- whether a task-spec writer and templates are configured.
 
 Do not load unrelated memory, specifications, or repositories.
 
@@ -189,10 +183,8 @@ Keep the result usable as input to task management without pretending it is a fu
   optional text only to bound the conversation. Do not create artifacts or
   require a task anchor merely to acknowledge the profile. Keep the profile
   active for the current conversation. Permit only separately authorized
-  bounded planning and specification capabilities, plus the exact
-  `specification_documentation_delivery` capability when project policy grants
-  it to `--prepare-spec`. Block implementation and ordinary delivery.
-  When either blocked capability is requested, stop before mutations, name the
+  bounded planning and specification capabilities, and block implementation
+  and delivery. When either is requested, stop before mutations, name the
   active profile and conflict, confirm that no mutation occurred, and require
   the configured release action.
 - `--shape-work <idea or task anchor>`: start discussion or guided shaping. The
@@ -210,9 +202,7 @@ Keep the result usable as input to task management without pretending it is a fu
   decision-changing questions. When no shaping blocker remains, establish any
   project-required task anchors through `manage-project-work` and hand the task
   to `write-task-spec` without asking again whether to create the specification.
-  The alias does not authorize implementation or ordinary delivery. When
-  project policy explicitly enables it, the alias may carry only the narrow
-  `specification_documentation_delivery` capability through the writer handoff.
+  The alias does not authorize implementation or delivery.
 - `--next-spec [Epic, previous Task, or exact plan anchor]`: treat this as an
   explicit request to select, discuss, and create the next complete
   specification in the active planning sequence. Resolve the last task prepared
@@ -230,8 +220,7 @@ Keep the result usable as input to task management without pretending it is a fu
   task is resolved, follow the same shaping, clarification, task-anchor, and
   `write-task-spec` handoff as `--prepare-spec` without asking again whether to
   create the specification. The alias does not authorize implementation,
-  delivery, or mutation of completion evidence, and it does not inherit the
-  automatic ready-spec delivery capability.
+  delivery, or mutation of completion evidence.
 
 Ask for a missing required argument. An absent optional `--next-spec` anchor is
 valid only when the current planning continuity is unambiguous. Treat trailing

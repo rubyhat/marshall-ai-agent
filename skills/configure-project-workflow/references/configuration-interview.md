@@ -118,11 +118,7 @@ Ask 7–10 prompts covering:
 7. project-local templates and bundled fallback policy;
 8. required impact gates such as migration, localization, security, privacy, rollout, or accessibility;
 9. specification readiness verdicts;
-10. whether a `Ready for implementation` spec is automatically delivered
-    through a documentation-only PR, and whether that narrow capability is
-    allowed inside a planning session for the project-designated specification
-    command; enabling it also enables and fully configures the documentation
-    fast path rather than creating an independent switch.
+10. when implementation authority must be requested separately.
 
 ## Stage 6 — task management
 
@@ -161,7 +157,7 @@ Ask 7–10 prompts covering:
 
 ## Stage 8 — review and delivery
 
-Purpose: define delivery and completion authority.
+Purpose: define publication and completion authority.
 
 Ask 7–10 prompts covering:
 
@@ -174,9 +170,7 @@ Ask 7–10 prompts covering:
 7. required CI/check policy;
 8. merge authority and allowed methods;
 9. post-merge closure, sync, and workspace cleanup;
-10. documentation-only fast-path roots, non-executable file types, excluded
-    workflow/configuration paths, deterministic gates, and mode-specific task
-    status after merge.
+10. deployment and production boundaries excluded from normal delivery.
 
 ## Stage 9 — domain modules
 

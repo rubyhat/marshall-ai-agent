@@ -40,19 +40,6 @@
       "maintain-project-context"
     ]
   },
-  "capabilities": [
-    {
-      "name": "specification_documentation_delivery",
-      "requires": [
-        "write-task-spec",
-        "deliver-reviewed-change",
-        "manage-project-work"
-      ],
-      "trigger_aliases": [
-        "--prepare-spec"
-      ]
-    }
-  ],
   "modules": [
     {
       "name": "configure-project-workflow",
