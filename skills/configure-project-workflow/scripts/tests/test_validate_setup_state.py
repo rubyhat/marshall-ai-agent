@@ -188,6 +188,27 @@ class ValidateSetupStateTest(unittest.TestCase):
         errors, _ = self.module.validate(state, self.catalog)
         self.assertEqual(errors, [])
 
+    def test_enabled_capability_requires_trigger_alias(self):
+        state = self.valid_state()
+        state["modules"]["selected"] = [
+            "configure-project-workflow",
+            "record-project-context",
+            "shape-project-work",
+            "write-task-spec",
+            "manage-project-work",
+            "execute-project-task",
+            "deliver-reviewed-change",
+        ]
+        state["modules"]["enabled_aliases"] = []
+        state["modules"]["enabled_capabilities"] = [
+            "specification_documentation_delivery"
+        ]
+        errors, _ = self.module.validate(state, self.catalog)
+        self.assertIn(
+            "Capability specification_documentation_delivery requires enabled alias --prepare-spec",
+            errors,
+        )
+
     def test_unknown_enabled_capability_fails(self):
         state = self.valid_state()
         state["modules"]["enabled_capabilities"] = ["missing-capability"]

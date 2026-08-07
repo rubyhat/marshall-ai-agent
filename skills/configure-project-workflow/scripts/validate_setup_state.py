@@ -189,16 +189,18 @@ def alias_index(
 
 def capability_index(
     catalog: Dict[str, Any], modules: Dict[str, Dict[str, Any]]
-) -> Dict[str, List[str]]:
+) -> Dict[str, Dict[str, List[str]]]:
     entries = catalog.get("capabilities", [])
     if not isinstance(entries, list):
         raise ValueError("Catalog capabilities must be an array")
-    result: Dict[str, List[str]] = {}
+    result: Dict[str, Dict[str, List[str]]] = {}
+    available_aliases = alias_index(modules)
     for index, entry in enumerate(entries):
         if not isinstance(entry, dict):
             raise ValueError(f"capabilities[{index}] must be an object")
         name = entry.get("name")
         requirements = entry.get("requires")
+        trigger_aliases = entry.get("trigger_aliases", [])
         if not isinstance(name, str) or not name:
             raise ValueError(f"capabilities[{index}] needs a non-empty name")
         if name in result:
@@ -210,7 +212,19 @@ def capability_index(
         for dependency in requirements:
             if dependency not in modules:
                 raise ValueError(f"Capability {name} requires unknown module {dependency}")
-        result[name] = requirements
+        if not isinstance(trigger_aliases, list) or not all(
+            isinstance(item, str) and item for item in trigger_aliases
+        ):
+            raise ValueError(f"Capability {name} trigger_aliases must be an array")
+        if len(trigger_aliases) != len(set(trigger_aliases)):
+            raise ValueError(f"Capability {name} trigger_aliases contains duplicates")
+        for command in trigger_aliases:
+            if command not in available_aliases:
+                raise ValueError(f"Capability {name} requires unknown alias {command}")
+        result[name] = {
+            "requires": requirements,
+            "trigger_aliases": trigger_aliases,
+        }
     return result
 
 
@@ -321,9 +335,12 @@ def validate(state: Dict[str, Any], catalog: Dict[str, Any]) -> Tuple[List[str],
         if name not in capabilities:
             errors.append(f"Unknown enabled capability: {name}")
             continue
-        for dependency in capabilities[name]:
+        for dependency in capabilities[name]["requires"]:
             if dependency not in selected_set:
                 errors.append(f"Capability {name} requires module {dependency}")
+        for command in capabilities[name]["trigger_aliases"]:
+            if command not in enabled_aliases:
+                errors.append(f"Capability {name} requires enabled alias {command}")
 
     manifest = state.get("manifest", [])
     if isinstance(manifest, list):
