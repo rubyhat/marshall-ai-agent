@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.1...v0.6.2) (2026-08-07)
+
+
+### Исправления
+
+* **workflow:** bind spec review to planning worktree ([50d4147](https://github.com/rubyhat/marshall-ai-agent/commit/50d414711a425eb512b1c87f87d623973f876165))
+
 ## [0.6.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.0...v0.6.1) (2026-08-07)
 
 
