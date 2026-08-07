@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.5.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.4.3...v0.5.0) (2026-08-07)
+
+
+### Новые возможности
+
+* **workflow:** publish reviewed task specifications ([a7a3512](https://github.com/rubyhat/marshall-ai-agent/commit/a7a351276b22cf6ddf81c7c9ab8fbba3bd443f1e))
+
+### Миграция
+
+* Проекты с Git-tracked task specifications должны установить все выбранные
+  skills из `v0.5.0`, включить `publish-planning-change`, настроить секцию
+  `planning_publication` и зарегистрировать `--publish-spec`.
+* Planning profile может разрешать только capability
+  `planning_artifact_publication`; implementation, ordinary delivery, release,
+  deploy и production mutations остаются заблокированными до отдельной
+  authority и, для implementation, новой сессии.
+* Общий `schema_version` остаётся `2`. До reconfiguration старый проект не
+  должен считать локальную или unmerged specification достаточным
+  implementation gate.
+
 ## [0.4.3](https://github.com/rubyhat/marshall-ai-agent/compare/v0.4.2...v0.4.3) (2026-08-07)
 
 
