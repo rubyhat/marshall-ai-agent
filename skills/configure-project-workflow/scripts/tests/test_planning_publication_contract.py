@@ -8,6 +8,14 @@ ASSETS_ROOT = SKILL_ROOT / "assets"
 TEMPLATE = ASSETS_ROOT / "templates" / "project-workflow.yaml"
 SCHEMA = ASSETS_ROOT / "project-workflow.schema.json"
 INTERVIEW = SKILL_ROOT / "references" / "configuration-interview.md"
+GENERATE = SKILL_ROOT / "references" / "generate-project-setup.md"
+VALIDATE = SKILL_ROOT / "references" / "validate-project-setup.md"
+PUBLISH_REVIEW = (
+    SKILL_ROOT.parent
+    / "publish-planning-change"
+    / "references"
+    / "run-independent-spec-review.md"
+)
 
 
 class PlanningPublicationContractTest(unittest.TestCase):
@@ -25,9 +33,10 @@ class PlanningPublicationContractTest(unittest.TestCase):
         publication = schema["properties"]["planning_publication"]
         properties = publication["properties"]
         artifact_policy = properties["artifact_policy"]["properties"]
-        self.assertEqual(
-            artifact_policy["default_spec_root"]["const"], "docs_ai/tasks"
-        )
+        spec_root = artifact_policy["default_spec_root"]
+        self.assertEqual(spec_root["type"], "string")
+        self.assertEqual(spec_root["default"], "docs_ai/tasks")
+        self.assertNotIn("const", spec_root)
         self.assertFalse(
             artifact_policy["ask_for_spec_root_when_default_is_available"]["const"]
         )
@@ -70,6 +79,15 @@ class PlanningPublicationContractTest(unittest.TestCase):
             "default to the project root repository and `docs_ai/tasks` without asking",
             text,
         )
+
+    def test_review_is_bound_to_the_exact_planning_worktree(self):
+        generated = GENERATE.read_text(encoding="utf-8")
+        validation = VALIDATE.read_text(encoding="utf-8")
+        review = PUBLISH_REVIEW.read_text(encoding="utf-8")
+
+        self.assertIn("process working directory", generated)
+        self.assertIn("exact planning worktree as its working directory", validation)
+        self.assertIn("process working directory to the exact planning worktree", review)
 
 
 if __name__ == "__main__":

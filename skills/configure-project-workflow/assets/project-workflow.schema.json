@@ -145,7 +145,11 @@
             "unrelated_changes_forbidden"
           ],
           "properties": {
-            "default_spec_root": {"const": "docs_ai/tasks"},
+            "default_spec_root": {
+              "type": "string",
+              "minLength": 1,
+              "default": "docs_ai/tasks"
+            },
             "ask_for_spec_root_when_default_is_available": {"const": false},
             "explicit_override_allowed": {"const": true},
             "implementation_changes_forbidden": {"const": true},

@@ -14,6 +14,11 @@ private reasoning, expected findings, or intended verdict. Provide only:
 - the configured review rubric and stop conditions.
 
 Use the configured model and effort. Keep reusable instructions model-neutral.
+Set the reviewer process working directory to the exact planning worktree
+before starting an uncommitted review. Do not rely on the checkout from which
+the publication alias was invoked, a path added only for read access, or prompt
+text to select the reviewed diff. Verify the reviewer reports the expected
+planning worktree and branch before accepting its verdict.
 
 ## Review the specification contract
 
