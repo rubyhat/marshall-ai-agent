@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.4.3...v0.5.0) (2026-08-07)
+
+
+### Новые возможности
+
+* **workflow:** publish reviewed task specifications ([a7a3512](https://github.com/rubyhat/marshall-ai-agent/commit/a7a351276b22cf6ddf81c7c9ab8fbba3bd443f1e))
+
 ## [0.4.3](https://github.com/rubyhat/marshall-ai-agent/compare/v0.4.2...v0.4.3) (2026-08-07)
 
 
