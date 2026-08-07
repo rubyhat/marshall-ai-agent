@@ -20,13 +20,15 @@ Skills не должны содержать жёсткую привязку к �
 workflow kit, но не разрабатывает сам `marshall-ai-agent`.
 
 Не клонируйте этот репозиторий внутрь продуктового проекта. Установите только
-bootstrap skill через системный `skill-installer` по exact release tag. Для
-версии, выпускаемой этим изменением:
+bootstrap skill через системный `skill-installer` по exact release tag.
+Откройте [последний опубликованный стабильный релиз](https://github.com/rubyhat/marshall-ai-agent/releases/latest)
+и замените `vX.Y.Z` в команде на его точный tag. Не используйте floating branch
+вроде `main`:
 
 ```bash
 python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/install-skill-from-github.py" \
   --repo rubyhat/marshall-ai-agent \
-  --ref v0.3.0 \
+  --ref vX.Y.Z \
   --path skills/configure-project-workflow
 ```
 
@@ -241,7 +243,7 @@ Release Please поддерживает один Release PR:
 
 - [правила участия](CONTRIBUTING.md);
 - [release runbook](docs/releasing.md);
-- [релиз `v0.3.0`](https://github.com/rubyhat/marshall-ai-agent/releases/tag/v0.3.0);
+- [последний стабильный релиз](https://github.com/rubyhat/marshall-ai-agent/releases/latest);
 - текущая development version — [version.txt](version.txt);
 - история изменений — [CHANGELOG.md](CHANGELOG.md).
 
