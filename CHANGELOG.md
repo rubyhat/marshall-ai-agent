@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.4...v0.6.5) (2026-08-07)
+
+
+### Исправления
+
+* **workflow:** make legacy readiness an alternative gate ([#41](https://github.com/rubyhat/marshall-ai-agent/issues/41)) ([742a769](https://github.com/rubyhat/marshall-ai-agent/commit/742a7699ed89969a172324443825544dccbfba41))
+
 ## [0.6.4](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.3...v0.6.4) (2026-08-07)
 
 
