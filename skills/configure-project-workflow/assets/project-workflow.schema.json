@@ -16,7 +16,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": 2
+      "enum": [2, 3]
     },
     "workflow_kit": {
       "type": "object",
@@ -213,6 +213,55 @@
               "const": true,
               "description": "Require ancestry in the repository that owns the specification revision, not across unrelated Git histories."
             },
+            "ordinary_publication_evidence": {
+              "type": "object",
+              "required": [
+                "record_kind",
+                "required_fields",
+                "allowed_review_binding_methods",
+                "complete_package_manifest_required",
+                "reviewed_package_manifest_equals_merged",
+                "persist_and_reread_before_cleanup"
+              ],
+              "properties": {
+                "record_kind": {
+                  "const": "reviewed_canonical_publication"
+                },
+                "required_fields": {
+                  "const": [
+                    "evidence_kind",
+                    "task_id",
+                    "specification_owner_repository",
+                    "canonical_spec_path",
+                    "pull_request_url",
+                    "merged_revision",
+                    "merged_tree_oid",
+                    "reviewed_head_revision",
+                    "reviewed_head_tree_oid",
+                    "complete_reviewed_package_manifest",
+                    "reviewer_evidence_identifier",
+                    "reviewer_model",
+                    "reviewer_effort",
+                    "review_completed_at",
+                    "terminal_clean_verdict",
+                    "review_target_kind",
+                    "canonical_base_revision",
+                    "review_binding_method",
+                    "reviewed_package_manifest_equals_merged"
+                  ]
+                },
+                "allowed_review_binding_methods": {
+                  "const": [
+                    "direct_committed_base_diff",
+                    "verified_uncommitted_manifest_equivalence"
+                  ]
+                },
+                "complete_package_manifest_required": {"const": true},
+                "reviewed_package_manifest_equals_merged": {"const": true},
+                "persist_and_reread_before_cleanup": {"const": true}
+              },
+              "additionalProperties": true
+            },
             "legacy_ready_adoption": {
               "type": "object",
               "default": {"enabled": false},
@@ -298,7 +347,9 @@
           ],
           "properties": {
             "require_clean_independent_review": {"const": true},
+            "require_clean_review_bound_to_published_package": {"const": true},
             "require_canonical_merge": {"const": true},
+            "require_persisted_publication_record_readback": {"const": true},
             "implementation_issue_remains_open": {"const": true},
             "release_or_deploy_forbidden": {"const": true}
           },
@@ -416,6 +467,38 @@
       },
       "then": {
         "required": ["planning_publication"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": 3},
+          "workflow_kit": {
+            "properties": {
+              "selected_modules": {
+                "contains": {"const": "publish-planning-change"}
+              }
+            }
+          }
+        },
+        "required": ["schema_version", "workflow_kit"]
+      },
+      "then": {
+        "properties": {
+          "planning_publication": {
+            "properties": {
+              "readiness": {
+                "required": ["ordinary_publication_evidence"]
+              },
+              "completion_gate": {
+                "required": [
+                  "require_clean_review_bound_to_published_package",
+                  "require_persisted_publication_record_readback"
+                ]
+              }
+            }
+          }
+        }
       }
     }
   ],

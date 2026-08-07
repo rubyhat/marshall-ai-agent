@@ -34,6 +34,7 @@ PUBLISH_FINALIZE = (
 class PlanningPublicationContractTest(unittest.TestCase):
     def test_template_uses_out_of_box_documentation_defaults(self):
         text = TEMPLATE.read_text(encoding="utf-8")
+        self.assertTrue(text.startswith("schema_version: 3\n"))
         self.assertIn('project_docs: "docs_ai"', text)
         self.assertIn('task_specs: "docs_ai/tasks"', text)
         self.assertIn('internal_memory: "local_memory_ai"', text)
@@ -124,6 +125,65 @@ class PlanningPublicationContractTest(unittest.TestCase):
             ["implementation_base_must_contain_publication_revision"]
             ["description"],
         )
+        self.assertEqual(schema["properties"]["schema_version"]["enum"], [2, 3])
+        readiness = properties["readiness"]
+        self.assertNotIn("ordinary_publication_evidence", readiness["required"])
+        ordinary_evidence = readiness["properties"]["ordinary_publication_evidence"]
+        self.assertEqual(
+            ordinary_evidence["properties"]["record_kind"]["const"],
+            "reviewed_canonical_publication",
+        )
+        self.assertEqual(
+            ordinary_evidence["properties"]["required_fields"]["const"],
+            [
+                "evidence_kind",
+                "task_id",
+                "specification_owner_repository",
+                "canonical_spec_path",
+                "pull_request_url",
+                "merged_revision",
+                "merged_tree_oid",
+                "reviewed_head_revision",
+                "reviewed_head_tree_oid",
+                "complete_reviewed_package_manifest",
+                "reviewer_evidence_identifier",
+                "reviewer_model",
+                "reviewer_effort",
+                "review_completed_at",
+                "terminal_clean_verdict",
+                "review_target_kind",
+                "canonical_base_revision",
+                "review_binding_method",
+                "reviewed_package_manifest_equals_merged",
+            ],
+        )
+        self.assertEqual(
+            ordinary_evidence["properties"]["allowed_review_binding_methods"][
+                "const"
+            ],
+            [
+                "direct_committed_base_diff",
+                "verified_uncommitted_manifest_equivalence",
+            ],
+        )
+        for required_true_key in (
+            "complete_package_manifest_required",
+            "reviewed_package_manifest_equals_merged",
+            "persist_and_reread_before_cleanup",
+        ):
+            self.assertIn(required_true_key, ordinary_evidence["required"])
+            self.assertTrue(
+                ordinary_evidence["properties"][required_true_key]["const"]
+            )
+        completion_gate = properties["completion_gate"]
+        for required_true_key in (
+            "require_clean_review_bound_to_published_package",
+            "require_persisted_publication_record_readback",
+        ):
+            self.assertNotIn(required_true_key, completion_gate["required"])
+            self.assertTrue(
+                completion_gate["properties"][required_true_key]["const"]
+            )
         legacy_adoption = properties["readiness"]["properties"][
             "legacy_ready_adoption"
         ]
@@ -176,6 +236,31 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn(
             "planning_publication", publication_condition["then"]["required"]
         )
+        version_three_condition = schema["allOf"][1]
+        self.assertEqual(
+            version_three_condition["if"]["properties"]["schema_version"]["const"],
+            3,
+        )
+        self.assertEqual(
+            version_three_condition["if"]["properties"]["workflow_kit"]
+            ["properties"]["selected_modules"]["contains"]["const"],
+            "publish-planning-change",
+        )
+        version_three_publication = version_three_condition["then"]["properties"][
+            "planning_publication"
+        ]["properties"]
+        self.assertIn(
+            "ordinary_publication_evidence",
+            version_three_publication["readiness"]["required"],
+        )
+        for required_true_key in (
+            "require_clean_review_bound_to_published_package",
+            "require_persisted_publication_record_readback",
+        ):
+            self.assertIn(
+                required_true_key,
+                version_three_publication["completion_gate"]["required"],
+            )
 
     def test_interview_does_not_ask_for_default_spec_root(self):
         text = INTERVIEW.read_text(encoding="utf-8")

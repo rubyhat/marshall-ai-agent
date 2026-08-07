@@ -5,6 +5,11 @@ Validate the configured workflow without executing ordinary project work.
 ## Structure
 
 - Parse the setup tracker and generated configuration with an available safe parser.
+- Accept an existing project configuration schema v2 for inspection and
+  reconfiguration. When `publish-planning-change` is selected but the v2 file
+  lacks the bound-review evidence contract, report migration-required drift and
+  do not treat ordinary reviewed publication as configured. Require schema v3
+  and all strengthened fields for a new or approved reconfigured setup.
 - Verify required generic fields and selected module sections.
 - Verify unique module names, aliases, paths, and managed markers.
 - Verify every alias has a resolvable owning workflow, authority boundary,

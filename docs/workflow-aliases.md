@@ -465,3 +465,23 @@ spec PR не считаются достаточным implementation gate.
 явной migration preview: сохранить подтверждённые ответы, добавить точный
 `modules.enabled_aliases` и только после подтверждения изменить его
 `schema_version` на `2`.
+
+## Переход project configuration с schema v2 на v3
+
+Schema v3 делает обязательной привязку clean specification review к точному
+опубликованному package manifest и readback полной
+`reviewed_canonical_publication` записи. Новая настройка сразу использует v3.
+
+Существующая project configuration v2 остаётся валидной для безопасного аудита
+и запуска reconfigure. Если в ней выбран `publish-planning-change`, но нет
+strengthened evidence contract, `--workflow-check` должен вернуть migration-
+required drift: обычную публикацию нельзя считать настроенной только по старым
+полям. После подтверждения exact reconfiguration manifest агент:
+
+- материализует ordinary-publication evidence contract и completion gates;
+- меняет project configuration `schema_version` на `3`;
+- валидирует итоговую конфигурацию и только затем разрешает новый publication
+  path.
+
+`schema_version` setup-state tracker является отдельным форматом и при этой
+миграции автоматически не меняется.
