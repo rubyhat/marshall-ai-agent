@@ -95,6 +95,13 @@ Release создаётся только через Release Please после р�
 Не создавать поверх этого процесса ручные tags или GitHub Releases. Внешние
 GitHub Actions закреплять полным commit SHA.
 
+Описание Release Please PR является machine-managed частью release protocol:
+не редактировать его вручную, в том числе ради перевода, подробного описания или
+migration notes. До merge авторские дополнения к релизу вносить только коммитом
+в `CHANGELOG.md` release-ветки; обсуждение вести в PR comments. После публикации
+расширенное русское описание при необходимости добавлять в notes самого GitHub
+Release, не возвращаясь к body Release Please PR.
+
 Коммит, push, изменение GitHub settings, создание token/secret и публикация
 релиза требуют отдельной явной команды пользователя.
 
