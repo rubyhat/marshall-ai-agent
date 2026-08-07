@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.3.0...v0.4.0) (2026-08-07)
+
+
+### Новые возможности
+
+* **workflow:** add documentation-only delivery fast path ([8429db0](https://github.com/rubyhat/marshall-ai-agent/commit/8429db0a00f63e854646eb5cc350fbdd26377e74))
+
 ## [0.3.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.2.1...v0.3.0) (2026-08-01)
 
 
