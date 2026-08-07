@@ -127,6 +127,8 @@ Never report a mutation as successful from a command exit alone.
 
 - Receive scope and hierarchy proposals from `shape-project-work` or a domain intake skill.
 - Establish required Task ID and tracker anchors for `write-task-spec` only when project policy makes that handoff explicit.
+- Apply canonical spec linkage and the implementation-ready status only from a
+  verified `publish-planning-change` handoff when that workflow is configured.
 - Let `execute-project-task` establish implementation start and local-review checkpoints.
 - Let `deliver-reviewed-change` establish PR, review, merge-readiness, and merge checkpoints.
 - Use `record-project-context` before changing local project documentation or rolling task context; do not copy GitHub operational state into memory.

@@ -31,6 +31,10 @@ Check the configured requirements:
 
 - required Task ID, Issue, Project item, parent, and specification links agree;
 - the specification has the configured implementation-ready content verdict;
+- when file-backed planning publication is configured, the exact specification
+  passed independent review, is merged into the canonical target branch, has a
+  recorded resolvable revision, and the intended implementation base contains
+  or descends from that revision;
 - outcome, in-scope behavior, non-goals, acceptance criteria, and ownership are stable;
 - blocking questions and product decisions are resolved;
 - affected repositories and dependency order are known;
@@ -46,6 +50,8 @@ Inspect only enough current code to verify that named surfaces and critical assu
 Use these routes:
 
 - missing or inconsistent specification detail: `write-task-spec`;
+- missing independent spec review, canonical merge, or publication revision:
+  `publish-planning-change`;
 - changed outcome, scope, task decomposition, architecture, or dependency direction: `shape-project-work`;
 - missing or inconsistent task identity or tracker state: `manage-project-work`;
 - missing domain-specific evidence: the configured domain workflow;

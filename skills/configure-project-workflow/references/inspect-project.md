@@ -53,6 +53,12 @@ Examples:
 
 Do not infer product roles, production safety, merge authority, tracker policy, or legal constraints from framework files alone.
 
+Treat an explicit coherent existing docs, task-spec, or memory owner as a
+high-confidence convention. When none exists, record the project-neutral
+defaults `docs_ai`, `docs_ai/tasks`, and `local_memory_ai` without creating a
+path-selection question. Ask only when multiple existing owners conflict or
+the user has already requested another convention.
+
 Treat component candidates as interview evidence, not as a finished topology.
 Confirm or obtain a stable key, purpose, type, lifecycle, local path, remote
 repository, deploy boundary, ownership, dependencies, and context route for

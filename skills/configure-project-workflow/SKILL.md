@@ -74,7 +74,14 @@ Recommend the smallest profile that covers the project's actual work. Resolve re
 
 Read [configuration-interview.md](references/configuration-interview.md).
 
-Present 7–10 numbered prompts per active stage. Confirm detected facts instead of rediscovering them, ask unknown facts directly, and provide 2–3 mutually exclusive options for material decisions with the recommended option first. Do not reduce coverage to make setup shorter, but skip an entire conditional stage when it is genuinely not applicable.
+Apply documented safe defaults for ordinary paths and low-risk conventions.
+Ask only questions whose answers materially change safety, ownership,
+capabilities, external mutations, lifecycle, or workflow behavior, plus factual
+unknowns that inspection cannot resolve. Present small numbered rounds with
+2–3 mutually exclusive options for material decisions and the recommended
+option first. Summarize applied defaults so the user can override them; do not
+turn every covered field into a question or use a question quota. Skip an
+entire conditional stage when it is genuinely not applicable.
 
 After each stage:
 

@@ -10,6 +10,13 @@ Use this reference to connect specs and pull requests, close an implementation t
 4. Use `record-project-context` before modifying local documentation.
 5. Do not copy the full spec into the Issue.
 
+When file-backed planning publication is configured, distinguish a local
+pre-publication link from the canonical link. Apply the configured
+implementation-ready status only after `publish-planning-change` verifies the
+spec is independently reviewed and merged into the canonical branch. Record
+the resolvable merged revision when project policy requires it. Do not close
+the implementation Issue for a spec-publication pull request.
+
 If either side points to another Task ID, stop and resolve the identity conflict before writing.
 
 ## Link pull requests

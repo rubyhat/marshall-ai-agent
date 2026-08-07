@@ -1,0 +1,70 @@
+import json
+import unittest
+from pathlib import Path
+
+
+SKILL_ROOT = Path(__file__).resolve().parents[2]
+ASSETS_ROOT = SKILL_ROOT / "assets"
+TEMPLATE = ASSETS_ROOT / "templates" / "project-workflow.yaml"
+SCHEMA = ASSETS_ROOT / "project-workflow.schema.json"
+INTERVIEW = SKILL_ROOT / "references" / "configuration-interview.md"
+
+
+class PlanningPublicationContractTest(unittest.TestCase):
+    def test_template_uses_out_of_box_documentation_defaults(self):
+        text = TEMPLATE.read_text(encoding="utf-8")
+        self.assertIn('project_docs: "docs_ai"', text)
+        self.assertIn('task_specs: "docs_ai/tasks"', text)
+        self.assertIn('internal_memory: "local_memory_ai"', text)
+        self.assertIn("ask_only_decision_changing_or_unknown_facts: true", text)
+        self.assertIn("apply_safe_defaults_before_asking: true", text)
+        self.assertIn("question_quota: false", text)
+
+    def test_schema_requires_safe_planning_publication_contract(self):
+        schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+        publication = schema["properties"]["planning_publication"]
+        properties = publication["properties"]
+        artifact_policy = properties["artifact_policy"]["properties"]
+        self.assertEqual(
+            artifact_policy["default_spec_root"]["const"], "docs_ai/tasks"
+        )
+        self.assertFalse(
+            artifact_policy["ask_for_spec_root_when_default_is_available"]["const"]
+        )
+        self.assertTrue(
+            properties["independent_review"]["properties"]["required"]["const"]
+        )
+        self.assertIn(
+            "model", properties["independent_review"]["required"]
+        )
+        self.assertIn(
+            "effort", properties["independent_review"]["required"]
+        )
+        self.assertTrue(
+            properties["readiness"]["properties"]
+            ["canonical_merge_required_before_implementation"]["const"]
+        )
+        self.assertTrue(
+            properties["readiness"]["properties"]
+            ["implementation_base_must_contain_publication_revision"]["const"]
+        )
+        publication_condition = schema["allOf"][0]
+        self.assertEqual(
+            publication_condition["if"]["properties"]["workflow_kit"]
+            ["properties"]["selected_modules"]["contains"]["const"],
+            "publish-planning-change",
+        )
+        self.assertIn(
+            "planning_publication", publication_condition["then"]["required"]
+        )
+
+    def test_interview_does_not_ask_for_default_spec_root(self):
+        text = INTERVIEW.read_text(encoding="utf-8")
+        self.assertIn(
+            "default to the project root repository and `docs_ai/tasks` without asking",
+            text,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

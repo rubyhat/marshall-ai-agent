@@ -65,6 +65,7 @@
       "properties": {
         "root_instructions": {"type": "string", "minLength": 1},
         "project_docs": {"type": "string", "minLength": 1},
+        "task_specs": {"type": "string", "minLength": 1},
         "internal_memory": {"type": "string", "minLength": 1},
         "project_topology": {"type": "string", "minLength": 1}
       },
@@ -107,6 +108,107 @@
             "handoff_default": {"enum": ["chat", "file"]},
             "incident_default": {"enum": ["chat", "file"]},
             "file_response": {"enum": ["concise_link_or_path", "path_only"]}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "planning_publication": {
+      "type": "object",
+      "required": [
+        "quick_alias",
+        "artifact_policy",
+        "workspace",
+        "independent_review",
+        "readiness",
+        "completion_gate"
+      ],
+      "properties": {
+        "quick_alias": {
+          "type": "object",
+          "required": ["command", "capability", "exact_task_scope_only"],
+          "properties": {
+            "command": {"const": "--publish-spec"},
+            "capability": {"const": "planning_artifact_publication"},
+            "exact_task_scope_only": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "artifact_policy": {
+          "type": "object",
+          "required": [
+            "default_spec_root",
+            "ask_for_spec_root_when_default_is_available",
+            "explicit_override_allowed",
+            "implementation_changes_forbidden",
+            "unrelated_changes_forbidden"
+          ],
+          "properties": {
+            "default_spec_root": {"const": "docs_ai/tasks"},
+            "ask_for_spec_root_when_default_is_available": {"const": false},
+            "explicit_override_allowed": {"const": true},
+            "implementation_changes_forbidden": {"const": true},
+            "unrelated_changes_forbidden": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "workspace": {
+          "type": "object",
+          "required": ["isolated", "main_checkout_must_remain_clean"],
+          "properties": {
+            "isolated": {"const": true},
+            "main_checkout_must_remain_clean": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "independent_review": {
+          "type": "object",
+          "required": [
+            "required",
+            "fresh_context",
+            "author_self_check_is_not_independent",
+            "model",
+            "effort"
+          ],
+          "properties": {
+            "required": {"const": true},
+            "fresh_context": {"const": true},
+            "author_self_check_is_not_independent": {"const": true},
+            "model": {"type": "string", "minLength": 1},
+            "effort": {
+              "enum": ["low", "medium", "high", "xhigh"]
+            }
+          },
+          "additionalProperties": true
+        },
+        "readiness": {
+          "type": "object",
+          "required": [
+            "input_content_verdict",
+            "canonical_merge_required_before_implementation",
+            "implementation_base_must_contain_publication_revision"
+          ],
+          "properties": {
+            "input_content_verdict": {"const": "spec_ready"},
+            "canonical_merge_required_before_implementation": {"const": true},
+            "implementation_base_must_contain_publication_revision": {"const": true}
+          },
+          "additionalProperties": true
+        },
+        "completion_gate": {
+          "type": "object",
+          "required": [
+            "require_clean_independent_review",
+            "require_canonical_merge",
+            "implementation_issue_remains_open",
+            "release_or_deploy_forbidden"
+          ],
+          "properties": {
+            "require_clean_independent_review": {"const": true},
+            "require_canonical_merge": {"const": true},
+            "implementation_issue_remains_open": {"const": true},
+            "release_or_deploy_forbidden": {"const": true}
           },
           "additionalProperties": true
         }
@@ -207,5 +309,23 @@
       "additionalProperties": true
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "workflow_kit": {
+            "properties": {
+              "selected_modules": {
+                "contains": {"const": "publish-planning-change"}
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": ["planning_publication"]
+      }
+    }
+  ],
   "additionalProperties": true
 }

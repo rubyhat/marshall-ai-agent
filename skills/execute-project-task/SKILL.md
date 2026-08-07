@@ -39,7 +39,8 @@ sticky constraint. Task readiness never overrides this gate.
 Read project instructions and workflow configuration. Resolve:
 
 - implementation readiness gates and allowed overrides;
-- task identity, specification, tracker, and status requirements;
+- task identity, specification, canonical publication revision, tracker, and
+  status requirements;
 - repository map, default branches, remotes, and frozen repositories;
 - worktree policy, workspace root, branch naming, and explicit exceptions;
 - degraded-mode behavior when a remote or task tracker is unavailable;
@@ -76,6 +77,13 @@ Do not implement an Epic, Feature, ambiguous search result, or unrelated task co
 Read [check-task-readiness.md](references/check-task-readiness.md).
 
 Require the configured ready verdict or equivalent readiness evidence. Check unresolved decisions, acceptance criteria, dependencies, repository ownership, required quality gates, and conflicts with current architecture or higher-priority instructions.
+
+When specifications are file-backed and planning publication is configured,
+also require a clean independent spec review, a merged canonical specification
+revision, and proof that every implementation workspace base contains or
+descends from that revision. An open PR, local file, dirty main checkout, or
+content verdict alone is insufficient. Route a missing publication gate to
+`publish-planning-change` and recommend `--publish-spec <Task ID>`.
 
 Route material outcome or decomposition gaps to `shape-project-work`. Route specification content gaps to `write-task-spec`. Apply a user override only when project policy permits it and after stating the exact missing gate and risk.
 
@@ -146,6 +154,8 @@ Stop before independent review, commit, push, pull-request creation, merge, depl
 
 - Use `load-project-context` for bounded task orientation when current context is insufficient.
 - Receive scope from `shape-project-work` and implementation contract from `write-task-spec`.
+- Receive canonical specification publication evidence from
+  `publish-planning-change` when configured.
 - Use `manage-project-work` for exact task identity and lifecycle mutations.
 - Use `record-project-context` for durable discoveries or multi-session handoff state, not routine command output.
 - Hand independent review and delivery to `deliver-reviewed-change`.

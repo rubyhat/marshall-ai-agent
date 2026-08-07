@@ -48,6 +48,9 @@ Keep it synchronized with selected modules and conditional alias requirements.
 
 - Replace superseded answers.
 - Keep one entry per stable question ID.
+- Do not create a question entry merely to confirm a documented low-risk
+  default. Record the applied default in `decisions` or `assumptions` with its
+  source and allow an explicit later override.
 - Preserve the answer, status, source, confidence, and confirmation state.
 - Do not copy conversation, command output, or intermediate drafts.
 - Record a detour only as a current decision, conflict, deferred topic, or unresolved question.

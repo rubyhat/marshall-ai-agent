@@ -42,6 +42,14 @@ Use when all `Spec ready` conditions pass and:
 - rollout, migration, compatibility, and recovery are defined when applicable;
 - no blocking open question remains.
 
+When project policy requires independent planning publication, do not assign
+this verdict from the author's self-check. Require a clean independent review
+for the exact current spec head. The publication workflow may then hand the
+review evidence back to `write-task-spec` for the verdict update before Git
+publication. Operational implementation readiness still requires the merged
+canonical revision and belongs to the configured publication and task-management
+gates.
+
 ## Downgrade conditions
 
 Do not claim readiness when:
@@ -67,3 +75,6 @@ For `--spec-check`:
 6. stop without editing files, tracker state, or project status.
 
 Do not mark operational status directly. Hand an authorized verdict to `manage-project-work`.
+When invoked as a fresh reviewer by `publish-planning-change`, return the
+highest supported content verdict and findings for the exact reviewed head;
+do not publish or edit the specification yourself.

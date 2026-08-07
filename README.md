@@ -2,7 +2,7 @@
 
 Личная библиотека reusable skills для Codex. Набор описывает не продуктовую логику конкретного проекта, а переносимые рабочие процессы: от загрузки контекста и формирования задачи до реализации, review, delivery и обслуживания проектной документации.
 
-Сейчас в репозитории находятся 12 reusable skills, включая интерактивный `configure-project-workflow` для безопасной первоначальной настройки и последующей проверки проекта. Набор версионируется и выпускается как единый совместимый workflow kit.
+Сейчас в репозитории находятся 13 reusable skills, включая интерактивный `configure-project-workflow` для безопасной первоначальной настройки и последующей проверки проекта. Набор версионируется и выпускается как единый совместимый workflow kit.
 
 ## Основная идея
 
@@ -58,7 +58,7 @@ $configure-project-workflow
 2. Проводит bounded read-only inspection папок, инструкций, безопасных manifests, repository metadata и существующей документации.
 3. Создаёт только временный tracker `.codex/project-workflow.setup.json`.
 4. Рекомендует workflow profile и применимые skills.
-5. Проводит staged interview: по 7–10 вопросов на активный этап, сохраняя ответы и возвращаясь к незавершённым вопросам после любых detours.
+5. Проводит staged interview: применяет безопасные готовые defaults, спрашивает только decision-changing или неизвестные факты и возвращается к действительно незавершённым вопросам после любых detours.
 6. Показывает точный mutation manifest: устанавливаемые skills, создаваемые и изменяемые файлы, aliases, templates и validation plan.
 7. Только после подтверждения manifest устанавливает выбранные skills и создаёт project-specific configuration, instructions, компактную карту топологии и нужные docs.
 8. Проверяет module dependencies, paths, topology coverage, aliases, managed instructions, active copies и representative dry-run routes.
@@ -89,7 +89,8 @@ flowchart LR
     C -- "Нет" --> E["Создать task identity и tracker anchors"]
     D --> E
     E --> F["Создать task-spec"]
-    F --> S["Открыть новую Codex-сессию"]
+    F --> P["Независимо проверить и опубликовать spec"]
+    P --> S["Открыть новую Codex-сессию"]
     S --> G{"Implementation явно разрешена?"}
     G -- "Да" --> H["Выполнить задачу"]
     G -- "Нет" --> I["Остановиться на готовой спецификации"]
@@ -102,15 +103,18 @@ flowchart LR
 2. `shape-project-work` — согласовать outcome, scope, решения, риски и декомпозицию.
 3. `design-frontend-flow` — при необходимости определить frontend interaction contract.
 4. `manage-project-work` — создать или сверить Task ID, Issue, hierarchy и Project state.
-5. `write-task-spec` — создать implementation-ready спецификацию.
-6. `execute-project-task` — выполнить одну явно разрешённую задачу и подготовить незакоммиченные изменения к local review.
-7. `deliver-reviewed-change` — провести independent review, PR, bounded review cycle, merge и cleanup в пределах разрешённого endpoint.
+5. `write-task-spec` — создать и самостоятельно проверить specification до `Spec ready`.
+6. `publish-planning-change` — независимо проверить specification, опубликовать её через PR в canonical branch и зафиксировать merged revision.
+7. `execute-project-task` — выполнить одну явно разрешённую задачу и подготовить незакоммиченные изменения к local review.
+8. `deliver-reviewed-change` — провести independent review, PR, bounded review cycle, merge и cleanup в пределах разрешённого endpoint.
 
-`record-project-context` применяется в durable checkpoints по всему flow, а не только в конце. Готовая спецификация сама по себе не разрешает implementation, а выполненная implementation-задача сама по себе не разрешает commit, push или merge.
+`record-project-context` применяется в durable checkpoints по всему flow, а не только в конце. Локально готовая спецификация сама по себе не разрешает implementation: file-backed spec должна пройти independent review и находиться в canonical branch. Выполненная implementation-задача сама по себе не разрешает commit, push или merge.
 
 Если shaping начат через `--planning-session`, переход к implementation всегда
 проходит через новую Codex-сессию: готовая specification или поздний
-implementation alias не снимают sticky planning lock.
+implementation alias не снимают sticky planning lock. Явный
+`--publish-spec` разрешает только exact planning publication и также не снимает
+этот lock.
 
 ## Дополнительные flows
 
@@ -121,6 +125,7 @@ triage-frontend-qa
   → confirmed actionable defect
   → manage-project-work
   → write-task-spec
+  → publish-planning-change
   → execute-project-task только при явном fix/implement request
   → deliver-reviewed-change
 ```
@@ -157,6 +162,7 @@ analyze-product-reference
 | `manage-project-work` | Управляет Task ID, hierarchy, GitHub Issues/Projects, статусами и связями task/spec/PR. |
 | `shape-project-work` | Превращает идею или проблему в согласованный outcome, scope и conceptual work breakdown. |
 | `write-task-spec` | Создаёт, обновляет и проверяет full или lightweight task specifications. |
+| `publish-planning-change` | Проводит exact task specification через independent review, PR, merge, canonical-revision verification и cleanup planning workspace. |
 | `execute-project-task` | Выполняет одну implementation-ready задачу в изолированном workspace до local-review handoff. |
 | `deliver-reviewed-change` | Проводит точную задачу через independent review, PR, review feedback, merge и cleanup. |
 | `design-frontend-flow` | Проектирует frontend surfaces, states, actions, recovery, responsive behavior и contract needs. |
@@ -182,6 +188,7 @@ analyze-product-reference
 | `--prepare-spec <Task ID или task anchor>` | Обсудить точную задачу и после ответов создать task-spec. |
 | `--next-spec [Epic, предыдущая задача или plan anchor]` | Проверить прошлую задачу и подготовить следующую spec из активного work graph. |
 | `--accept-recommended` | Принять рекомендации только в текущем наборе вопросов. |
+| `--publish-spec <Task ID, Issue URL или spec path>` | Независимо проверить и опубликовать exact specification в canonical branch. |
 | `--design-flow <идея или task anchor>` | Обсудить frontend-flow без создания кода или артефакта. |
 | `--qa-triage <report, URL или task anchor>` | Провести bounded triage конкретного frontend-дефекта. |
 | `--reference-analysis <product, URL, artifact или вопрос>` | Выполнить chat-first анализ внешнего reference. |
@@ -192,7 +199,9 @@ analyze-product-reference
 Это plain-text соглашения проекта, а не встроенные пользовательские slash-команды Codex. Они начинают работать только после маршрутизации в project instructions и configuration. Alias не расширяет полномочия за пределы, явно описанные соответствующим skill и проектной политикой.
 
 `--planning-session` создаёт жёсткую границу текущего разговора:
-implementation и delivery требуют новой Codex-сессии. Поздние
+implementation и implementation delivery требуют новой Codex-сессии. Явный
+`--publish-spec` может использовать только bounded
+`planning_artifact_publication`; поздние
 `--execute-task`, `--deliver-task` или эквивалентные natural-language запросы
 не снимают planning/no-code lock.
 
@@ -255,10 +264,14 @@ Release Please поддерживает один Release PR:
 - один или несколько repositories, components, их ownership, lifecycle,
   dependencies и deploy boundaries;
 - project instructions и critical safety invariants;
-- расположение memory, docs, task specs и templates;
+- явные существующие владельцы memory/docs/templates; при их отсутствии setup
+  использует готовые defaults `docs_ai`, `docs_ai/tasks` и `local_memory_ai`
+  без отдельного вопроса;
 - Task ID, hierarchy, Issue и Project policy;
 - lifecycle statuses и разрешённые transitions;
 - worktree, branch, review, merge и cleanup policy;
+- planning/spec worktree, independent spec review и canonical publication
+  policy;
 - localization, migration, security, privacy и production gates;
 - включённые workflow modules и aliases;
 - правила уточняющих вопросов и conflict/risk gate.
@@ -295,6 +308,7 @@ marshall-ai-agent/
 │   ├── load-project-context/
 │   ├── maintain-project-context/
 │   ├── manage-project-work/
+│   ├── publish-planning-change/
 │   ├── record-project-context/
 │   ├── shape-project-work/
 │   ├── triage-frontend-qa/
