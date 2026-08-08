@@ -260,12 +260,24 @@ task lookup, status transition, Git, dependency и file mutations и реком�
 - для component repository с отдельной Git history проверяет recorded tuple из
   Task ID, spec-owner repository, canonical spec path и merged revision без
   требования невозможной общей ancestry;
+- после успешного readiness переводит exact task в configured implementation
+  status и только затем создаёт или возобновляет worktree и feature branch;
 - выбирает только затронутые repositories;
 - создаёт или возобновляет isolated task workspaces;
 - защищает параллельную работу;
 - пишет task-scoped код;
 - выполняет relevant quality gates;
 - передаёт незакоммиченные изменения на independent local review.
+
+Когда canonical planning publication настроена и во время implementation
+меняется task-owned specification или annex, предыдущий publication record
+сразу перестаёт подтверждать readiness. Агент останавливает task-code edits,
+проводит correction через `write-task-spec` и `publish-planning-change`, затем
+повторяет полный readiness preflight по новому persisted record. Проверка
+сравнивает полный path/blob-OID manifest record не только со старым merged
+revision, но и с текущим specification-owner authority base. Локального
+изменения spec, verdict `Spec ready` или непривязанного merged PR недостаточно
+для продолжения.
 
 Не разрешает commit, push, PR, merge, deploy, production mutation или cleanup.
 

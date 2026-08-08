@@ -54,7 +54,22 @@ Pause implementation long enough to update the task specification through `write
 - a dependency or compatibility assumption;
 - a durable implementation constraint needed by later work or review.
 
-Resume only when the updated contract is coherent and ready.
+Stop task-code edits while the correction is unresolved. Route the exact
+contract change through `write-task-spec` and its configured planning workspace
+instead of casually editing the canonical specification from the implementation
+worktree.
+
+When canonical planning publication is configured:
+
+1. treat the selected readiness evidence as invalid when any task-owned
+   specification or annex changes;
+2. publish the complete corrected package through `publish-planning-change`;
+3. require the new canonical merge and persisted publication record;
+4. rerun the complete implementation-readiness gate against that record.
+
+Resume only after the updated contract is coherent and the new readiness path
+is complete. `Spec ready`, a local specification edit, or an unbound merged PR
+does not authorize implementation to continue.
 
 ### Level 3: material work change
 
