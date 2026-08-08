@@ -109,8 +109,9 @@ preserving its content:
 2. create an archive-only record with a new migration record ID, status
    `cancelled_during_durable_state_migration`, the complete inventory,
    `correction_rounds_used: unknown`, and no clean-review claim;
-3. atomically write, archive, and reread that record before releasing the lock;
-   leave the planning worktree and content untouched;
+3. archive it through the immutable attempt-ID path protocol below, reread that
+   record before releasing the lock, and leave the planning worktree and
+   content untouched;
 4. only after that readback and separate explicit user authority, create a new
    active attempt with a new attempt ID, counter zero, the exact preserved input
    manifest, and `migrates_from_attempt_id` pointing to the archive;
@@ -154,12 +155,22 @@ When a verified pre-limit finding instead requires material product,
 architecture, scope, or decomposition reshaping, do not leave an unusable
 active record. Under the same exclusive lock, mark it
 `superseded_by_reshaping`, persist the triggering finding and complete consumed-
-round history, atomically move it to the configured archive directory, and
+round history, archive it through the immutable attempt-ID path protocol, and
 reread the archive before releasing the lock. Stop publication and hand off to
 `shape-project-work`. Only after the user explicitly accepts a materially
 revised shaped contract may a new attempt ID be created for the same task and
 branch; its record must name the archived `supersedes_attempt_id`. Without that
 accepted contract and archived readback, resume or replacement remains blocked.
+
+For every archive transition, require a collision-resistant path-safe
+`attempt_id` and use exactly
+`<archive_directory>/<attempt_id>/record.json`. Create the attempt directory
+with atomic `mkdir`; existing destination means collision and must stop without
+overwriting, merging, deleting, or choosing a suffix. Write and reread
+`record.json` under the held attempt lock, then mark the archive immutable.
+Never use a task/branch-keyed archive filename or ordinary replacing rename.
+Resolve `supersedes_attempt_id` and `migrates_from_attempt_id` only to the exact
+immutable attempt-ID directory and reject missing or mismatched references.
 
 One clean generation for the current head is terminal. Do not keep requesting
 review for an unchanged clean spec. Apply separate configured request-attempt

@@ -212,6 +212,9 @@
                 "storage_root",
                 "relative_directory",
                 "archive_directory",
+                "archive_path_format",
+                "archive_collision",
+                "archive_immutable",
                 "attempt_key_fields",
                 "tracked",
                 "atomic_write_and_readback",
@@ -238,6 +241,11 @@
                 "archive_directory": {
                   "const": "codex/planning-publication/archive"
                 },
+                "archive_path_format": {
+                  "const": "<archive_directory>/<attempt_id>/record.json"
+                },
+                "archive_collision": {"const": "stop_without_overwrite"},
+                "archive_immutable": {"const": true},
                 "attempt_key_fields": {
                   "const": [
                     "task_id",

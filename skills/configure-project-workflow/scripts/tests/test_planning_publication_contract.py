@@ -123,6 +123,11 @@ def complete_current_config():
                     "storage_root": "git_common_dir",
                     "relative_directory": "codex/planning-publication",
                     "archive_directory": "codex/planning-publication/archive",
+                    "archive_path_format": (
+                        "<archive_directory>/<attempt_id>/record.json"
+                    ),
+                    "archive_collision": "stop_without_overwrite",
+                    "archive_immutable": True,
                     "attempt_key_fields": [
                         "task_id",
                         "specification_owner_repository",
@@ -298,6 +303,17 @@ class PlanningPublicationContractTest(unittest.TestCase):
                 "specification_owner_repository",
                 "publication_branch",
             ],
+        )
+        self.assertEqual(
+            review_state["properties"]["archive_path_format"]["const"],
+            "<archive_directory>/<attempt_id>/record.json",
+        )
+        self.assertEqual(
+            review_state["properties"]["archive_collision"]["const"],
+            "stop_without_overwrite",
+        )
+        self.assertTrue(
+            review_state["properties"]["archive_immutable"]["const"]
         )
         self.assertTrue(
             review_state["properties"]["reserve_round_before_correction"]["const"]
@@ -682,6 +698,9 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("retain it", review)
         self.assertIn("`superseded_by_reshaping`", review)
         self.assertIn("`supersedes_attempt_id`", review)
+        self.assertIn("`<archive_directory>/<attempt_id>/record.json`", review)
+        self.assertIn("collision and must stop without\noverwriting", review)
+        self.assertIn("mark the archive immutable", review)
         self.assertIn("cancelled_during_durable_state_migration", review)
         self.assertIn("`correction_rounds_used: unknown`", review)
         self.assertIn("sorted exact\n   dirty-state manifest", review)

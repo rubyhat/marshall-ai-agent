@@ -471,7 +471,7 @@ feature PR обязан быть squash-merged с Conventional Commit type `feat
 Для обновления:
 
 1. синхронизируйте все выбранные skills из одного exact
-   `<release-tag-containing-this-change>`;
+   `v0.7.0`;
 2. оставьте `schema_version: 3`, добавьте положительный
    `max_correction_rounds` (`5` — out-of-box default) и полный
    `review_cycle_state` из текущей schema/generation contract;
@@ -493,7 +493,7 @@ feature PR обязан быть squash-merged с Conventional Commit type `feat
    поэтому до публикации обязателен fresh independent review.
 
 Минимальная совместимая версия workflow kit —
-`<release-tag-containing-this-change>`. Rollback на более ранний tag безопасен
+`v0.7.0`. Rollback на более ранний tag безопасен
 только когда active planning-publication attempt отсутствует; skills и project
 configuration нужно откатывать вместе. Non-tracked state под Git common
 directory при rollback не удаляйте автоматически.

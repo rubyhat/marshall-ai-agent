@@ -117,7 +117,8 @@ review; on resume, stop rather than resetting when the exact active record is
 missing, ambiguous, or inconsistent. Serialize every state transition with the
 configured per-attempt exclusive lock. A material reshaping handoff archives
 the active attempt and its consumed-round history before an explicitly accepted
-revised shaped contract may start a replacement attempt.
+revised shaped contract may start a replacement attempt. Every archived attempt
+uses its unique attempt ID as an immutable no-overwrite archive destination.
 
 For an in-flight pre-adoption publication that has no durable record, never
 invent a counter or treat the missing record as a fresh attempt. Use only the
