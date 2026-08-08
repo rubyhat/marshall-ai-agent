@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/rubyhat/marshall-ai-agent/compare/v0.8.1...v0.8.2) (2026-08-08)
+
+
+### Исправления
+
+* **configure:** require terminal review lifecycle ([#64](https://github.com/rubyhat/marshall-ai-agent/issues/64)) ([85924d5](https://github.com/rubyhat/marshall-ai-agent/commit/85924d5659ab5664710c5a8a994d007d1efbf5e3))
+
 ## [0.8.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.8.0...v0.8.1) (2026-08-08)
 
 
