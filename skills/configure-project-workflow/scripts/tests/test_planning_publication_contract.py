@@ -119,6 +119,13 @@ def complete_current_config():
                 "model": "test-reviewer",
                 "effort": "medium",
                 "max_correction_rounds": 5,
+                "committed_correction_review": {
+                    "strategy": "local_checkpoint_committed_base_diff",
+                    "checkpoint_commit_allowed": True,
+                    "deterministic_checks_before_checkpoint": True,
+                    "checkpoint_exact_manifest_only": True,
+                    "push_before_clean_review": False,
+                },
             },
             "readiness": {
                 "input_content_verdict": "spec_ready",
@@ -248,6 +255,30 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertEqual(correction_limit["minimum"], 1)
         self.assertEqual(correction_limit["default"], 5)
         self.assertNotIn("review_cycle_state", independent_review["properties"])
+        self.assertIn("committed_correction_review", independent_review["required"])
+        committed_correction = independent_review["properties"][
+            "committed_correction_review"
+        ]
+        self.assertIn("Required dormant policy", committed_correction["description"])
+        self.assertIn("activated only", committed_correction["description"])
+        self.assertIn("after a non-clean review", committed_correction["description"])
+        self.assertEqual(
+            committed_correction["properties"]["strategy"]["const"],
+            "local_checkpoint_committed_base_diff",
+        )
+        for required_true_key in (
+            "checkpoint_commit_allowed",
+            "deterministic_checks_before_checkpoint",
+            "checkpoint_exact_manifest_only",
+        ):
+            self.assertIn(required_true_key, committed_correction["required"])
+            self.assertTrue(
+                committed_correction["properties"][required_true_key]["const"]
+            )
+        self.assertIn("push_before_clean_review", committed_correction["required"])
+        self.assertFalse(
+            committed_correction["properties"]["push_before_clean_review"]["const"]
+        )
         self.assertTrue(
             properties["readiness"]["properties"]
             ["canonical_merge_required_before_implementation"]["const"]
@@ -414,6 +445,11 @@ class PlanningPublicationContractTest(unittest.TestCase):
                 "independent_review",
                 "max_correction_rounds",
             ),
+            (
+                "planning_publication",
+                "independent_review",
+                "committed_correction_review",
+            ),
             ("planning_publication", "readiness", "ordinary_publication_evidence"),
             (
                 "planning_publication",
@@ -494,6 +530,7 @@ class PlanningPublicationContractTest(unittest.TestCase):
     def test_review_correction_budget_is_bounded_and_fail_closed(self):
         generated = GENERATE.read_text(encoding="utf-8")
         review = PUBLISH_REVIEW.read_text(encoding="utf-8")
+        prepare = PUBLISH_PREPARE.read_text(encoding="utf-8")
         publication_skill = PUBLISH_SKILL.read_text(encoding="utf-8")
 
         self.assertIn("max_correction_rounds", generated)
@@ -506,6 +543,43 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("fail closed", review)
         self.assertIn("do not reset the counter", review)
         self.assertIn("persistent\nruntime state files, locks, archives", review)
+        self.assertIn("committed_correction_review", review)
+        self.assertIn("local-only correction checkpoint commit", review)
+        self.assertIn("push policy must remain false", review)
+        self.assertIn("downgrade that stale verdict", review)
+        self.assertIn("to `Spec ready` as part of the same correction package", review)
+        self.assertIn("no dirty path\nexcluded from the exact publication manifest", review)
+        self.assertIn("stop before the checkpoint", review)
+        self.assertIn("Do not stash, delete, overwrite, or include", review)
+        self.assertIn("apply only that verdict mutation", review)
+        self.assertIn("do not consume another correction round", review)
+        self.assertIn("pushed and published unchanged", review)
+        self.assertIn("mixed committed-plus-uncommitted candidate", review)
+        self.assertIn("before its first\nindependent review", review)
+        self.assertIn("verified_uncommitted_manifest_equivalence", review)
+        self.assertIn("Do not apply a post-review\n   verdict mutation", prepare)
+        self.assertIn("Reuse that exact reviewed checkpoint", prepare)
+        self.assertIn("invalidate the candidate clean review", prepare)
+        self.assertIn(
+            "explicitly authorizes\n   `Ready for implementation`", prepare
+        )
+        self.assertRegex(
+            prepare, r"does not consume a correction\s+round"
+        )
+        self.assertIn("PR-head revision and tree OID to equal", prepare)
+        self.assertIn("path/blob-OID equivalence alone is insufficient", prepare)
+        self.assertIn("record only\n`direct_committed_base_diff`", prepare)
+        self.assertIn("For an\nuncommitted-review candidate", publication_skill)
+        self.assertIn("reuse it unchanged", publication_skill)
+        self.assertRegex(
+            prepare, r"do\s+not amend, replace, or add a commit"
+        )
+        self.assertIn("local_checkpoint_committed_base_diff", generated)
+        self.assertRegex(
+            generated, r"Preserve the\s+separately bound uncommitted-review path"
+        )
+        self.assertIn("mixed committed-plus-uncommitted candidate", generated)
+        self.assertIn("push-before-clean-review to false", generated)
         self.assertIn("Do not start a sixth correction", publication_skill)
 
     def test_existing_ready_specs_get_deterministic_adoption_evidence(self):

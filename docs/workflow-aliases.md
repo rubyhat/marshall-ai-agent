@@ -471,3 +471,26 @@ project configuration.
 `max_correction_rounds: 5` и выполнить validation. Compatibility layer и
 автоматическая миграция не предусмотрены. Откат безопасен только совместно для
 конфигурации и всего набора skills на один прежний exact release tag.
+
+### Переход на workflow kit v0.7.2
+
+В v0.7.2 schema-v3 contract дополнительно требует
+`planning_publication.independent_review.committed_correction_review`. Текущая
+поддерживаемая стратегия — `local_checkpoint_committed_base_diff`: после
+correction package после non-clean review для publication manifest, уже имеющего
+собственный commit в planning branch, агент выполняет deterministic checks,
+создаёт exact-manifest локальный checkpoint commit, проверяет его полным diff от
+canonical base и не пушит до clean review. До первого independent review полный
+uncommitted candidate разрешён и при наличии раннего in-scope commit; для него,
+как и для ещё не закоммиченного manifest, обязательна path/blob-OID equivalence.
+Объект materialized при setup как dormant policy, чтобы не менять конфигурацию
+посреди publication; наличие объекта само по себе не активирует checkpoint path.
+Content-changing correction сначала понижает verdict старого clean-reviewed
+head с `Ready for implementation` до `Spec ready`. Если в planning worktree
+остаётся excluded dirty path, workflow останавливается до checkpoint и выдаёт
+точный preservation/recovery handoff, не включая и не удаляя чужое изменение.
+
+При обновлении всего набора skills на exact tag v0.7.2 в этот объект нужно явно
+добавить разрешение checkpoint commit, обязательность deterministic checks и
+exact manifest, а `push_before_clean_review` установить в `false`. Отсутствующий
+или неполный объект делает `--publish-spec` невалидным до mutations.

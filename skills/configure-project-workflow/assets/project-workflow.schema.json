@@ -178,7 +178,8 @@
             "verify_reported_workdir_and_branch",
             "model",
             "effort",
-            "max_correction_rounds"
+            "max_correction_rounds",
+            "committed_correction_review"
           ],
           "properties": {
             "required": {"const": true},
@@ -204,6 +205,27 @@
               "type": "integer",
               "minimum": 1,
               "default": 5
+            },
+            "committed_correction_review": {
+              "type": "object",
+              "description": "Required dormant policy materialized during setup and activated only when a correction package after a non-clean review changes a publication manifest that already has an in-scope planning-branch commit.",
+              "required": [
+                "strategy",
+                "checkpoint_commit_allowed",
+                "deterministic_checks_before_checkpoint",
+                "checkpoint_exact_manifest_only",
+                "push_before_clean_review"
+              ],
+              "properties": {
+                "strategy": {
+                  "const": "local_checkpoint_committed_base_diff"
+                },
+                "checkpoint_commit_allowed": {"const": true},
+                "deterministic_checks_before_checkpoint": {"const": true},
+                "checkpoint_exact_manifest_only": {"const": true},
+                "push_before_clean_review": {"const": false}
+              },
+              "additionalProperties": true
             }
           },
           "additionalProperties": true
