@@ -104,6 +104,8 @@ Bind the generation to the exact pull request and current head SHA. Create and
 read back its durable heartbeat before the first review request. For every
 initial, retry, or contextual request, post only from an addressable exact-PR
 heartbeat, then attach and read back the new request identity before monitoring.
+Before each generation, refresh and read back authoritative local correction
+state from the retained task block without changing this PR's GitHub state.
 
 A new pushed head starts a new generation and resets only its technical request
 budget. It does not reset the GitHub correction-round budget, delivery baseline,
@@ -168,12 +170,15 @@ When the current generation has a clean verdict and no new actionable findings:
 
 1. apply [finalize-codex-review-state.md](references/finalize-codex-review-state.md)
    with `clean`;
-2. continue only after it returns `archive_delete_merge_ready`;
+2. continue only after it returns `pause_merge_ready`;
 3. never request another review for that unchanged head;
 4. ask `manage-project-work` to apply the configured merge-ready status;
 5. report review success once.
 
-Do not keep the review heartbeat alive for CI, merge, or closure. Continue through a separate CI/merge state only when the authorized endpoint permits it.
+Keep the exact PR heartbeat paused during CI and merge. After provider evidence
+proves that the PR is merged or closed, apply the terminal procedure with
+`pr_terminal` and delete only that exact heartbeat. Continue through a separate
+CI/merge state only when the authorized endpoint permits it.
 
 ### 9. Merge, close, sync, and clean
 
@@ -189,6 +194,7 @@ Persist at least:
 
 - task and pull-request identity;
 - authorized endpoint;
+- heartbeat automation status;
 - current head SHA and generation;
 - terminal-observed head SHA when the state is terminal;
 - request attempt, comment ID, and timestamp;
@@ -200,11 +206,13 @@ Persist at least:
 - last-seen event IDs;
 - current state and terminal reason.
 
-Update and read back only the exact PR heartbeat after every active GitHub
-review transition. Apply
+Update and read back only the exact PR heartbeat after every active or terminal
+GitHub review transition. Preserve it in paused state while its PR remains open,
+and reactivate it only for an authorized later head of the same PR. Apply
 [finalize-codex-review-state.md](references/finalize-codex-review-state.md) for
 every terminal transition. Never synchronize, copy, or derive one PR's GitHub
-counter or history from another PR.
+counter or history from another PR, and never delete a heartbeat before its
+exact PR is proven merged or closed.
 
 ## Coordinate with adjacent skills
 

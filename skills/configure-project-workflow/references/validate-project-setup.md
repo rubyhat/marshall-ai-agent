@@ -91,23 +91,29 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   task, update/readback after every local transition, and exact transfer into
   the first GitHub heartbeat. A different conversation without proven state
   must not reset or resume the counters automatically.
+  Confirm every later GitHub generation refreshes and reads back authoritative
+  local correction state from that task block into the exact PR heartbeat after
+  baseline verification, without replacing the heartbeat's PR-owned GitHub
+  state.
   For multi-repository delivery, require one independent GitHub correction
   counter per PR: a new PR starts at zero, a new head preserves the same PR's
   counter, and different PRs do not share or synchronize counters, histories,
   dismissed-finding fingerprints, heartbeat state, or terminal state. Require
-  the active heartbeat to archive and read back a terminal snapshot keyed by
-  exact repository and immutable PR identity before deletion; that snapshot may
-  resume only the same PR. Confirm it stores the PR head observed at terminal
-  transition as `terminal_head_sha`, separate from the generation `head_sha`,
-  and uses the observed terminal head for resume, including `head_mismatch`. If
-  exact PR identity or required state is not
-  provable, require pause without heartbeat deletion or a fabricated snapshot.
+  one exact-PR heartbeat to own both active and paused GitHub state. Confirm
+  every review-terminal outcome pauses that heartbeat while the PR remains
+  open, an authorized later head of the same PR reactivates that heartbeat, and
+  only provider-proven merge or close permits deletion. Confirm it stores the PR
+  head observed at terminal transition as `terminal_head_sha`, separate from the
+  generation `head_sha`, and uses the observed terminal head for resume,
+  including `head_mismatch`. If exact PR identity or required state is not
+  provable, require pause without heartbeat deletion or fabricated state.
   Confirm a provisional exact-PR heartbeat is persisted and read back before a
   remote review request, then updated and reread with proven request identity.
   Confirm every retry and contextual request uses the same heartbeat and
   request-identity transition before monitoring.
-  Confirm an unchanged head from a terminal snapshot returns its recorded
-  outcome without another heartbeat or review request.
+  Confirm an unchanged terminal head in a paused heartbeat returns its recorded
+  outcome without another review request and a later authorized same-PR head
+  reuses that heartbeat instead of creating a replacement.
   Confirm one `finalize_codex_review_state` procedure owns the exhaustive
   terminal-reason matrix and every terminal branch delegates to it without
   duplicating mutation rules.

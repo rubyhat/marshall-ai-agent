@@ -310,6 +310,12 @@ machine-readable state block в текущей Codex-задаче и переч�
 инициализируются нулём и пустым списком. Другая сессия без доказуемого state не
 продолжает существующий review автоматически.
 
+Перед каждой следующей GitHub generation workflow повторно читает authoritative
+local counter/history из task block, проверяет тот же baseline и обновляет ими
+heartbeat exact PR. PR-owned GitHub counter, history, fingerprints и technical
+state при этом сохраняются без изменений и не копируются обратно в task block
+либо в другой PR.
+
 В multi-repository delivery каждый PR имеет собственный GitHub correction
 counter и ordered history. Первый review generation нового PR начинается с
 нуля; новый head того же PR сохраняет его counter; другой PR начинает отдельные
@@ -323,23 +329,20 @@ heartbeat этого PR, затем добавляет в него доказа�
 неперсистентного состояния. Тот же переход обязателен для initial request,
 technical retry и contextual re-review.
 
-Перед
-удалением heartbeat при clean review, исчерпании budget или другом terminal
-state workflow сохраняет и перечитывает terminal snapshot в retained state
-текущей Codex-задачи под immutable identity этого PR. Snapshot позволяет
-доказуемо продолжить только тот же PR после нового head. На неизменённом head
-он возвращает уже зафиксированный terminal outcome без нового heartbeat или
-review request. Для сравнения используется отдельный `terminal_head_sha` —
-фактически наблюдавшийся head при terminal transition, а не привязанный к
-generation `head_sha`; это сохраняет fail-closed поведение при `head_mismatch`.
-Snapshot никогда не служит
-counter либо history для другого PR. Если identity PR или обязательный state
-нельзя доказать, heartbeat ставится на pause без удаления и без выдуманного
-snapshot.
+При clean review, исчерпании budget или другом review-terminal state открытого
+PR workflow сохраняет terminal reason и отдельный `terminal_head_sha` прямо в
+heartbeat точного PR, перечитывает state и ставит этот heartbeat на pause. Он не
+создаёт terminal snapshot и не переносит PR-owned state в текущую Codex-задачу.
+На неизменённом terminal head workflow возвращает уже зафиксированный outcome
+без нового review request. Авторизованный более поздний head того же PR повторно
+активирует тот же heartbeat с сохранёнными GitHub counter, history и
+fingerprints. Удалить heartbeat можно только после provider-доказательства, что
+точный PR merged или closed. Если identity PR или обязательный state нельзя
+доказать, heartbeat остаётся paused без удаления и без выдуманного state.
 
 Все terminal branches выбирают reason из единой матрицы и вызывают
-`finalize_codex_review_state`; snapshot/delete/pause правила не копируются в
-отдельные ветки workflow.
+`finalize_codex_review_state`; pause/reactivation/delete правила не копируются
+в отдельные ветки workflow.
 
 Head после пятого разрешённого пакета всё равно проходит review. Если ему нужна
 шестая правка, workflow останавливается до edit, commit, push или нового review
@@ -608,13 +611,14 @@ exact manifest, а `push_before_clean_review` установить в `false`. �
       "ordered_history_required": true,
       "pre_pr_state_store": "current_codex_task",
       "persist_and_read_back_after_each_local_transition": true,
+      "refresh_local_state_before_each_github_generation": true,
       "github_correction_budget_scope": "pull_request",
       "github_counter_owner": "exact_pr_state",
-      "active_github_state_store": "exact_pr_heartbeat",
-      "terminal_github_state_store": "current_codex_task",
-      "terminal_github_state_scope": "pull_request",
-      "heartbeat_deletion_requires_terminal_snapshot_readback": true,
-      "terminal_snapshot_records_observed_terminal_head": true,
+      "github_state_store": "exact_pr_heartbeat",
+      "open_pull_request_terminal_state_pauses_heartbeat": true,
+      "same_pull_request_resume_reactivates_heartbeat": true,
+      "heartbeat_deletion_requires_pull_request_terminal": true,
+      "terminal_head_records_observed_pr_head": true,
       "terminal_finalization_procedure": "finalize_codex_review_state",
       "terminal_state_matrix_required": true,
       "terminal_rules_must_not_be_duplicated": true,
@@ -624,7 +628,7 @@ exact manifest, а `push_before_clean_review` установить в `false`. �
       "github_dismissed_finding_fingerprints_scope": "pull_request",
       "github_heartbeat_state_scope": "pull_request",
       "github_heartbeat_exists_before_review_request": true,
-      "same_head_terminal_snapshot_forbids_new_request": true,
+      "same_terminal_head_forbids_new_request": true,
       "different_conversation_requires_proven_state": true,
       "resume_requires_provable_counters_and_history": true,
       "lost_history_stops_delivery": true,

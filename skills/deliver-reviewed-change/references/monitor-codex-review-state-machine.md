@@ -57,7 +57,7 @@ fingerprint in the same PR heartbeat without consuming a correction round.
 Treat clean as absorbing and terminal for review. Apply
 [finalize-codex-review-state.md](finalize-codex-review-state.md) with `clean`.
 Continue to the merge-ready checkpoint and separate authorized CI/merge phase
-only when it returns `archive_delete_merge_ready`. Never request another review
+only when it returns `pause_merge_ready`. Never request another review
 for the unchanged head.
 
 ### `transient_error`
@@ -107,7 +107,8 @@ Update:
 - dismissed-finding fingerprints;
 - terminal reason.
 
-While review is active, update and read back only this exact PR heartbeat. Its
+Update and read back only this exact PR heartbeat while review is active and
+when review becomes terminal. Preserve it paused while its PR remains open. Its
 GitHub correction counter, history, dismissed fingerprints, technical counters,
 and review state must never be copied to or derived from another PR. If update
 or verification fails, apply the terminal procedure with

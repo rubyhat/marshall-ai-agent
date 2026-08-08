@@ -71,13 +71,14 @@ def complete_review_contract():
             "ordered_history_required": True,
             "pre_pr_state_store": "current_codex_task",
             "persist_and_read_back_after_each_local_transition": True,
+            "refresh_local_state_before_each_github_generation": True,
             "github_correction_budget_scope": "pull_request",
             "github_counter_owner": "exact_pr_state",
-            "active_github_state_store": "exact_pr_heartbeat",
-            "terminal_github_state_store": "current_codex_task",
-            "terminal_github_state_scope": "pull_request",
-            "heartbeat_deletion_requires_terminal_snapshot_readback": True,
-            "terminal_snapshot_records_observed_terminal_head": True,
+            "github_state_store": "exact_pr_heartbeat",
+            "open_pull_request_terminal_state_pauses_heartbeat": True,
+            "same_pull_request_resume_reactivates_heartbeat": True,
+            "heartbeat_deletion_requires_pull_request_terminal": True,
+            "terminal_head_records_observed_pr_head": True,
             "terminal_finalization_procedure": "finalize_codex_review_state",
             "terminal_state_matrix_required": True,
             "terminal_rules_must_not_be_duplicated": True,
@@ -87,7 +88,7 @@ def complete_review_contract():
             "github_dismissed_finding_fingerprints_scope": "pull_request",
             "github_heartbeat_state_scope": "pull_request",
             "github_heartbeat_exists_before_review_request": True,
-            "same_head_terminal_snapshot_forbids_new_request": True,
+            "same_terminal_head_forbids_new_request": True,
             "different_conversation_requires_proven_state": True,
             "resume_requires_provable_counters_and_history": True,
             "lost_history_stops_delivery": True,
@@ -146,16 +147,8 @@ class DeliveryReviewContractTest(unittest.TestCase):
             "exact_pr_state",
         )
         self.assertEqual(
-            policy["properties"]["active_github_state_store"]["const"],
+            policy["properties"]["github_state_store"]["const"],
             "exact_pr_heartbeat",
-        )
-        self.assertEqual(
-            policy["properties"]["terminal_github_state_store"]["const"],
-            "current_codex_task",
-        )
-        self.assertEqual(
-            policy["properties"]["terminal_github_state_scope"]["const"],
-            "pull_request",
         )
         self.assertEqual(
             policy["properties"]["terminal_finalization_procedure"]["const"],
@@ -284,14 +277,18 @@ class DeliveryReviewContractTest(unittest.TestCase):
         ):
             self.assertIn(key, start)
         self.assertIn("new head of the same PR, preserve that PR's GitHub counter", start)
-        self.assertIn("`terminal_head_sha` does not start another review cycle", start)
+        self.assertIn("Before every initial or later GitHub generation", start)
+        self.assertIn("authoritative local correction counter", start)
+        self.assertIn("Never copy PR-owned GitHub state back", start)
+        self.assertIn("equal to `terminal_head_sha` does not\nstart another review cycle", start)
+        self.assertIn("reactivate that same heartbeat", start)
         self.assertIn("Before posting a remote review trigger", start)
         self.assertIn("state is `request_not_created`", start)
         self.assertIn("For every initial, retry, or contextual request attempt", start)
         self.assertIn("must not consume or reset either correction counter", recovery)
         self.assertIn("Initialize only the local correction counter", readiness)
         self.assertIn("Initialize GitHub correction state only\nafter", readiness)
-        self.assertIn("## Finalize terminal per-PR state centrally", cycles)
+        self.assertIn("## Finalize paused per-PR state centrally", cycles)
 
         monitor = (
             DELIVERY_ROOT / "references" / "monitor-codex-review-state-machine.md"
@@ -319,16 +316,17 @@ class DeliveryReviewContractTest(unittest.TestCase):
                 self.assertIn("Attach and verify the request identity", normalized)
                 self.assertIn("start-codex-review-cycle.md", text)
 
-    def test_terminal_snapshot_distinguishes_generation_and_observed_head(self):
+    def test_paused_heartbeat_distinguishes_generation_and_observed_head(self):
         start = START_CYCLE.read_text(encoding="utf-8")
         finalization = FINALIZATION.read_text(encoding="utf-8")
 
-        self.assertIn("distinct\n`terminal_head_sha`", start)
+        self.assertIn("terminal reason and distinct\n`terminal_head_sha`", start)
         self.assertIn("Do not use the generation's `head_sha`", start)
-        self.assertIn("equal to\n`terminal_head_sha`", start)
+        self.assertIn("equal to `terminal_head_sha`", start)
         self.assertIn("distinct `terminal_head_sha` observed", finalization)
         self.assertIn("For `head_mismatch`", finalization)
-        self.assertIn("persist and read back `terminal_head_sha` separately", finalization)
+        self.assertIn("persist `terminal_head_sha` separately", finalization)
+        self.assertIn("Do not create a\nterminal snapshot", finalization)
 
     def test_terminal_finalization_is_centralized_and_exhaustive(self):
         finalization = FINALIZATION.read_text(encoding="utf-8")
@@ -337,24 +335,24 @@ class DeliveryReviewContractTest(unittest.TestCase):
         )[0]
         matrix = json.loads(documented_matrix)
 
-        archive_reasons = {
-            "pr_terminal": "archive_delete_report",
-            "clean": "archive_delete_merge_ready",
-            "github_correction_budget_exhausted": "archive_delete_cycle_analysis",
-            "request_budget_exhausted": "archive_delete_report",
-            "acknowledged_wait_budget_exhausted": "archive_delete_report",
-            "repeated_dismissed_finding": "archive_delete_report",
-            "scope_or_contract_stop": "archive_delete_owner_handoff",
-            "unclassified_response": "archive_delete_report",
-            "head_mismatch": "archive_delete_report",
+        dispositions = {
+            "pr_terminal": "delete_report",
+            "clean": "pause_merge_ready",
+            "github_correction_budget_exhausted": "pause_cycle_analysis",
+            "request_budget_exhausted": "pause_report",
+            "acknowledged_wait_budget_exhausted": "pause_report",
+            "repeated_dismissed_finding": "pause_report",
+            "scope_or_contract_stop": "pause_owner_handoff",
+            "unclassified_response": "pause_report",
+            "head_mismatch": "pause_report",
         }
         pause_reasons = {
             "lost_or_contradictory_state",
             "pr_identity_ambiguous",
-            "snapshot_persistence_failure",
+            "heartbeat_persistence_failure",
         }
-        self.assertEqual(set(matrix), set(archive_reasons) | pause_reasons)
-        for reason, disposition in archive_reasons.items():
+        self.assertEqual(set(matrix), set(dispositions) | pause_reasons)
+        for reason, disposition in dispositions.items():
             self.assertEqual(matrix[reason]["on_provable"], disposition)
             self.assertEqual(matrix[reason]["on_unprovable"], "pause_report")
         for reason in pause_reasons:
@@ -376,34 +374,45 @@ class DeliveryReviewContractTest(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
                 self.assertIn("finalize-codex-review-state.md", text)
-                self.assertNotIn("archive and read back", text)
-                self.assertNotIn("delete the heartbeat", text)
+                self.assertNotIn("terminal snapshot", text.lower())
+
+        merge = (DELIVERY_ROOT / "references" / "merge-close-and-clean.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("`pause_merge_ready`", merge)
+        self.assertIn("with\n`pr_terminal`", merge)
+        self.assertIn("No review-terminal outcome other\nthan proven merge or close", finalization)
 
     def test_setup_and_human_alias_document_the_contract(self):
         generated = GENERATE.read_text(encoding="utf-8")
         validation = VALIDATE.read_text(encoding="utf-8")
         aliases = ALIASES.read_text(encoding="utf-8")
+        normalized_generated = " ".join(generated.split())
 
         self.assertIn("each materialized as `5`", generated)
         self.assertIn("separate positive `max_correction_rounds`", generated)
         self.assertIn("new PR head resetting only technical request attempts", generated)
         self.assertIn("machine-readable pre-PR state block", generated)
-        self.assertIn("terminal\n  snapshot stored under immutable", generated)
-        self.assertIn("require pause without deletion when the exact PR identity", generated)
+        self.assertIn("authoritative local correction state refreshed", generated)
+        self.assertIn("single exact-PR heartbeat for active and paused", generated)
+        self.assertIn(
+            "delete it only after provider evidence proves", normalized_generated
+        )
         self.assertIn("centralized `finalize_codex_review_state` procedure", generated)
         self.assertIn("terminal-reason matrix", generated)
         self.assertIn("observed at terminal transition as `terminal_head_sha`", generated)
         self.assertIn("provisional exact-PR heartbeat created and read back", generated)
-        self.assertIn("unchanged head from a terminal snapshot", generated)
+        self.assertIn("unchanged terminal head from a paused heartbeat", generated)
         self.assertIn("every initial, retry, and contextual request", generated)
         self.assertIn("separate positive correction-round limits set to five", validation)
         self.assertIn("не более пяти correction packages каждый", aliases)
-        self.assertIn("ставится на pause без удаления", aliases)
+        self.assertIn("heartbeat остаётся paused без удаления", aliases)
         self.assertIn("Все terminal branches выбирают reason из единой матрицы", aliases)
         self.assertIn("отдельный `terminal_head_sha`", aliases)
         self.assertIn("сначала создаёт и перечитывает provisional", aliases)
+        self.assertIn("повторно читает authoritative\nlocal counter/history", aliases)
         self.assertIn("technical retry и contextual re-review", aliases)
-        self.assertIn("без нового heartbeat или\nreview request", aliases)
+        self.assertIn("без нового review request", aliases)
         self.assertIn("Если ему нужна\nшестая правка", aliases)
         self.assertIn("Переход на workflow kit v0.8.0", aliases)
         self.assertIn("корневую секцию `review` с четырьмя полными группами", aliases)

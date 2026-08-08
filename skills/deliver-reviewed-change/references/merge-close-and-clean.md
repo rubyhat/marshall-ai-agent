@@ -14,15 +14,20 @@ Confirm:
 - pull request is open and mergeable;
 - merge authority matches project policy;
 - [finalize-codex-review-state.md](finalize-codex-review-state.md) returned
-  `archive_delete_merge_ready` for the exact current PR.
+  `pause_merge_ready` for the exact current PR and its heartbeat remains paused.
 
-If CI is pending, do not reuse the review heartbeat. Continue synchronously or create a separate CI/merge monitor only when the authorized endpoint or an explicit request permits it.
+If CI is pending, do not reactivate the review heartbeat. Continue synchronously
+or create a separate CI/merge monitor only when the authorized endpoint or an
+explicit request permits it.
 
 ## Merge the exact pull request
 
 Use the configured merge method. Do not select another open PR by inference. Do not force merge, bypass protection, or merge stale code.
 
-Verify the resulting merge commit and PR state from the provider.
+Verify the resulting merge commit and PR state from the provider. Then apply
+[finalize-codex-review-state.md](finalize-codex-review-state.md) with
+`pr_terminal`; continue cleanup only after it returns `delete_report` or report
+the paused-heartbeat cleanup blocker without deleting uncertain state.
 
 ## Close operational state
 
