@@ -41,7 +41,13 @@ Keep detailed procedures in skills and project runbooks.
 
 ## Generate compact configuration
 
-Use `assets/project-workflow.schema.json` as the generic contract and `assets/templates/project-workflow.yaml` as a starting shape.
+Use `assets/project-workflow.schema.json` as the generic contract and
+`assets/templates/project-workflow.yaml` as a starting shape. Generate project
+configuration schema v3. Treat every other project-configuration version as
+unsupported and regenerate it only through an approved reconfiguration manifest
+that materializes every current required field. Do not apply compatibility
+defaults from an older project schema. The setup-state tracker has its own
+schema version and is not changed by this rule.
 
 Include only selected modules. Record:
 

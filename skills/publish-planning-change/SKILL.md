@@ -52,6 +52,14 @@ delivery, release, or deploy.
 
 Read project instructions and workflow configuration. Resolve:
 
+- the project configuration schema version. Before any publication workspace,
+  file, Git, tracker, or pull-request mutation, require schema v3 and the full
+  configured bound-review evidence contract when this workflow is selected.
+  Treat every other project schema or incomplete contract as invalid and stop
+  direct `--publish-spec` before mutations, routing configuration repair to
+  `configure-project-workflow`. Do not infer publication readiness from partial
+  fields or silently upgrade the configuration;
+
 - the canonical specification owner repository, spec root, and target branch;
 - planning worktree root, branch format, base freshness, and cleanup policy;
 - allowed planning artifact classes and forbidden path classes;

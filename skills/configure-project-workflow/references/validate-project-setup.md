@@ -5,6 +5,10 @@ Validate the configured workflow without executing ordinary project work.
 ## Structure
 
 - Parse the setup tracker and generated configuration with an available safe parser.
+- Require project configuration schema v3. Treat every other project schema as
+  unsupported and report setup drift; do not apply compatibility defaults or
+  treat any selected workflow as configured until an approved reconfiguration
+  produces one complete schema-v3 configuration.
 - Verify required generic fields and selected module sections.
 - Verify unique module names, aliases, paths, and managed markers.
 - Verify every alias has a resolvable owning workflow, authority boundary,
@@ -37,12 +41,10 @@ Validate the configured workflow without executing ordinary project work.
   implementation, implementation delivery, Issue closure, release, deploy, or
   production mutation. Verify the independent reviewer process runs with the
   exact planning worktree as its working directory so an uncommitted review
-  cannot accidentally inspect the clean main checkout. For an existing schema
-  v2 configuration that predates the reviewer-worktree fields, resolve the
-  effective values from the schema defaults before validation or use; verify
-  the effective worktree, placeholder, and branch-readback contract, and
-  materialize the fields only in the next approved reconfiguration. A missing
-  legacy field must not fall back to the invoking checkout.
+  cannot accidentally inspect the clean main checkout. Require the reviewer
+  worktree, placeholder, branch-readback, bound-review evidence, and publication
+  completion fields to be materialized in the current configuration. A missing
+  field must fail validation and must not fall back to the invoking checkout.
 - Verify no unresolved template placeholders.
 - Verify every generated relative link.
 - Verify no configured path escapes its intended root.
@@ -92,8 +94,8 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   and current authority base, persistence and readback comparison of the
   complete sorted baseline manifest, explicit `legacy_ready_baseline` evidence,
   and no independent review claim. A missing or mismatched criterion must route to ordinary
-  `publish-planning-change`; it is not a user override. For schema v2 projects
-  that omit this optional policy, resolve it as disabled in memory.
+  `publish-planning-change`; it is not a user override. When this optional
+  policy is omitted, resolve it as disabled in memory.
 
 ## Installation
 

@@ -14,11 +14,11 @@ private reasoning, expected findings, or intended verdict. Provide only:
 - the configured review rubric and stop conditions.
 
 Use the configured model and effort. Keep reusable instructions model-neutral.
-Before launch, resolve the effective reviewer configuration. When a schema v2
-project created before the reviewer-worktree fields omits them, apply their
-schema defaults in memory and validate those effective values before use. This
-compatibility fallback applies only to the three declared worktree fields and
-must never fall back to the checkout from which the alias was invoked.
+Before launch, require that the owning workflow's current-schema pre-mutation
+gate has passed and that the reviewer worktree, placeholder, branch-readback,
+and bound-review fields are materialized and valid. Do not apply compatibility
+defaults inside the publication lifecycle; invalid configuration must already
+have stopped direct publication.
 Set the reviewer process working directory to the exact planning worktree
 before starting an uncommitted review. Do not rely on the checkout from which
 the publication alias was invoked, a path added only for read access, or prompt

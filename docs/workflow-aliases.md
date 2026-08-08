@@ -443,25 +443,16 @@ Alias, owning skill или dependency, не включённые в project conf
 считаются недоступными. Агент должен предложить `--workflow-setup` или другой
 явный способ конфигурации, а не имитировать отсутствующий workflow.
 
-Существующий schema v2 проект, где Git-tracked task specs являются source of
-truth для implementation, но отсутствует `publish-planning-change`, должен
-пройти `--workflow-setup` reconfigure. До этого локальная spec или открытый
-spec PR не считаются достаточным implementation gate.
+## Текущий workflow schema contract
 
-## Переход с workflow schema v1
+Workflow kit поддерживает один актуальный формат project configuration:
+`schema_version: 3`. Он требует guarded aliases и sequence rules, а для
+`publish-planning-change` — полный bound-review evidence contract и completion
+gates. Другие project schema versions не считаются частично настроенными и не
+получают compatibility defaults: `--workflow-check` возвращает setup drift, а
+`--publish-spec` останавливается до mutations. Исправление выполняется только
+через подтверждённый `--workflow-setup` reconfiguration manifest.
 
-Релиз с guarded aliases использует `schema_version: 2`. Проект на schema v1
-должен запустить `--workflow-setup` в режиме reconfigure и подтвердить manifest,
-который:
-
-- меняет `schema_version` на `2`;
-- добавляет обязательный `commands.sequence_guard`;
-- включает только aliases выбранных modules;
-- устанавливает `shape-project-work` как dependency для `write-task-spec`.
-
-До завершения migration нельзя считать новые aliases полностью настроенными.
-
-Незавершённый `.codex/project-workflow.setup.json` schema v1 также требует
-явной migration preview: сохранить подтверждённые ответы, добавить точный
-`modules.enabled_aliases` и только после подтверждения изменить его
-`schema_version` на `2`.
+`schema_version` незавершённого `.codex/project-workflow.setup.json` является
+версией отдельного setup-state формата и не обозначает поддерживаемую версию
+project configuration.
