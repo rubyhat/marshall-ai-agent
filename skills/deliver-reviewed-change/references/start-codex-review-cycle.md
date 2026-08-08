@@ -20,18 +20,19 @@ Before requesting review, capture:
 - current head SHA;
 - review-generation number;
 - immutable delivery-baseline fingerprint;
-- local and GitHub correction-round counters and ordered compact histories;
+- local correction state and this PR's GitHub correction counter and history;
 - required checks to rerun after code changes;
 - configured reviewer matching and response patterns.
 
 A push that changes head SHA invalidates the previous generation. Start a new
-generation with fresh technical request and waiting counters, but preserve both
-correction counters, both histories, and the delivery baseline.
+generation with fresh technical request and waiting counters, but preserve the
+local correction state and this PR's GitHub correction counter and history.
 
-Initialize the first GitHub heartbeat by copying the exact retained pre-PR
-delivery-state block from the current Codex task. Read back the heartbeat state
-and require equality before monitoring; do not reconstruct or reset counters
-from commits or PR prose.
+For the first generation of a new PR, copy the exact delivery baseline and local
+correction state from the current Codex task, then initialize this PR's GitHub
+counter to zero with an empty history. To resume an existing PR, read its exact
+heartbeat state. Never initialize or reconstruct one PR's GitHub counter from
+another PR, a task-wide counter, commits, or PR prose.
 
 Verify which repository instructions and code-review rules are visible to the remote reviewer. Do not assume that a local reusable skill outside the target repository is available to GitHub Codex; keep essential repository-specific review rules in an applicable `AGENTS.md` or another configured reviewer-visible source.
 
@@ -68,6 +69,7 @@ request_created_at:
 silent_heartbeat_count:
 in_progress_heartbeat_count:
 explicit_error_count:
+github_counter_scope: pull_request
 delivery_baseline:
   task_id:
   issue:
@@ -92,10 +94,11 @@ state:
 terminal_reason:
 ```
 
-Initialize only the technical request, waiting, and explicit-error counters to
-zero. Preserve the copied local and GitHub correction counters, their ordered
-histories, the complete delivery baseline, and its fingerprint exactly.
-Initialize state to `request_pending`.
+Initialize technical request, waiting, and explicit-error counters to zero. For
+a new PR, also initialize its GitHub correction counter to zero and history to
+empty. For a new head of the same PR, preserve that PR's GitHub counter and
+history. Preserve the copied local state, complete delivery baseline, and its
+fingerprint exactly. Initialize state to `request_pending`.
 
 The prompt must also state:
 
@@ -115,6 +118,7 @@ Read back the automation and confirm:
 - cadence matches project policy;
 - it is recurring without an accidental finite occurrence limit;
 - PR identity and head SHA are correct;
+- GitHub counter scope is the exact pull request;
 - counters and request identity match the created comment;
 - terminal rules are present.
 

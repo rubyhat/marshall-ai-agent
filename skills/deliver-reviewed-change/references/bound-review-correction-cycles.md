@@ -9,6 +9,7 @@ bounded independently while preserving one exact task contract.
 - [Keep two independent correction budgets](#keep-two-independent-correction-budgets)
 - [Enforce the local-review budget](#enforce-the-local-review-budget)
 - [Enforce the GitHub-review budget](#enforce-the-github-review-budget)
+- [Scope GitHub state per pull request](#scope-github-state-per-pull-request)
 - [Stop scope drift before editing](#stop-scope-drift-before-editing)
 - [Stop fail-closed and report the cycle](#stop-fail-closed-and-report-the-cycle)
 
@@ -41,15 +42,16 @@ Read the configured positive limits for:
 - local independent-review correction rounds; and
 - GitHub pull-request review correction rounds.
 
-Initialize `local_correction_rounds_used` and
-`github_correction_rounds_used` to zero at the beginning of one new delivery
-attempt. Retain an ordered history for each counter.
+Initialize `local_correction_rounds_used` to zero at the beginning of one new
+delivery attempt. Before the first local review, persist the baseline, the local
+counter, and its ordered history as one compact machine-readable delivery-state
+block in the retained state of the current Codex task. Update and read back that
+block after initialization and after every local review or correction
+transition. Do not rely on unrecorded working memory.
 
-Before the first local review, persist the baseline, both counters, and both
-ordered histories as one compact machine-readable delivery-state block in the
-retained state of the current Codex task. Update and read back that block after
-initialization and after every local review or correction transition. Do not
-rely on unrecorded working memory.
+Initialize a separate `github_correction_rounds_used` counter and ordered
+history to zero in the first heartbeat for each new pull request. Do not create
+one task-wide GitHub correction counter.
 
 The state block must retain the complete baseline rather than only its
 fingerprint. Include Task ID, Issue, specification or equivalent contract and
@@ -97,18 +99,30 @@ creation.
 ## Enforce the GitHub-review budget
 
 Before changing code for a GitHub review finding, apply the same sequence to
-`github_correction_rounds_used`. Record the finding fingerprints, package,
-before/after head SHAs and diff statistics, gates, and resulting request
-generation.
+that exact pull request's `github_correction_rounds_used`. Record the finding
+fingerprints, package, before/after head SHAs and diff statistics, gates, and
+resulting request generation in that PR's ordered history.
 
-A pushed head resets only the configured technical request-attempt and waiting
-counters for the new generation. It never resets the GitHub correction counter,
-the delivery baseline, or either correction history.
+A pushed head in the same PR resets only the configured technical
+request-attempt and waiting counters for the new generation. It never resets
+that PR's GitHub correction counter or history.
 
 The head produced by the final allowed GitHub round still receives review. If
 it receives another real actionable finding, stop before another edit, commit,
 push, review request, or heartbeat wait. Delete the review heartbeat before
 reporting the stop.
+
+## Scope GitHub state per pull request
+
+Each pull request independently owns up to the configured five GitHub
+correction packages. Its first review generation starts at zero with an empty
+history. Every later head and generation of that same PR preserves its counter
+and history, while another PR starts its own counter at zero.
+
+Persist GitHub counters, histories, dismissed fingerprints, heads, generations,
+and technical request state only in the exact PR heartbeat. Never copy or
+synchronize them between PRs. A clean verdict completes only that PR's review;
+it cannot complete another PR or change another PR's budget.
 
 ## Stop scope drift before editing
 
@@ -147,12 +161,11 @@ cycle analysis containing:
 - open findings, repeated semantic categories, and signs of scope drift;
 - the recommended owning workflow or explicit user decision.
 
-Resume an existing delivery attempt only when both counters, the baseline, and
-the ordered histories are provable from retained delivery state. Before PR
-creation, the current Codex task is the required state owner. At GitHub review
-initialization, copy that exact pre-PR state into the heartbeat prompt, read it
-back, and keep both copies consistent until the local state is no longer needed.
-Do not invent repository-local runtime files, locks, or archives.
+Resume local review only when the baseline, local counter, and local ordered
+history are provable from retained task state. Resume GitHub review only when
+the exact PR heartbeat proves that PR's counter and ordered history. A different
+PR is not a resume and starts its own GitHub counter at zero. Do not invent
+repository-local runtime files, locks, or archives.
 
 If interruption or resume makes the state uncertain, fail closed. A different
 conversation is not an automatic continuation unless it can prove the exact

@@ -70,6 +70,12 @@ def complete_review_contract():
             "ordered_history_required": True,
             "pre_pr_state_store": "current_codex_task",
             "persist_and_read_back_after_each_local_transition": True,
+            "github_correction_budget_scope": "pull_request",
+            "github_counter_owner": "exact_pr_heartbeat",
+            "new_pull_request_starts_github_counter_at_zero": True,
+            "different_pull_requests_do_not_share_counters_or_histories": True,
+            "github_dismissed_finding_fingerprints_scope": "pull_request",
+            "github_heartbeat_state_scope": "pull_request",
             "different_conversation_requires_proven_state": True,
             "resume_requires_provable_counters_and_history": True,
             "lost_history_stops_delivery": True,
@@ -119,6 +125,24 @@ class DeliveryReviewContractTest(unittest.TestCase):
         self.assertEqual(
             policy["properties"]["round_unit"]["const"],
             "review_driven_correction_package",
+        )
+        self.assertEqual(
+            policy["properties"]["github_correction_budget_scope"]["const"],
+            "pull_request",
+        )
+        self.assertEqual(
+            policy["properties"]["github_counter_owner"]["const"],
+            "exact_pr_heartbeat",
+        )
+        self.assertEqual(
+            policy["properties"]["github_dismissed_finding_fingerprints_scope"][
+                "const"
+            ],
+            "pull_request",
+        )
+        self.assertEqual(
+            policy["properties"]["github_heartbeat_state_scope"]["const"],
+            "pull_request",
         )
         for key in policy["required"]:
             if key != "round_unit":
@@ -177,12 +201,12 @@ class DeliveryReviewContractTest(unittest.TestCase):
         self.assertIn("local_correction_rounds_used", cycles)
         self.assertIn("github_correction_rounds_used", cycles)
         self.assertIn("Multiple findings corrected together consume one round", cycles)
-        self.assertIn("resets only the configured technical request-attempt", cycles)
+        self.assertIn("resets only the configured technical\nrequest-attempt", cycles)
         self.assertIn("final allowed local round still receives", cycles)
         self.assertIn("final allowed GitHub round still receives", cycles)
         self.assertIn("stop before editing", cycles)
         self.assertIn("bounded\ncycle analysis", cycles)
-        self.assertIn("machine-readable delivery-state block", cycles)
+        self.assertIn("machine-readable delivery-state\nblock", cycles)
         self.assertIn("retained state of the current Codex task", cycles)
         self.assertIn("immutable delivery baseline", local)
         self.assertIn("final allowed round still\nreceives review", local)
@@ -206,6 +230,7 @@ class DeliveryReviewContractTest(unittest.TestCase):
 
         self.assertIn("## Contents", start)
         for key in (
+            "github_counter_scope: pull_request",
             "delivery_baseline:",
             "issue:",
             "specification_or_equivalent_contract:",
@@ -220,8 +245,18 @@ class DeliveryReviewContractTest(unittest.TestCase):
             "github_correction_history",
         ):
             self.assertIn(key, start)
-        self.assertIn("preserve both\ncorrection counters", start)
+        self.assertIn("new head of the same PR, preserve that PR's GitHub counter", start)
         self.assertIn("must not consume or reset either correction counter", recovery)
+
+        monitor = (
+            DELIVERY_ROOT / "references" / "monitor-codex-review-state-machine.md"
+        ).read_text(encoding="utf-8")
+        commits = (
+            DELIVERY_ROOT / "references" / "commit-push-and-open-pr.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("only this exact PR heartbeat", monitor)
+        self.assertIn("must never be copied to or derived from another PR", monitor)
+        self.assertIn("give every PR its own GitHub correction counter", commits)
 
     def test_setup_and_human_alias_document_the_contract(self):
         generated = GENERATE.read_text(encoding="utf-8")

@@ -200,9 +200,13 @@ When `deliver-reviewed-change` is selected, generate:
 - ordered local and GitHub correction histories retained across resume, with a
   new PR head resetting only technical request attempts and lost history
   stopping delivery instead of resetting either counter;
+- one independent GitHub correction counter and ordered history per pull
+  request: each PR starts at zero, later heads of the same PR preserve it, and
+  different PRs never share or synchronize correction state;
 - a compact machine-readable pre-PR state block owned by the retained current
-  Codex task, updated and read back after every local transition, then copied
-  exactly into the first GitHub heartbeat without resetting either counter;
+  Codex task, containing the baseline and local correction state only, updated
+  and read back after every local transition, then copied into each new PR
+  heartbeat before that PR initializes its GitHub counter and history to zero;
 - bounded cycle analysis on exhaustion and scope-drift gates that reject
   generalized hardening, unsubstantiated edge cases, unrelated defects, and
   unexplained material cumulative diff growth.

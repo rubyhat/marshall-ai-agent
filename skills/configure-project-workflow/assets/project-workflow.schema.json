@@ -462,6 +462,12 @@
             "ordered_history_required",
             "pre_pr_state_store",
             "persist_and_read_back_after_each_local_transition",
+            "github_correction_budget_scope",
+            "github_counter_owner",
+            "new_pull_request_starts_github_counter_at_zero",
+            "different_pull_requests_do_not_share_counters_or_histories",
+            "github_dismissed_finding_fingerprints_scope",
+            "github_heartbeat_state_scope",
             "different_conversation_requires_proven_state",
             "resume_requires_provable_counters_and_history",
             "lost_history_stops_delivery",
@@ -485,6 +491,16 @@
             "persist_and_read_back_after_each_local_transition": {
               "const": true
             },
+            "github_correction_budget_scope": {"const": "pull_request"},
+            "github_counter_owner": {"const": "exact_pr_heartbeat"},
+            "new_pull_request_starts_github_counter_at_zero": {"const": true},
+            "different_pull_requests_do_not_share_counters_or_histories": {
+              "const": true
+            },
+            "github_dismissed_finding_fingerprints_scope": {
+              "const": "pull_request"
+            },
+            "github_heartbeat_state_scope": {"const": "pull_request"},
             "different_conversation_requires_proven_state": {"const": true},
             "resume_requires_provable_counters_and_history": {"const": true},
             "lost_history_stops_delivery": {"const": true},

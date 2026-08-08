@@ -183,12 +183,16 @@ Persist at least:
 - request attempt, comment ID, and timestamp;
 - silent, acknowledged-wait, and explicit-error counters;
 - the immutable delivery-baseline fingerprint;
-- local and GitHub correction-round counters and compact ordered histories;
+- local correction-round state and the exact PR's independent GitHub correction
+  counter and compact ordered history;
 - dismissed-finding fingerprints;
 - last-seen event IDs;
 - current state and terminal reason.
 
-Update the automation prompt after every state transition. If durable state cannot be updated or reread, stop the monitor rather than continuing statelessly.
+Update and read back only the exact PR heartbeat after every GitHub review
+transition. Never synchronize its GitHub counter or history with another PR.
+If durable state cannot be updated or reread, stop the monitor rather than
+continuing statelessly.
 
 ## Coordinate with adjacent skills
 

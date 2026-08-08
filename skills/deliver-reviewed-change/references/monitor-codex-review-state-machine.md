@@ -35,10 +35,10 @@ Never evaluate silence before checking every response channel. Never let an ackn
 
 Pause waiting counters and run the finding workflow. Before a code fix, verify
 the finding is in scope and that another GitHub correction package is allowed.
-A permitted package increments the GitHub counter exactly once; its code fix and
-push create a new head-bound generation without resetting that counter. An
-evidenced dismissal creates a contextual re-review and persists its semantic
-fingerprint without consuming a correction round.
+A permitted package increments this PR's GitHub counter exactly once; its code
+fix and push create a new head-bound generation without resetting that counter.
+An evidenced dismissal creates a contextual re-review and persists its semantic
+fingerprint in the same PR heartbeat without consuming a correction round.
 
 ### `clean`
 
@@ -81,4 +81,7 @@ Update:
 - dismissed-finding fingerprints;
 - terminal reason.
 
-Read back the updated automation. If update or verification fails, stop rather than running a stateless next cycle.
+Update and read back only this exact PR heartbeat. Its GitHub correction
+counter, history, dismissed fingerprints, technical counters, and review state
+must never be copied to or derived from another PR. If update or verification
+fails, stop rather than running a stateless next cycle.

@@ -303,11 +303,18 @@ retry, clean review, ответ без изменения кода и contextual
 неизменённого head раунд не расходуют. Новый PR head обнуляет только technical
 request budget, но не GitHub correction counter и не историю.
 
-До создания PR baseline, оба счётчика и истории сохраняются одним
+До создания PR baseline, local counter и local history сохраняются одним
 machine-readable state block в текущей Codex-задаче и перечитываются после
-каждого local transition. При старте GitHub review этот state без пересборки
-копируется в heartbeat. Другая сессия без доказуемого state не обнуляет и не
-продолжает counters автоматически.
+каждого local transition. При создании heartbeat нового PR этот state
+копируется без пересборки, после чего GitHub counter и history данного PR
+инициализируются нулём и пустым списком. Другая сессия без доказуемого state не
+продолжает существующий review автоматически.
+
+В multi-repository delivery каждый PR имеет собственный GitHub correction
+counter и ordered history. Первый review generation нового PR начинается с
+нуля; новый head того же PR сохраняет его counter; другой PR начинает отдельные
+пять раундов с нуля. Counters, histories, dismissed-finding fingerprints и
+heartbeat state разных PR не синхронизируются.
 
 Head после пятого разрешённого пакета всё равно проходит review. Если ему нужна
 шестая правка, workflow останавливается до edit, commit, push или нового review
@@ -576,6 +583,12 @@ exact manifest, а `push_before_clean_review` установить в `false`. �
       "ordered_history_required": true,
       "pre_pr_state_store": "current_codex_task",
       "persist_and_read_back_after_each_local_transition": true,
+      "github_correction_budget_scope": "pull_request",
+      "github_counter_owner": "exact_pr_heartbeat",
+      "new_pull_request_starts_github_counter_at_zero": true,
+      "different_pull_requests_do_not_share_counters_or_histories": true,
+      "github_dismissed_finding_fingerprints_scope": "pull_request",
+      "github_heartbeat_state_scope": "pull_request",
       "different_conversation_requires_proven_state": true,
       "resume_requires_provable_counters_and_history": true,
       "lost_history_stops_delivery": true,

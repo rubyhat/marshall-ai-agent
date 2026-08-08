@@ -91,6 +91,10 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   task, update/readback after every local transition, and exact transfer into
   the first GitHub heartbeat. A different conversation without proven state
   must not reset or resume the counters automatically.
+  For multi-repository delivery, require one independent GitHub correction
+  counter per PR: a new PR starts at zero, a new head preserves the same PR's
+  counter, and different PRs do not share or synchronize counters, histories,
+  dismissed-finding fingerprints, or heartbeat state.
 - Confirm reviewer context is bound to the exact task contract, acceptance
   criteria, non-goals, initial diff manifest and statistics. Generalized
   hardening, unsubstantiated edge cases, unrelated defects, and unexplained
