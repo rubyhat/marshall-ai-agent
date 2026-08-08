@@ -2,6 +2,13 @@
 
 Bind every review generation to one exact pull request head.
 
+## Contents
+
+- [Initialize the generation](#initialize-the-generation)
+- [Create one request attempt](#create-one-request-attempt)
+- [Initialize durable heartbeat state](#initialize-durable-heartbeat-state)
+- [Verify the heartbeat](#verify-the-heartbeat)
+
 ## Initialize the generation
 
 Before requesting review, capture:

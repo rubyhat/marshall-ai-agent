@@ -173,6 +173,7 @@ class DeliveryReviewContractTest(unittest.TestCase):
         findings = FINDINGS.read_text(encoding="utf-8")
 
         self.assertIn("bound-review-correction-cycles.md", skill)
+        self.assertIn("## Contents", cycles)
         self.assertIn("local_correction_rounds_used", cycles)
         self.assertIn("github_correction_rounds_used", cycles)
         self.assertIn("Multiple findings corrected together consume one round", cycles)
@@ -203,6 +204,7 @@ class DeliveryReviewContractTest(unittest.TestCase):
         start = START_CYCLE.read_text(encoding="utf-8")
         recovery = RECOVERY.read_text(encoding="utf-8")
 
+        self.assertIn("## Contents", start)
         for key in (
             "delivery_baseline:",
             "issue:",

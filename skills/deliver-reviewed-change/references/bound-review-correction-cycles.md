@@ -3,6 +3,15 @@
 Keep local-review corrections and GitHub pull-request review corrections
 bounded independently while preserving one exact task contract.
 
+## Contents
+
+- [Bind the delivery baseline](#bind-the-delivery-baseline)
+- [Keep two independent correction budgets](#keep-two-independent-correction-budgets)
+- [Enforce the local-review budget](#enforce-the-local-review-budget)
+- [Enforce the GitHub-review budget](#enforce-the-github-review-budget)
+- [Stop scope drift before editing](#stop-scope-drift-before-editing)
+- [Stop fail-closed and report the cycle](#stop-fail-closed-and-report-the-cycle)
+
 ## Bind the delivery baseline
 
 Before the first independent local review, capture one delivery baseline with:
