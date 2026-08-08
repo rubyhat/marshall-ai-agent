@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/rubyhat/marshall-ai-agent/compare/v0.7.2...v0.7.3) (2026-08-08)
+
+
+### Исправления
+
+* **execution:** republish corrected task specs ([#56](https://github.com/rubyhat/marshall-ai-agent/issues/56)) ([46fb5b6](https://github.com/rubyhat/marshall-ai-agent/commit/46fb5b695146b318c91311e1ee20e3d0a2434ec4))
+
 ## [0.7.2](https://github.com/rubyhat/marshall-ai-agent/compare/v0.7.1...v0.7.2) (2026-08-08)
 
 
