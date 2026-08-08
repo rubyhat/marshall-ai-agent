@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.2](https://github.com/rubyhat/marshall-ai-agent/compare/v0.7.1...v0.7.2) (2026-08-08)
+
+
+### Исправления
+
+* **workflow:** keep correction checkpoints honest ([2bf8c6b](https://github.com/rubyhat/marshall-ai-agent/commit/2bf8c6b9e184951e69df4a6ea54d14998c439dd2))
+* **workflow:** preserve mixed planning review ([ea37acd](https://github.com/rubyhat/marshall-ai-agent/commit/ea37acd5f0f51f7678a94dde8293c8e12e4efa21))
+* **workflow:** review committed planning corrections ([b495f9a](https://github.com/rubyhat/marshall-ai-agent/commit/b495f9a8fc2d6b8966bfa9aa9ac57612c86ec942))
+* **workflow:** review committed planning corrections ([319c4dc](https://github.com/rubyhat/marshall-ai-agent/commit/319c4dcc7663597f71f4247a4110fe8c6eebedbc))
+
 ## [0.7.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.7.0...v0.7.1) (2026-08-08)
 
 
