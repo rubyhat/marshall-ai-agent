@@ -14,11 +14,11 @@ private reasoning, expected findings, or intended verdict. Provide only:
 - the configured review rubric and stop conditions.
 
 Use the configured model and effort. Keep reusable instructions model-neutral.
-Before launch, require that the owning workflow's schema-v3 pre-mutation gate
-has passed and that the reviewer worktree, placeholder, and branch-readback
-fields are materialized and valid. Do not apply schema-v2 defaults inside the
-publication lifecycle: compatibility inspection and migration belong to
-`configure-project-workflow`, and direct publication must already have stopped.
+Before launch, require that the owning workflow's current-schema pre-mutation
+gate has passed and that the reviewer worktree, placeholder, branch-readback,
+and bound-review fields are materialized and valid. Do not apply compatibility
+defaults inside the publication lifecycle; invalid configuration must already
+have stopped direct publication.
 Set the reviewer process working directory to the exact planning worktree
 before starting an uncommitted review. Do not rely on the checkout from which
 the publication alias was invoked, a path added only for read access, or prompt

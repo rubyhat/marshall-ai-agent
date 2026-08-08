@@ -16,7 +16,7 @@
   ],
   "properties": {
     "schema_version": {
-      "enum": [2, 3]
+      "const": 3
     },
     "workflow_kit": {
       "type": "object",
@@ -173,6 +173,9 @@
             "required",
             "fresh_context",
             "author_self_check_is_not_independent",
+            "working_directory",
+            "working_directory_placeholder",
+            "verify_reported_workdir_and_branch",
             "model",
             "effort"
           ],
@@ -204,7 +207,8 @@
           "required": [
             "input_content_verdict",
             "canonical_merge_required_before_implementation",
-            "implementation_base_must_contain_publication_revision"
+            "implementation_base_must_contain_publication_revision",
+            "ordinary_publication_evidence"
           ],
           "properties": {
             "input_content_verdict": {"const": "spec_ready"},
@@ -341,7 +345,9 @@
           "type": "object",
           "required": [
             "require_clean_independent_review",
+            "require_clean_review_bound_to_published_package",
             "require_canonical_merge",
+            "require_persisted_publication_record_readback",
             "implementation_issue_remains_open",
             "release_or_deploy_forbidden"
           ],
@@ -467,38 +473,6 @@
       },
       "then": {
         "required": ["planning_publication"]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "schema_version": {"const": 3},
-          "workflow_kit": {
-            "properties": {
-              "selected_modules": {
-                "contains": {"const": "publish-planning-change"}
-              }
-            }
-          }
-        },
-        "required": ["schema_version", "workflow_kit"]
-      },
-      "then": {
-        "properties": {
-          "planning_publication": {
-            "properties": {
-              "readiness": {
-                "required": ["ordinary_publication_evidence"]
-              },
-              "completion_gate": {
-                "required": [
-                  "require_clean_review_bound_to_published_package",
-                  "require_persisted_publication_record_readback"
-                ]
-              }
-            }
-          }
-        }
       }
     }
   ],
