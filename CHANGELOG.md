@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.7.4...v0.8.0) (2026-08-08)
+
+
+### Новые возможности
+
+* **delivery:** ограничить циклы локального и GitHub-ревью ([#60](https://github.com/rubyhat/marshall-ai-agent/issues/60)) ([5e25709](https://github.com/rubyhat/marshall-ai-agent/commit/5e257097a5c95002b7ae6521d44a281faf8a7eb8))
+
 ## [0.7.4](https://github.com/rubyhat/marshall-ai-agent/compare/v0.7.3...v0.7.4) (2026-08-08)
 
 
