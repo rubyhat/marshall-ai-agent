@@ -290,6 +290,32 @@ heartbeat, merge, tracker mutations и cleanup.
 Проводит точную задачу через configured independent review и delivery flow.
 Точная конечная точка может быть сужена дополнительным текстом пользователя.
 
+До первого local review фиксирует immutable delivery baseline: Task ID,
+specification или эквивалентный contract, acceptance criteria, non-goals,
+начальный полный diff manifest и статистику. Reviewer получает этот bounded
+контекст без истории реализации и должен связать actionable finding с
+конкретным дефектом текущей задачи или обязательным достоверным риском.
+
+Local independent review и GitHub Pull Request review имеют отдельные bounded
+циклы исправлений — не более пяти correction packages каждый.
+Один пакет может закрывать несколько findings одного review result. Технический
+retry, clean review, ответ без изменения кода и contextual re-review
+неизменённого head раунд не расходуют. Новый PR head обнуляет только technical
+request budget, но не GitHub correction counter и не историю.
+
+До создания PR baseline, оба счётчика и истории сохраняются одним
+machine-readable state block в текущей Codex-задаче и перечитываются после
+каждого local transition. При старте GitHub review этот state без пересборки
+копируется в heartbeat. Другая сессия без доказуемого state не обнуляет и не
+продолжает counters автоматически.
+
+Head после пятого разрешённого пакета всё равно проходит review. Если ему нужна
+шестая правка, workflow останавливается до edit, commit, push или нового review
+request и возвращает cycle analysis: исходный и текущий diff, все findings и
+пакеты, review-only growth, повторяющиеся категории и признаки scope drift.
+General hardening, недоказанные edge cases, unrelated defects и необъяснимый
+рост diff не расширяют задачу автоматически.
+
 Не разрешает bypass review/CI, force-push, deploy, production data mutation или
 работу с unrelated PR.
 

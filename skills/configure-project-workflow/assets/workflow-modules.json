@@ -139,6 +139,7 @@
       "name": "deliver-reviewed-change",
       "group": "delivery",
       "config_section": "delivery",
+      "additional_config_sections": ["review"],
       "requires": ["execute-project-task"],
       "recommended_with": ["manage-project-work"],
       "aliases": ["--deliver-task"],

@@ -33,7 +33,12 @@ Never evaluate silence before checking every response channel. Never let an ackn
 
 ### `findings_received`
 
-Pause waiting counters and run the finding workflow. A code fix and push create a new head-bound generation. An evidenced dismissal creates a contextual re-review and persists its semantic fingerprint.
+Pause waiting counters and run the finding workflow. Before a code fix, verify
+the finding is in scope and that another GitHub correction package is allowed.
+A permitted package increments the GitHub counter exactly once; its code fix and
+push create a new head-bound generation without resetting that counter. An
+evidenced dismissal creates a contextual re-review and persists its semantic
+fingerprint without consuming a correction round.
 
 ### `clean`
 
@@ -70,6 +75,7 @@ Update:
 
 - current state;
 - counters;
+- immutable delivery baseline and both correction-round histories;
 - request identity;
 - last-seen event IDs;
 - dismissed-finding fingerprints;

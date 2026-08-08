@@ -184,6 +184,35 @@ during implementation invalidates the selected publication evidence, stops
   current specification-owner authority base and compare every path/blob OID
   with the selected record.
 
+When `deliver-reviewed-change` is selected, generate:
+
+- one immutable delivery baseline bound to the exact task, specification or
+  equivalent contract, acceptance criteria, non-goals, initial complete diff
+  manifest, and initial diff statistics;
+- separate positive `max_correction_rounds` values for local independent review
+  and GitHub pull-request review, each materialized as `5` and forbidden from
+  exceeding `5`;
+- one correction round as one coherent review-driven correction package, with
+  multiple findings from one result grouped together and technical retries or
+  unchanged-head contextual re-reviews consuming no round;
+- a fresh review of the candidate produced by the final allowed round, followed
+  by fail-closed stop before mutations when another package would be required;
+- ordered local and GitHub correction histories retained across resume, with a
+  new PR head resetting only technical request attempts and lost history
+  stopping delivery instead of resetting either counter;
+- a compact machine-readable pre-PR state block owned by the retained current
+  Codex task, updated and read back after every local transition, then copied
+  exactly into the first GitHub heartbeat without resetting either counter;
+- bounded cycle analysis on exhaustion and scope-drift gates that reject
+  generalized hardening, unsubstantiated edge cases, unrelated defects, and
+  unexplained material cumulative diff growth.
+
+Require the local reviewer and reviewer-visible pull-request context to receive
+the exact task contract, acceptance criteria, non-goals, and complete current
+diff without implementation discussion or an intended verdict. Require every
+actionable finding to name a concrete current-task failure or credible mandatory
+risk before it may authorize a correction package.
+
 Do not copy project-specific values from an example project.
 
 ## Create project docs conditionally

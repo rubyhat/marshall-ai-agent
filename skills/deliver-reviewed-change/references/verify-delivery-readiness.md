@@ -38,6 +38,15 @@ Resolve:
 - accepted implementation exceptions or blockers;
 - required CI and merge checks.
 
+Before the first review, capture the immutable delivery baseline: exact task
+and contract anchors, acceptance criteria, non-goals, repositories and branches,
+plus a complete initial diff path/status/content-hash manifest and diff
+statistics. Initialize separate local and GitHub correction counters and retain
+their ordered histories. Persist and read back one compact machine-readable
+delivery-state block in the retained state of the current Codex task before
+launching review. On resume, require the same baseline and provable counters
+before any mutation.
+
 If implementation is incomplete or a required implementation gate fails, return to `execute-project-task`. If the promised contract or scope changed, return to the owning shaping or specification workflow.
 
 ## Verify authority

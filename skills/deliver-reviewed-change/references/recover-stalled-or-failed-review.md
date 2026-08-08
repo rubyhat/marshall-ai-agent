@@ -14,6 +14,10 @@ For each exact request:
 
 Read both limits from project configuration. Apply them per exact request and per current head SHA; do not invent an implicit extra retry.
 
+Technical request attempts are independent from review-driven correction
+rounds. A retry caused by silence, acknowledgment without a result, or an
+explicit error must not consume or reset either correction counter.
+
 ## Acknowledged but stalled
 
 An allowed reviewer reaction on the exact request proves acknowledgment, not completion.
@@ -41,6 +45,8 @@ Stop when:
 
 - the automation state cannot be updated or reread;
 - current head changed without a new generation;
+- the immutable delivery baseline, either correction counter, or ordered
+  correction history cannot be proven;
 - request comment cannot be found;
 - reviewer actor cannot be distinguished safely;
 - clean verdict and possible findings cannot be reconciled;

@@ -66,6 +66,8 @@ Read project instructions and workflow configuration. Resolve:
 - commit, push, PR description, target branch, linkage, and status policy;
 - GitHub review trigger, reviewer actor matching, acknowledgment reactions, channels, verdict and error patterns;
 - heartbeat cadence, persistent state, retry budgets, and stop conditions;
+- separate local and GitHub correction-round budgets, delivery-baseline
+  binding, retained histories, and scope-drift stop conditions;
 - CI and merge gates, merge authorization, dependency order, and multi-repository policy;
 - post-merge synchronization, task closure, recording, and cleanup rules.
 
@@ -82,6 +84,7 @@ Confirm the exact task, authorized endpoint, repository/worktree/branch mapping,
 ### 2. Run independent local review
 
 Read [run-independent-local-review.md](references/run-independent-local-review.md).
+Read [bound-review-correction-cycles.md](references/bound-review-correction-cycles.md).
 
 Use a fresh configured reviewer without implementation discussion history. Evaluate every finding against code, tests, architecture, specification, and scope. Fix real findings locally, rerun affected gates, and repeat review as required. Do not commit until the local-review gate passes or an allowed blocker is explicit.
 
@@ -99,7 +102,9 @@ Read [start-codex-review-cycle.md](references/start-codex-review-cycle.md).
 
 Bind the generation to the exact pull request and current head SHA. Post the configured review request, capture its comment ID and timestamp, initialize attempt and heartbeat counters, and create or update one thread heartbeat with durable state and explicit stop conditions.
 
-A new pushed head starts a new generation and resets its request budget. Old events cannot complete the new generation.
+A new pushed head starts a new generation and resets only its technical request
+budget. It does not reset the GitHub correction-round budget, delivery baseline,
+or correction history. Old events cannot complete the new generation.
 
 ### 5. Monitor through the state machine
 
@@ -128,6 +133,8 @@ Read [classify-and-handle-review-findings.md](references/classify-and-handle-rev
 - Fix a real in-scope finding, rerun gates and local review as required, commit and push, then start a new head-bound generation.
 - Answer an evidenced false or intentionally out-of-scope finding without changing code, request a contextual re-review, and persist its semantic fingerprint.
 - Stop and inform the user when the same dismissed finding returns once.
+- Stop before mutations and return a bounded cycle analysis when the next local
+  or GitHub correction package would exceed its configured independent limit.
 - Stop on uncertainty that could change scope, architecture, security, or task outcome.
 
 Do not delegate branch changes to a remote reviewer by default. Keep fixes in the controlled local task worktree.
@@ -175,6 +182,8 @@ Persist at least:
 - current head SHA and generation;
 - request attempt, comment ID, and timestamp;
 - silent, acknowledged-wait, and explicit-error counters;
+- the immutable delivery-baseline fingerprint;
+- local and GitHub correction-round counters and compact ordered histories;
 - dismissed-finding fingerprints;
 - last-seen event IDs;
 - current state and terminal reason.

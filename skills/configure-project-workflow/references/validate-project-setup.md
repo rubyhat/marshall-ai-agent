@@ -79,6 +79,22 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   selected.
 - Confirm `execute-project-task` establishes its implementation-start status
   after readiness and before workspace creation.
+- When `deliver-reviewed-change` is selected, confirm that local and GitHub
+  review have separate positive correction-round limits set to five and unable
+  to exceed five,
+  share one immutable exact-task delivery baseline, retain independent ordered
+  histories across resume, and stop before a correction beyond either limit.
+  Confirm a new PR head resets only technical request attempts, the final
+  allowed correction still receives review, lost history fails closed, and a
+  bounded cycle analysis is required on exhaustion or material scope drift.
+  Require one machine-readable pre-PR state block in the retained current Codex
+  task, update/readback after every local transition, and exact transfer into
+  the first GitHub heartbeat. A different conversation without proven state
+  must not reset or resume the counters automatically.
+- Confirm reviewer context is bound to the exact task contract, acceptance
+  criteria, non-goals, initial diff manifest and statistics. Generalized
+  hardening, unsubstantiated edge cases, unrelated defects, and unexplained
+  material cumulative diff growth must not silently expand delivery scope.
 - When `publish-planning-change` is also selected, confirm that a later
   task-owned specification-package correction invalidates the selected
   evidence, requires a new canonical publication record, and reruns readiness

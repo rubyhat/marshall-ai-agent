@@ -1,6 +1,9 @@
 # Select Workflow Modules
 
 Use `assets/workflow-modules.json` as the machine-readable module catalog.
+Treat `config_section` as the module's primary project-configuration section
+and materialize every listed `additional_config_sections` entry as part of the
+same selected module.
 
 ## Recommend a profile
 
