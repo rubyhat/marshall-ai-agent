@@ -532,3 +532,79 @@ head с `Ready for implementation` до `Spec ready`. Если в planning workt
 добавить разрешение checkpoint commit, обязательность deterministic checks и
 exact manifest, а `push_before_clean_review` установить в `false`. Отсутствующий
 или неполный объект делает `--publish-spec` невалидным до mutations.
+
+### Переход на workflow kit v0.8.0
+
+В v0.8.0 schema-v3 contract для выбранного `deliver-reviewed-change` требует
+корневую секцию `review` с четырьмя полными группами:
+
+```json
+{
+  "review": {
+    "scope_binding": {
+      "exact_task_contract_required": true,
+      "required_context": [
+        "task_id",
+        "issue",
+        "specification_or_equivalent_contract",
+        "specification_revision_or_not_applicable",
+        "acceptance_criteria",
+        "non_goals",
+        "repositories",
+        "worktrees",
+        "branches",
+        "target_branches",
+        "initial_diff_manifest",
+        "initial_diff_stats"
+      ],
+      "initial_diff_baseline_required": true,
+      "baseline_immutable_for_delivery_attempt": true,
+      "actionable_finding_requires_concrete_current_task_failure": true,
+      "speculative_or_general_hardening_is_non_actionable": true,
+      "material_scope_or_contract_change_returns_to_owner": true,
+      "material_cumulative_diff_growth_stops_for_analysis": true
+    },
+    "correction_policy": {
+      "round_unit": "review_driven_correction_package",
+      "separate_local_and_github_counters": true,
+      "multiple_findings_in_one_result_consume_one_round": true,
+      "technical_retry_consumes_no_round": true,
+      "unchanged_head_contextual_rereview_consumes_no_round": true,
+      "final_allowed_round_receives_review": true,
+      "next_required_round_stops_before_mutation": true,
+      "new_head_resets_request_attempts_only": true,
+      "ordered_history_required": true,
+      "pre_pr_state_store": "current_codex_task",
+      "persist_and_read_back_after_each_local_transition": true,
+      "different_conversation_requires_proven_state": true,
+      "resume_requires_provable_counters_and_history": true,
+      "lost_history_stops_delivery": true,
+      "bounded_cycle_analysis_required": true
+    },
+    "local": {
+      "max_correction_rounds": 5,
+      "fresh_review_after_each_correction_package": true
+    },
+    "github_codex": {
+      "max_correction_rounds": 5,
+      "fresh_generation_after_each_correction_package": true,
+      "new_head_resets_request_budget_only": true
+    }
+  }
+}
+```
+
+Ранее валидный schema-v3 проект с выбранным `deliver-reviewed-change`, но без
+этой полной секции, после обновления считается невалидным. До следующего
+`--deliver-task` нужно запустить подтверждённый `--workflow-setup`
+reconfiguration: синхронизировать все выбранные skills на один exact tag
+v0.8.0, установить `workflow_kit.revision: v0.8.0`, сохранить
+`schema_version: 3`, материализовать указанный `review` contract с
+project-specific reviewer settings и выполнить validation записанной revision,
+активных skill copies и project configuration. Нельзя добавлять только counters
+поверх неполной секции или рассчитывать на compatibility defaults.
+
+Если reconfiguration нельзя завершить, `--deliver-task` остаётся fail-closed до
+устранения drift. Безопасный откат требует вернуть и project configuration, и
+весь выбранный набор skills на один прежний exact release tag; удалять `review`
+при оставленных skills v0.8.0 или смешивать revisions нельзя.

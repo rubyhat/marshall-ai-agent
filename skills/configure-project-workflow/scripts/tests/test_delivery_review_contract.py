@@ -233,6 +233,21 @@ class DeliveryReviewContractTest(unittest.TestCase):
         self.assertIn("separate positive correction-round limits set to five", validation)
         self.assertIn("не более пяти correction packages каждый", aliases)
         self.assertIn("Если ему нужна\nшестая правка", aliases)
+        self.assertIn("Переход на workflow kit v0.8.0", aliases)
+        self.assertIn("корневую секцию `review` с четырьмя полными группами", aliases)
+        migration = aliases.split("### Переход на workflow kit v0.8.0", 1)[1]
+        documented_contract = migration.split("```json\n", 1)[1].split("\n```", 1)[0]
+        self.assertEqual(
+            json.loads(documented_contract),
+            {"review": complete_review_contract()},
+        )
+        self.assertIn("материализовать указанный `review` contract", aliases)
+        self.assertIn("`workflow_kit.revision: v0.8.0`", migration)
+        self.assertIn("и выполнить validation записанной revision", migration)
+        self.assertIn("`--deliver-task` остаётся fail-closed", migration)
+        self.assertIn("Безопасный откат требует вернуть и project configuration", aliases)
+        self.assertIn("весь выбранный набор skills на один прежний exact release tag", migration)
+        self.assertIn("или смешивать revisions нельзя", migration)
 
 
 if __name__ == "__main__":
