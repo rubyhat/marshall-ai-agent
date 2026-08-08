@@ -107,11 +107,21 @@ it the exact task anchor, shaped contract, spec diff, and only the architecture,
 code, and policy context required to verify the specification. Treat the
 author's self-check as useful evidence, never as independent review.
 
+Before the first review, initialize a correction-round counter for this exact
+publication attempt from the configured `max_correction_rounds`. Count one
+round for each bounded correction package applied after a non-clean review,
+not for each finding or edited file. Preserve the counter across resumes of the
+same publication attempt.
+
 Evaluate every finding against the shaped scope and sources of truth. Route a
 real content correction through `write-task-spec`; route a material outcome or
 scope change back to `shape-project-work`. Rerun affected validation and obtain
 a clean review for the current spec head. Do not expand the task for speculative
-edge cases or general improvements.
+edge cases or general improvements. Review the corrected head, including after
+the final allowed correction round. If that review still has blocking or
+actionable findings, stop before another correction or publication mutation
+and return the specification to planning with the required review-cycle
+analysis; never start a correction round beyond the configured limit.
 
 ### 4. Publish the reviewed change
 

@@ -54,10 +54,32 @@ Verify findings against primary sources before editing. Use `write-task-spec`
 for an in-scope content correction. Return a material product, architecture,
 scope, or decomposition change to `shape-project-work`.
 
-After a content change, rerun affected checks and review the new exact head.
+Before the initial review, set `correction_rounds_used` to zero and read the
+positive integer `max_correction_rounds` from project configuration. A
+correction round is one bounded package of accepted current-spec changes made
+after a non-clean verdict; multiple findings fixed together count as one round.
+Increment the counter once after applying that package, then rerun affected
+checks and review the new exact head. Preserve the counter when the same
+publication attempt is resumed; do not reset it because the session, process,
+commit, or reviewer run changed.
+
+The corrected head after `correction_rounds_used == max_correction_rounds`
+still receives its required review. If that review is clean, continue. If it
+still contains any verified `blocking` or `actionable` finding, stop before a
+further content mutation, review request, commit, push, or publication action.
+Do not start a sixth correction when the configured maximum is five.
+
+At that stop, produce a bounded review-cycle analysis containing the reviewed
+head and finding fingerprints for every round, classification and disposition
+of each finding, the correction package applied in each round, the still-open
+findings, and whether repetition, scope instability, or an unresolved product
+or architecture decision is driving the loop. Return the specification to
+discussion/planning and require explicit user direction or a materially revised
+shaped contract before starting a new publication attempt.
+
 One clean generation for the current head is terminal. Do not keep requesting
-review for an unchanged clean spec. Apply configured attempt budgets and stop
-on repeated dismissed findings or scope instability.
+review for an unchanged clean spec. Apply separate configured request-attempt
+budgets and stop on repeated dismissed findings or scope instability.
 
 Report the clean-review evidence without copying the full review transcript
 into the specification.

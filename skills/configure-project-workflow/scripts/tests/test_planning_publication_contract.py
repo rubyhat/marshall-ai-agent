@@ -118,6 +118,7 @@ def complete_current_config():
                 "verify_reported_workdir_and_branch": True,
                 "model": "test-reviewer",
                 "effort": "medium",
+                "max_correction_rounds": 5,
             },
             "readiness": {
                 "input_content_verdict": "spec_ready",
@@ -201,6 +202,7 @@ class PlanningPublicationContractTest(unittest.TestCase):
             "working_directory",
             "working_directory_placeholder",
             "verify_reported_workdir_and_branch",
+            "max_correction_rounds",
         ):
             self.assertIn(required_key, independent_review["required"])
             self.assertIn("default", independent_review["properties"][required_key])
@@ -238,6 +240,15 @@ class PlanningPublicationContractTest(unittest.TestCase):
         )
         self.assertIn(
             "effort", independent_review["required"]
+        )
+        self.assertIn("max_correction_rounds", independent_review["required"])
+        self.assertEqual(
+            independent_review["properties"]["max_correction_rounds"]["default"],
+            5,
+        )
+        self.assertEqual(
+            independent_review["properties"]["max_correction_rounds"]["minimum"],
+            1,
         )
         self.assertTrue(
             properties["readiness"]["properties"]
@@ -557,6 +568,19 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("reviewed_canonical_publication", readiness)
         self.assertIn("reviewer run or", readiness)
         self.assertIn("infer clean review from PR prose", task_linkage)
+
+    def test_review_correction_limit_is_an_executable_stop_condition(self):
+        publication_skill = PUBLISH_SKILL.read_text(encoding="utf-8")
+        review = PUBLISH_REVIEW.read_text(encoding="utf-8")
+        generated = GENERATE.read_text(encoding="utf-8")
+
+        self.assertIn("correction-round counter", publication_skill)
+        self.assertIn("never start a correction round beyond", publication_skill)
+        self.assertIn("correction_rounds_used", review)
+        self.assertIn("Do not start a sixth correction", review)
+        self.assertIn("review-cycle analysis", review)
+        self.assertIn("Preserve the counter", review)
+        self.assertIn("max_correction_rounds", generated)
 
     def test_direct_publication_requires_schema_v3(self):
         publication_skill = PUBLISH_SKILL.read_text(encoding="utf-8")

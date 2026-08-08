@@ -177,7 +177,8 @@
             "working_directory_placeholder",
             "verify_reported_workdir_and_branch",
             "model",
-            "effort"
+            "effort",
+            "max_correction_rounds"
           ],
           "properties": {
             "required": {"const": true},
@@ -198,6 +199,11 @@
             "model": {"type": "string", "minLength": 1},
             "effort": {
               "enum": ["low", "medium", "high", "xhigh"]
+            },
+            "max_correction_rounds": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 5
             }
           },
           "additionalProperties": true
