@@ -1,6 +1,7 @@
 import copy
 import importlib.util
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,7 @@ except ImportError:  # The dependency-free repository validator may run without 
 
 
 SKILL_ROOT = Path(__file__).resolve().parents[2]
+REPOSITORY_ROOT = SKILL_ROOT.parents[1]
 SCHEMA = SKILL_ROOT / "assets" / "project-workflow.schema.json"
 GENERATE = SKILL_ROOT / "references" / "generate-project-setup.md"
 VALIDATE = SKILL_ROOT / "references" / "validate-project-setup.md"
@@ -22,8 +24,22 @@ START_CYCLE = DELIVERY_ROOT / "references" / "start-codex-review-cycle.md"
 FINDINGS = DELIVERY_ROOT / "references" / "classify-and-handle-review-findings.md"
 RECOVERY = DELIVERY_ROOT / "references" / "recover-stalled-or-failed-review.md"
 FINALIZATION = DELIVERY_ROOT / "references" / "finalize-codex-review-state.md"
-ALIASES = SKILL_ROOT.parents[1] / "docs" / "workflow-aliases.md"
 PLANNING_TEST = Path(__file__).with_name("test_planning_publication_contract.py")
+
+
+def resolve_public_aliases(repository_root=REPOSITORY_ROOT):
+    candidates = (
+        repository_root / "docs" / "workflow-aliases.md",
+        repository_root / "workflows" / "agent_commands.md",
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    searched = ", ".join(str(candidate) for candidate in candidates)
+    raise FileNotFoundError(f"Public alias contract not found; searched: {searched}")
+
+
+ALIASES = resolve_public_aliases()
 
 
 def load_planning_fixture():
@@ -117,6 +133,15 @@ def complete_delivery_config():
 
 
 class DeliveryReviewContractTest(unittest.TestCase):
+    def test_public_alias_resolver_accepts_vendored_project_layout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repository_root = Path(directory)
+            expected = repository_root / "workflows" / "agent_commands.md"
+            expected.parent.mkdir(parents=True)
+            expected.write_text("vendored alias contract", encoding="utf-8")
+
+            self.assertEqual(resolve_public_aliases(repository_root), expected)
+
     def test_schema_materializes_two_independent_five_round_budgets(self):
         schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
         review = schema["properties"]["review"]
