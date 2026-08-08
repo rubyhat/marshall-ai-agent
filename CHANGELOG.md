@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.8](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.7...v0.6.8) (2026-08-08)
+
+
+### Исправления
+
+* **workflow:** require current reviewed publication schema ([#47](https://github.com/rubyhat/marshall-ai-agent/issues/47)) ([a290c65](https://github.com/rubyhat/marshall-ai-agent/commit/a290c65a1bdbb4a0abf81e1bb6328ea8332e7cbf))
+
 ## [0.6.7](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.6...v0.6.7) (2026-08-07)
 
 
