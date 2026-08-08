@@ -13,7 +13,8 @@ Confirm:
 - dependencies and multi-repository merge order are satisfied;
 - pull request is open and mergeable;
 - merge authority matches project policy;
-- review heartbeat is already deleted.
+- [finalize-codex-review-state.md](finalize-codex-review-state.md) returned
+  `archive_delete_merge_ready` for the exact current PR.
 
 If CI is pending, do not reuse the review heartbeat. Continue synchronously or create a separate CI/merge monitor only when the authorized endpoint or an explicit request permits it.
 

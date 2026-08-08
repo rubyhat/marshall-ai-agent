@@ -207,6 +207,24 @@ When `deliver-reviewed-change` is selected, generate:
   Codex task, containing the baseline and local correction state only, updated
   and read back after every local transition, then copied into each new PR
   heartbeat before that PR initializes its GitHub counter and history to zero;
+- active GitHub state owned only by the exact PR heartbeat, plus a terminal
+  snapshot stored under immutable repository and PR identity in retained
+  current-task state, saved and read back before heartbeat deletion; allow that
+  snapshot to resume only the same PR and never seed or constrain another PR;
+  store the PR head observed at terminal transition as `terminal_head_sha`,
+  distinct from the generation `head_sha`, and compare resume with the observed
+  terminal head, including after `head_mismatch`;
+  require pause without deletion when the exact PR identity or required state
+  cannot be proven, updated, or read back;
+- a provisional exact-PR heartbeat created and read back before any remote
+  review request, then updated and read back with the proven request identity;
+  require the same addressable-heartbeat and request-identity transition for
+  every initial, retry, and contextual request;
+  require an unchanged head from a terminal snapshot to return its recorded
+  outcome without creating a heartbeat or posting another review request;
+- one centralized `finalize_codex_review_state` procedure with an exhaustive
+  terminal-reason matrix; require every terminal branch to call it and forbid
+  duplicated snapshot, deletion, or pause rules in branch runbooks;
 - bounded cycle analysis on exhaustion and scope-drift gates that reject
   generalized hardening, unsubstantiated edge cases, unrelated defects, and
   unexplained material cumulative diff growth.

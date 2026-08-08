@@ -100,7 +100,10 @@ Stop here when the authorized endpoint is only pull-request creation.
 
 Read [start-codex-review-cycle.md](references/start-codex-review-cycle.md).
 
-Bind the generation to the exact pull request and current head SHA. Post the configured review request, capture its comment ID and timestamp, initialize attempt and heartbeat counters, and create or update one thread heartbeat with durable state and explicit stop conditions.
+Bind the generation to the exact pull request and current head SHA. Create and
+read back its durable heartbeat before the first review request. For every
+initial, retry, or contextual request, post only from an addressable exact-PR
+heartbeat, then attach and read back the new request identity before monitoring.
 
 A new pushed head starts a new generation and resets only its technical request
 budget. It does not reset the GitHub correction-round budget, delivery baseline,
@@ -109,6 +112,8 @@ or correction history. Old events cannot complete the new generation.
 ### 5. Monitor through the state machine
 
 Read [monitor-codex-review-state-machine.md](references/monitor-codex-review-state-machine.md).
+Read [finalize-codex-review-state.md](references/finalize-codex-review-state.md)
+before any terminal review transition.
 
 On each heartbeat, inspect the exact request comment, reactions, pull-request head, state, and all configured response channels after the current request timestamp. Use the prescribed evaluation order. Never interpret silence as `in_progress`, and never continue monitoring after a terminal state.
 
@@ -137,6 +142,9 @@ Read [classify-and-handle-review-findings.md](references/classify-and-handle-rev
   or GitHub correction package would exceed its configured independent limit.
 - Stop on uncertainty that could change scope, architecture, security, or task outcome.
 
+For every terminal finding outcome, select its terminal reason and apply
+[finalize-codex-review-state.md](references/finalize-codex-review-state.md).
+
 Do not delegate branch changes to a remote reviewer by default. Keep fixes in the controlled local task worktree.
 
 ### 7. Recover or stop deterministically
@@ -151,14 +159,16 @@ Apply the configured request and waiting budgets exactly. For the project policy
 - treat an allowed reviewer acknowledgment on the exact request as non-terminal `in_progress`;
 - stop after the configured acknowledged-without-result budget;
 - let an explicit start error consume the current request attempt;
-- delete the heartbeat and report once when any budget is exhausted.
+- apply [finalize-codex-review-state.md](references/finalize-codex-review-state.md)
+  with the exact exhausted-budget terminal reason.
 
 ### 8. Treat clean review as terminal
 
 When the current generation has a clean verdict and no new actionable findings:
 
-1. set review state to `clean`;
-2. delete the review heartbeat immediately;
+1. apply [finalize-codex-review-state.md](references/finalize-codex-review-state.md)
+   with `clean`;
+2. continue only after it returns `archive_delete_merge_ready`;
 3. never request another review for that unchanged head;
 4. ask `manage-project-work` to apply the configured merge-ready status;
 5. report review success once.
@@ -180,6 +190,7 @@ Persist at least:
 - task and pull-request identity;
 - authorized endpoint;
 - current head SHA and generation;
+- terminal-observed head SHA when the state is terminal;
 - request attempt, comment ID, and timestamp;
 - silent, acknowledged-wait, and explicit-error counters;
 - the immutable delivery-baseline fingerprint;
@@ -189,10 +200,11 @@ Persist at least:
 - last-seen event IDs;
 - current state and terminal reason.
 
-Update and read back only the exact PR heartbeat after every GitHub review
-transition. Never synchronize its GitHub counter or history with another PR.
-If durable state cannot be updated or reread, stop the monitor rather than
-continuing statelessly.
+Update and read back only the exact PR heartbeat after every active GitHub
+review transition. Apply
+[finalize-codex-review-state.md](references/finalize-codex-review-state.md) for
+every terminal transition. Never synchronize, copy, or derive one PR's GitHub
+counter or history from another PR.
 
 ## Coordinate with adjacent skills
 

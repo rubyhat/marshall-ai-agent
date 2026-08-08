@@ -464,10 +464,21 @@
             "persist_and_read_back_after_each_local_transition",
             "github_correction_budget_scope",
             "github_counter_owner",
+            "active_github_state_store",
+            "terminal_github_state_store",
+            "terminal_github_state_scope",
+            "heartbeat_deletion_requires_terminal_snapshot_readback",
+            "terminal_snapshot_records_observed_terminal_head",
+            "terminal_finalization_procedure",
+            "terminal_state_matrix_required",
+            "terminal_rules_must_not_be_duplicated",
             "new_pull_request_starts_github_counter_at_zero",
             "different_pull_requests_do_not_share_counters_or_histories",
+            "different_pull_requests_do_not_share_terminal_state",
             "github_dismissed_finding_fingerprints_scope",
             "github_heartbeat_state_scope",
+            "github_heartbeat_exists_before_review_request",
+            "same_head_terminal_snapshot_forbids_new_request",
             "different_conversation_requires_proven_state",
             "resume_requires_provable_counters_and_history",
             "lost_history_stops_delivery",
@@ -492,15 +503,32 @@
               "const": true
             },
             "github_correction_budget_scope": {"const": "pull_request"},
-            "github_counter_owner": {"const": "exact_pr_heartbeat"},
+            "github_counter_owner": {"const": "exact_pr_state"},
+            "active_github_state_store": {"const": "exact_pr_heartbeat"},
+            "terminal_github_state_store": {"const": "current_codex_task"},
+            "terminal_github_state_scope": {"const": "pull_request"},
+            "heartbeat_deletion_requires_terminal_snapshot_readback": {
+              "const": true
+            },
+            "terminal_snapshot_records_observed_terminal_head": {"const": true},
+            "terminal_finalization_procedure": {
+              "const": "finalize_codex_review_state"
+            },
+            "terminal_state_matrix_required": {"const": true},
+            "terminal_rules_must_not_be_duplicated": {"const": true},
             "new_pull_request_starts_github_counter_at_zero": {"const": true},
             "different_pull_requests_do_not_share_counters_or_histories": {
+              "const": true
+            },
+            "different_pull_requests_do_not_share_terminal_state": {
               "const": true
             },
             "github_dismissed_finding_fingerprints_scope": {
               "const": "pull_request"
             },
             "github_heartbeat_state_scope": {"const": "pull_request"},
+            "github_heartbeat_exists_before_review_request": {"const": true},
+            "same_head_terminal_snapshot_forbids_new_request": {"const": true},
             "different_conversation_requires_proven_state": {"const": true},
             "resume_requires_provable_counters_and_history": {"const": true},
             "lost_history_stops_delivery": {"const": true},
@@ -517,8 +545,7 @@
           "properties": {
             "max_correction_rounds": {
               "type": "integer",
-              "minimum": 1,
-              "maximum": 5,
+              "const": 5,
               "default": 5
             },
             "fresh_review_after_each_correction_package": {"const": true}
@@ -535,8 +562,7 @@
           "properties": {
             "max_correction_rounds": {
               "type": "integer",
-              "minimum": 1,
-              "maximum": 5,
+              "const": 5,
               "default": 5
             },
             "fresh_generation_after_each_correction_package": {"const": true},

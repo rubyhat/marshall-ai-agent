@@ -316,6 +316,31 @@ counter и ordered history. Первый review generation нового PR на�
 пять раундов с нуля. Counters, histories, dismissed-finding fingerprints и
 heartbeat state разных PR не синхронизируются.
 
+Пока review активен, GitHub state хранится в heartbeat точного PR. Перед
+отправкой review request workflow сначала создаёт и перечитывает provisional
+heartbeat этого PR, затем добавляет в него доказанный request identity и снова
+перечитывает state. Поэтому между remote request и мониторингом не возникает
+неперсистентного состояния. Тот же переход обязателен для initial request,
+technical retry и contextual re-review.
+
+Перед
+удалением heartbeat при clean review, исчерпании budget или другом terminal
+state workflow сохраняет и перечитывает terminal snapshot в retained state
+текущей Codex-задачи под immutable identity этого PR. Snapshot позволяет
+доказуемо продолжить только тот же PR после нового head. На неизменённом head
+он возвращает уже зафиксированный terminal outcome без нового heartbeat или
+review request. Для сравнения используется отдельный `terminal_head_sha` —
+фактически наблюдавшийся head при terminal transition, а не привязанный к
+generation `head_sha`; это сохраняет fail-closed поведение при `head_mismatch`.
+Snapshot никогда не служит
+counter либо history для другого PR. Если identity PR или обязательный state
+нельзя доказать, heartbeat ставится на pause без удаления и без выдуманного
+snapshot.
+
+Все terminal branches выбирают reason из единой матрицы и вызывают
+`finalize_codex_review_state`; snapshot/delete/pause правила не копируются в
+отдельные ветки workflow.
+
 Head после пятого разрешённого пакета всё равно проходит review. Если ему нужна
 шестая правка, workflow останавливается до edit, commit, push или нового review
 request и возвращает cycle analysis: исходный и текущий diff, все findings и
@@ -584,11 +609,22 @@ exact manifest, а `push_before_clean_review` установить в `false`. �
       "pre_pr_state_store": "current_codex_task",
       "persist_and_read_back_after_each_local_transition": true,
       "github_correction_budget_scope": "pull_request",
-      "github_counter_owner": "exact_pr_heartbeat",
+      "github_counter_owner": "exact_pr_state",
+      "active_github_state_store": "exact_pr_heartbeat",
+      "terminal_github_state_store": "current_codex_task",
+      "terminal_github_state_scope": "pull_request",
+      "heartbeat_deletion_requires_terminal_snapshot_readback": true,
+      "terminal_snapshot_records_observed_terminal_head": true,
+      "terminal_finalization_procedure": "finalize_codex_review_state",
+      "terminal_state_matrix_required": true,
+      "terminal_rules_must_not_be_duplicated": true,
       "new_pull_request_starts_github_counter_at_zero": true,
       "different_pull_requests_do_not_share_counters_or_histories": true,
+      "different_pull_requests_do_not_share_terminal_state": true,
       "github_dismissed_finding_fingerprints_scope": "pull_request",
       "github_heartbeat_state_scope": "pull_request",
+      "github_heartbeat_exists_before_review_request": true,
+      "same_head_terminal_snapshot_forbids_new_request": true,
       "different_conversation_requires_proven_state": true,
       "resume_requires_provable_counters_and_history": true,
       "lost_history_stops_delivery": true,

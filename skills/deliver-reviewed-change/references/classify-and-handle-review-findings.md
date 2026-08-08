@@ -36,12 +36,17 @@ follow-up work as non-actionable for this delivery.
 9. start a new review generation with reset technical request counters and the
    unchanged GitHub correction counter.
 
+If the scope, contract, architecture, ownership, or cumulative-diff gate in
+step 2 stops the finding workflow, apply
+[finalize-codex-review-state.md](finalize-codex-review-state.md) with
+`scope_or_contract_stop` before returning its owning-workflow handoff.
+
 Old clean verdicts and comments cannot complete the new head.
 
 The head produced by the final allowed GitHub correction round still receives
-review. If another real package is required, delete the heartbeat and stop
-before editing, commit, push, or another review request. Return the bounded
-cycle analysis instead.
+review. If another real package is required, apply the terminal procedure with
+`github_correction_budget_exhausted` and stop before editing, commit, push, or
+another review request. Return its bounded cycle analysis instead.
 
 ## Answer a false or intentionally excluded finding
 
@@ -52,7 +57,13 @@ Do not change code. Reply with:
 - why no change belongs in the current PR;
 - a request to ignore that item and continue reviewing the remaining diff.
 
-Then create a contextual review request containing the configured trigger only if the current head still has request budget. If no attempt remains, stop and report the finding plus rationale instead of exceeding the configured limit. Do not claim a follow-up is tracked unless its canonical task exists.
+Then create a contextual review request containing the configured trigger only
+if the current head still has request budget. Use both the `Create one request
+attempt` and `Attach and verify the request identity` sections of
+[start-codex-review-cycle.md](start-codex-review-cycle.md). If no attempt remains,
+apply the terminal procedure with `request_budget_exhausted` and report the
+finding plus rationale instead of exceeding the configured limit. Do not claim
+a follow-up is tracked unless its canonical task exists.
 
 Do not automatically resolve the thread. Preserve the visible rationale.
 
@@ -67,10 +78,13 @@ Persist a semantic fingerprint using:
 
 Do not rely on exact comment text. If the reviewer returns the same semantic finding once after the contextual re-review:
 
-1. stop the heartbeat;
+1. apply the terminal procedure with `repeated_dismissed_finding`;
 2. do not argue or request review again;
 3. report the repeated finding and prior rationale to the user.
 
 ## Stop on uncertainty
 
-Return to the user or owning workflow when resolving a finding would change outcome, task scope, architecture, permissions, security posture, data contract, dependency order, or explicit non-goal.
+When uncertainty would change outcome, task scope, architecture, permissions,
+security posture, data contract, dependency order, or an explicit non-goal,
+apply the terminal procedure with `scope_or_contract_stop` and return its
+owning-workflow handoff.

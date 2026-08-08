@@ -10,6 +10,7 @@ bounded independently while preserving one exact task contract.
 - [Enforce the local-review budget](#enforce-the-local-review-budget)
 - [Enforce the GitHub-review budget](#enforce-the-github-review-budget)
 - [Scope GitHub state per pull request](#scope-github-state-per-pull-request)
+- [Finalize terminal per-PR state centrally](#finalize-terminal-per-pr-state-centrally)
 - [Stop scope drift before editing](#stop-scope-drift-before-editing)
 - [Stop fail-closed and report the cycle](#stop-fail-closed-and-report-the-cycle)
 
@@ -109,8 +110,9 @@ that PR's GitHub correction counter or history.
 
 The head produced by the final allowed GitHub round still receives review. If
 it receives another real actionable finding, stop before another edit, commit,
-push, review request, or heartbeat wait. Delete the review heartbeat before
-reporting the stop.
+push, review request, or heartbeat wait. Apply
+[finalize-codex-review-state.md](finalize-codex-review-state.md) with
+`github_correction_budget_exhausted`.
 
 ## Scope GitHub state per pull request
 
@@ -119,10 +121,18 @@ correction packages. Its first review generation starts at zero with an empty
 history. Every later head and generation of that same PR preserves its counter
 and history, while another PR starts its own counter at zero.
 
-Persist GitHub counters, histories, dismissed fingerprints, heads, generations,
-and technical request state only in the exact PR heartbeat. Never copy or
-synchronize them between PRs. A clean verdict completes only that PR's review;
-it cannot complete another PR or change another PR's budget.
+While review is active, persist GitHub counters, histories, dismissed
+fingerprints, heads, generations, and technical request state only in the exact
+PR heartbeat. Never copy or synchronize them between PRs. A clean verdict
+completes only that PR's review; it cannot complete another PR or change another
+PR's budget.
+
+## Finalize terminal per-PR state centrally
+
+Use [finalize-codex-review-state.md](finalize-codex-review-state.md) as the only
+owner of terminal snapshot, readback, heartbeat deletion, and pause behavior.
+Every terminal branch must select one matrix reason and apply that procedure.
+Do not duplicate its mutation rules in another runbook.
 
 ## Stop scope drift before editing
 
@@ -163,12 +173,14 @@ cycle analysis containing:
 
 Resume local review only when the baseline, local counter, and local ordered
 history are provable from retained task state. Resume GitHub review only when
-the exact PR heartbeat proves that PR's counter and ordered history. A different
-PR is not a resume and starts its own GitHub counter at zero. Do not invent
-repository-local runtime files, locks, or archives.
+the exact PR's active heartbeat or verified terminal snapshot proves that PR's
+counter and ordered history. A different PR is not a resume and starts its own
+GitHub counter at zero. Do not invent repository-local runtime files, locks, or
+archives.
 
 If interruption or resume makes the state uncertain, fail closed. A different
 conversation is not an automatic continuation unless it can prove the exact
 retained state. Do not reset either counter or start a nominally new attempt
 automatically. Require an explicit user decision after presenting the known
-history and uncertainty.
+history and uncertainty. If an active heartbeat exists, apply the terminal
+procedure with `lost_or_contradictory_state` or `pr_identity_ambiguous`.

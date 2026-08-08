@@ -94,7 +94,23 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   For multi-repository delivery, require one independent GitHub correction
   counter per PR: a new PR starts at zero, a new head preserves the same PR's
   counter, and different PRs do not share or synchronize counters, histories,
-  dismissed-finding fingerprints, or heartbeat state.
+  dismissed-finding fingerprints, heartbeat state, or terminal state. Require
+  the active heartbeat to archive and read back a terminal snapshot keyed by
+  exact repository and immutable PR identity before deletion; that snapshot may
+  resume only the same PR. Confirm it stores the PR head observed at terminal
+  transition as `terminal_head_sha`, separate from the generation `head_sha`,
+  and uses the observed terminal head for resume, including `head_mismatch`. If
+  exact PR identity or required state is not
+  provable, require pause without heartbeat deletion or a fabricated snapshot.
+  Confirm a provisional exact-PR heartbeat is persisted and read back before a
+  remote review request, then updated and reread with proven request identity.
+  Confirm every retry and contextual request uses the same heartbeat and
+  request-identity transition before monitoring.
+  Confirm an unchanged head from a terminal snapshot returns its recorded
+  outcome without another heartbeat or review request.
+  Confirm one `finalize_codex_review_state` procedure owns the exhaustive
+  terminal-reason matrix and every terminal branch delegates to it without
+  duplicating mutation rules.
 - Confirm reviewer context is bound to the exact task contract, acceptance
   criteria, non-goals, initial diff manifest and statistics. Generalized
   hardening, unsubstantiated edge cases, unrelated defects, and unexplained
