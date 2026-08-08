@@ -330,6 +330,39 @@ class DeliveryReviewContractTest(unittest.TestCase):
 
     def test_terminal_finalization_is_centralized_and_exhaustive(self):
         finalization = FINALIZATION.read_text(encoding="utf-8")
+        lines = finalization.splitlines()
+        contents_start = lines.index("## Contents") + 1
+        contents_end = next(
+            index
+            for index in range(contents_start, len(lines))
+            if lines[index].startswith("## ")
+        )
+        contents_lines = lines[contents_start:contents_end]
+        for heading, link in (
+            (
+                "Apply the terminal matrix",
+                "- [Apply the terminal matrix](#apply-the-terminal-matrix)",
+            ),
+            (
+                "Prove state before mutation",
+                "- [Prove state before mutation](#prove-state-before-mutation)",
+            ),
+            (
+                "Pause an open pull request",
+                "- [Pause an open pull request](#pause-an-open-pull-request)",
+            ),
+            (
+                "Reactivate only the same pull request",
+                "- [Reactivate only the same pull request](#reactivate-only-the-same-pull-request)",
+            ),
+            (
+                "Delete only after pull-request closure",
+                "- [Delete only after pull-request closure](#delete-only-after-pull-request-closure)",
+            ),
+        ):
+            with self.subTest(toc_link=link):
+                self.assertIn(f"## {heading}", lines)
+                self.assertIn(link, contents_lines)
         documented_matrix = finalization.split("```json\n", 1)[1].split(
             "\n```", 1
         )[0]

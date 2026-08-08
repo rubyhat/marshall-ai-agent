@@ -4,6 +4,14 @@ Use this procedure for every terminal GitHub review exit. Other runbooks must
 select a `terminal_reason` and call this procedure instead of restating pause,
 reactivation, or deletion rules.
 
+## Contents
+
+- [Apply the terminal matrix](#apply-the-terminal-matrix)
+- [Prove state before mutation](#prove-state-before-mutation)
+- [Pause an open pull request](#pause-an-open-pull-request)
+- [Reactivate only the same pull request](#reactivate-only-the-same-pull-request)
+- [Delete only after pull-request closure](#delete-only-after-pull-request-closure)
+
 ## Apply the terminal matrix
 
 Use the exact disposition for the selected reason:
