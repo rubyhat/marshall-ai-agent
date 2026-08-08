@@ -485,6 +485,10 @@ uncommitted candidate разрешён и при наличии раннего i
 как и для ещё не закоммиченного manifest, обязательна path/blob-OID equivalence.
 Объект materialized при setup как dormant policy, чтобы не менять конфигурацию
 посреди publication; наличие объекта само по себе не активирует checkpoint path.
+Content-changing correction сначала понижает verdict старого clean-reviewed
+head с `Ready for implementation` до `Spec ready`. Если в planning worktree
+остаётся excluded dirty path, workflow останавливается до checkpoint и выдаёт
+точный preservation/recovery handoff, не включая и не удаляя чужое изменение.
 
 При обновлении всего набора skills на exact tag v0.7.2 в этот объект нужно явно
 добавить разрешение checkpoint commit, обязательность deterministic checks и

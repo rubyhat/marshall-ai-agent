@@ -136,8 +136,12 @@ When `publish-planning-change` is selected, generate:
   manifest that already has an in-scope planning-branch commit. Preserve the
   separately bound uncommitted-review path when the manifest has no in-scope
   commit and for a complete mixed committed-plus-uncommitted candidate before
-  its first independent review. Do not generate persistent state, locks,
-  archives, migrations, or crash-recovery machinery for this counter;
+  its first independent review. Require a content-changing correction to
+  downgrade a stale implementation-ready verdict before its checkpoint, and
+  stop before checkpoint creation when an excluded dirty path would prevent a
+  clean worktree; do not absorb, stash, or delete that path. Do not generate
+  persistent state, locks, archives, migrations, or crash-recovery machinery
+  for this counter;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
   specification-owner ancestry, exact-task publication evidence, sync, and
   cleanup gates; require an ordinary publication record with evidence kind,

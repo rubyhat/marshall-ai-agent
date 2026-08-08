@@ -10,11 +10,12 @@ Publish only after the exact current spec head has a clean independent review.
    highest supported content verdict is already stored in that commit and that
    both HEAD and the worktree remain unchanged. Do not apply a post-review
    verdict mutation. Reuse that exact reviewed checkpoint for publication.
-4. If a clean checkpoint review explicitly authorizes a higher verdict that is
-   not stored yet, let `write-task-spec` apply only that verdict mutation from
-   the clean handoff. Rerun checks, create a replacement local checkpoint, and
-   obtain clean review for the replacement before publication. This mechanical
-   promotion does not consume a correction round.
+4. If a clean checkpoint review explicitly authorizes
+   `Ready for implementation` and it is not stored yet, let `write-task-spec`
+   apply only that verdict mutation from the clean handoff. Rerun checks, create
+   a replacement local checkpoint, and obtain clean review for the replacement
+   before publication. This mechanical promotion does not consume a correction
+   round.
 5. If step 3 fails for any other reason, invalidate the candidate clean review
    and stop rather than mutating or publishing an unreviewed checkpoint.
 6. For an uncommitted-review path that did not use a local correction

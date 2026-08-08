@@ -546,7 +546,11 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("committed_correction_review", review)
         self.assertIn("local-only correction checkpoint commit", review)
         self.assertIn("push policy must remain false", review)
-        self.assertIn("currently authorized content verdict", review)
+        self.assertIn("downgrade that stale verdict", review)
+        self.assertIn("to `Spec ready` as part of the same correction package", review)
+        self.assertIn("no dirty path\nexcluded from the exact publication manifest", review)
+        self.assertIn("stop before the checkpoint", review)
+        self.assertIn("Do not stash, delete, overwrite, or include", review)
         self.assertIn("apply only that verdict mutation", review)
         self.assertIn("do not consume another correction round", review)
         self.assertIn("pushed and published unchanged", review)
@@ -556,8 +560,12 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("Do not apply a post-review\n   verdict mutation", prepare)
         self.assertIn("Reuse that exact reviewed checkpoint", prepare)
         self.assertIn("invalidate the candidate clean review", prepare)
-        self.assertIn("explicitly authorizes a higher verdict", prepare)
-        self.assertIn("does not consume a correction round", prepare)
+        self.assertIn(
+            "explicitly authorizes\n   `Ready for implementation`", prepare
+        )
+        self.assertRegex(
+            prepare, r"does not consume a correction\s+round"
+        )
         self.assertIn("PR-head revision and tree OID to equal", prepare)
         self.assertIn("path/blob-OID equivalence alone is insufficient", prepare)
         self.assertIn("record only\n`direct_committed_base_diff`", prepare)

@@ -119,11 +119,14 @@ When a correction package after a non-clean review changes a publication
 manifest that already has an in-scope commit on the planning branch, require the
 configured `committed_correction_review` contract. For the supported
 `local_checkpoint_committed_base_diff` strategy, run deterministic checks,
-stage only the exact publication manifest, and make one authorized local-only
-correction checkpoint commit before review. Do not push that checkpoint until
-its exact head receives a clean committed-base-diff review. The checkpoint
-belongs to the current correction round; it is not publication evidence by
-itself.
+first downgrade a stale `Ready for implementation` verdict to `Spec ready`
+when correction content differs from its last clean-reviewed head. Require the
+planning worktree to contain no excluded dirty paths; otherwise stop before the
+checkpoint with an exact preservation/recovery handoff. Stage only the exact
+publication manifest and make one authorized local-only correction checkpoint
+commit before review. Do not push that checkpoint until its exact head receives
+a clean committed-base-diff review. The checkpoint belongs to the current
+correction round; it is not publication evidence by itself.
 Retain the exact uncommitted-review path when the manifest has no in-scope
 commit and for a complete mixed committed-plus-uncommitted candidate before its
 first independent review. Bind the complete candidate to the eventual head by

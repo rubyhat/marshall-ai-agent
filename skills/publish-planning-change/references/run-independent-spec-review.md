@@ -73,16 +73,25 @@ When a correction package after a non-clean review changes a publication
 manifest that already has an in-scope commit on the planning branch, require the
 materialized `committed_correction_review` configuration. Under the supported
 `local_checkpoint_committed_base_diff` strategy, require explicit permission
-for the checkpoint. Apply every in-scope correction while preserving the
-currently authorized content verdict, reread the exact package, rerun
-deterministic checks, and stage only the exact publication manifest.
+for the checkpoint. Apply every in-scope correction. When content now differs
+from the last clean-reviewed head and the stored verdict is
+`Ready for implementation`, let `write-task-spec` downgrade that stale verdict
+to `Spec ready` as part of the same correction package. Reread the exact package
+and rerun deterministic checks.
+
+Before staging, require that the planning worktree contains no dirty path
+excluded from the exact publication manifest. If an unrelated edit remains,
+stop before the checkpoint and return an exact path-by-path
+preservation/recovery handoff. Do not stash, delete, overwrite, or include that
+edit merely to obtain a clean worktree. After the excluded paths are safely
+absent from this planning worktree, stage only the exact publication manifest.
 Create one local-only correction checkpoint commit before review. Verify the
-worktree is then clean
-and the reviewer sees that exact checkpoint head against the canonical base.
+worktree is then clean and the reviewer sees that exact checkpoint head against
+the canonical base.
 The configured push policy must remain false until clean review. The checkpoint
 does not count as a second correction round or as clean-review evidence.
 
-When that clean review authorizes a higher content verdict that is not yet
+When that clean review authorizes `Ready for implementation` and it is not yet
 stored, let `write-task-spec` apply only that verdict mutation from the clean
 handoff. Reread the package, rerun deterministic checks, and create a
 replacement local-only checkpoint containing the promoted verdict. Obtain a
