@@ -47,6 +47,10 @@ Never evaluate silence before checking every response channel. Never let an ackn
 
 Pause waiting counters and run the finding workflow. Before a code fix, verify
 the finding is in scope and that another GitHub correction package is allowed.
+A workflow-owned fix may begin only after this exact PR heartbeat persists and
+reads back `findings_received`, the reviewed head, and paused automation status.
+Keep it paused through the head-changing push so this monitor cannot classify
+that controlled transition as an external `head_mismatch`.
 A permitted package increments this PR's GitHub counter exactly once; its code
 fix and push create a new head-bound generation without resetting that counter.
 An evidenced dismissal creates a contextual re-review and persists its semantic

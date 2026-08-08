@@ -214,7 +214,10 @@ When `deliver-reviewed-change` is selected, generate:
   every review-terminal outcome while the PR remains open, reactivate that same
   heartbeat only for an authorized later head of the same PR, and delete it only
   after provider evidence proves that exact PR merged or closed; never copy its
-  terminal state into retained current-task state or another PR;
+  terminal state into retained current-task state or another PR; before every
+  workflow-owned push that changes the PR head, require that heartbeat to persist
+  and read back a paused finding state, then reactivate it only after the pushed
+  head is proven;
   store the PR head observed at terminal transition as `terminal_head_sha`,
   distinct from the generation `head_sha`, and compare resume with the observed
   terminal head, including after `head_mismatch`; require pause without deletion

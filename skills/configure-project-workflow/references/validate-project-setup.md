@@ -102,7 +102,10 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   one exact-PR heartbeat to own both active and paused GitHub state. Confirm
   every review-terminal outcome pauses that heartbeat while the PR remains
   open, an authorized later head of the same PR reactivates that heartbeat, and
-  only provider-proven merge or close permits deletion. Confirm it stores the PR
+  only provider-proven merge or close permits deletion. Require every
+  workflow-owned push that changes the PR head to begin only after that heartbeat
+  persists and reads back a paused finding state, so its monitor cannot classify
+  the controlled push as an external `head_mismatch`. Confirm it stores the PR
   head observed at terminal transition as `terminal_head_sha`, separate from the
   generation `head_sha`, and uses the observed terminal head for resume,
   including `head_mismatch`. If exact PR identity or required state is not

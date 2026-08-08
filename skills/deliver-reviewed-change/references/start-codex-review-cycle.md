@@ -28,6 +28,13 @@ A push that changes head SHA invalidates the previous generation. Start a new
 generation with fresh technical request and waiting counters, but preserve the
 local correction state and this PR's GitHub correction counter and history.
 
+Before a workflow-owned push that will change the PR head, persist and read back
+the same exact PR heartbeat in paused finding state. Keep it paused until the
+push and new head readback finish, then reactivate that same automation for the
+new generation. If the old heartbeat was active during the push or ownership of
+the transition is not provable, apply `head_mismatch` fail-closed. Do not treat an
+unknown external head change as an authorized transition.
+
 Before every initial or later GitHub generation, read the retained current-task
 block and the exact PR state independently. Prove that their complete delivery
 baseline and fingerprint match. Copy the authoritative local correction counter

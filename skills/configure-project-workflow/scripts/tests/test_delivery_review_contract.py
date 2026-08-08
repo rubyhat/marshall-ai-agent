@@ -77,6 +77,7 @@ def complete_review_contract():
             "github_state_store": "exact_pr_heartbeat",
             "open_pull_request_terminal_state_pauses_heartbeat": True,
             "same_pull_request_resume_reactivates_heartbeat": True,
+            "owned_head_changing_push_requires_paused_heartbeat": True,
             "heartbeat_deletion_requires_pull_request_terminal": True,
             "terminal_head_records_observed_pr_head": True,
             "terminal_finalization_procedure": "finalize_codex_review_state",
@@ -282,6 +283,7 @@ class DeliveryReviewContractTest(unittest.TestCase):
         self.assertIn("Never copy PR-owned GitHub state back", start)
         self.assertIn("equal to `terminal_head_sha` does not\nstart another review cycle", start)
         self.assertIn("reactivate that same heartbeat", start)
+        self.assertIn("Before a workflow-owned push that will change", start)
         self.assertIn("Before posting a remote review trigger", start)
         self.assertIn("state is `request_not_created`", start)
         self.assertIn("For every initial, retry, or contextual request attempt", start)
@@ -304,6 +306,8 @@ class DeliveryReviewContractTest(unittest.TestCase):
         self.assertIn("`head_mismatch`", monitor)
         self.assertIn("give every PR its own GitHub correction counter", commits)
         self.assertIn("`scope_or_contract_stop`", findings)
+        self.assertIn("paused automation\n   status", findings)
+        self.assertIn("paused automation status", monitor)
         for path in (
             DELIVERY_ROOT / "references" / "monitor-codex-review-state-machine.md",
             RECOVERY,
@@ -431,6 +435,9 @@ class DeliveryReviewContractTest(unittest.TestCase):
         self.assertIn(
             "delete it only after provider evidence proves", normalized_generated
         )
+        self.assertIn(
+            "workflow-owned push that changes the PR head", normalized_generated
+        )
         self.assertIn("centralized `finalize_codex_review_state` procedure", generated)
         self.assertIn("terminal-reason matrix", generated)
         self.assertIn("observed at terminal transition as `terminal_head_sha`", generated)
@@ -440,6 +447,7 @@ class DeliveryReviewContractTest(unittest.TestCase):
         self.assertIn("separate positive correction-round limits set to five", validation)
         self.assertIn("не более пяти correction packages каждый", aliases)
         self.assertIn("heartbeat остаётся paused без удаления", aliases)
+        self.assertIn("Перед workflow-owned push", aliases)
         self.assertIn("Все terminal branches выбирают reason из единой матрицы", aliases)
         self.assertIn("отдельный `terminal_head_sha`", aliases)
         self.assertIn("сначала создаёт и перечитывает provisional", aliases)

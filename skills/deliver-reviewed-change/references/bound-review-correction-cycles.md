@@ -112,7 +112,9 @@ resulting request generation in that PR's ordered history.
 
 A pushed head in the same PR resets only the configured technical
 request-attempt and waiting counters for the new generation. It never resets
-that PR's GitHub correction counter or history.
+that PR's GitHub correction counter or history. Before a workflow-owned push,
+persist and read back the exact PR heartbeat in paused finding state; reactivate
+that same heartbeat only after the new head is proven.
 
 The head produced by the final allowed GitHub round still receives review. If
 it receives another real actionable finding, stop before another edit, commit,

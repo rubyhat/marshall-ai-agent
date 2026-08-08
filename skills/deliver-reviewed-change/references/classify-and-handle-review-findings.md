@@ -27,14 +27,22 @@ follow-up work as non-actionable for this delivery.
 2. stop on material scope, contract, architecture, ownership, or unexplained
    cumulative-diff growth;
 3. verify another GitHub correction round is available before editing;
-4. apply the smallest coherent fix in the task worktree and increment the
+4. persist and read back this finding, reviewed head, and paused automation
+   status in the exact PR heartbeat before editing;
+5. apply the smallest coherent fix in the task worktree and increment the
    GitHub counter once for the complete package;
-5. add or update relevant tests and run affected implementation gates;
-6. repeat local review when configured or material;
-7. commit and push intentionally;
-8. capture the new head SHA;
-9. start a new review generation with reset technical request counters and the
+6. add or update relevant tests and run affected implementation gates;
+7. repeat local review when configured or material;
+8. commit intentionally, then re-read the still-paused exact PR heartbeat before
+   a head-changing push;
+9. push and capture the new head SHA;
+10. reactivate that same heartbeat and start a new review generation with reset
+   technical request counters and the
    unchanged GitHub correction counter.
+
+If the heartbeat was active during the push or the owned transition cannot be
+proven, stop with `head_mismatch`; do not relabel an unknown external head as a
+workflow-owned push.
 
 If the scope, contract, architecture, ownership, or cumulative-diff gate in
 step 2 stops the finding workflow, apply

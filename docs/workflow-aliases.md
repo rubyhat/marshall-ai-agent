@@ -336,8 +336,11 @@ heartbeat точного PR, перечитывает state и ставит эт
 На неизменённом terminal head workflow возвращает уже зафиксированный outcome
 без нового review request. Авторизованный более поздний head того же PR повторно
 активирует тот же heartbeat с сохранёнными GitHub counter, history и
-fingerprints. Удалить heartbeat можно только после provider-доказательства, что
-точный PR merged или closed. Если identity PR или обязательный state нельзя
+fingerprints. Перед workflow-owned push, который изменит head, этот exact
+heartbeat обязательно сохраняется и перечитывается в paused finding state;
+поэтому monitor не может ошибочно финализировать controlled push как внешний
+`head_mismatch`. Удалить heartbeat можно только после provider-доказательства,
+что точный PR merged или closed. Если identity PR или обязательный state нельзя
 доказать, heartbeat остаётся paused без удаления и без выдуманного state.
 
 Все terminal branches выбирают reason из единой матрицы и вызывают
@@ -617,6 +620,7 @@ exact manifest, а `push_before_clean_review` установить в `false`. �
       "github_state_store": "exact_pr_heartbeat",
       "open_pull_request_terminal_state_pauses_heartbeat": true,
       "same_pull_request_resume_reactivates_heartbeat": true,
+      "owned_head_changing_push_requires_paused_heartbeat": true,
       "heartbeat_deletion_requires_pull_request_terminal": true,
       "terminal_head_records_observed_pr_head": true,
       "terminal_finalization_procedure": "finalize_codex_review_state",

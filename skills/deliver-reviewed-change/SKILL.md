@@ -147,6 +147,10 @@ Read [classify-and-handle-review-findings.md](references/classify-and-handle-rev
 For every terminal finding outcome, select its terminal reason and apply
 [finalize-codex-review-state.md](references/finalize-codex-review-state.md).
 
+Before any workflow-owned push that will change the PR head, persist and read
+back the exact PR heartbeat in paused finding state. After the push, reactivate
+that same heartbeat only through the verified new-generation transition.
+
 Do not delegate branch changes to a remote reviewer by default. Keep fixes in the controlled local task worktree.
 
 ### 7. Recover or stop deterministically
