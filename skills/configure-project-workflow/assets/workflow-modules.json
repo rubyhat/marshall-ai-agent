@@ -21,6 +21,7 @@
       "load-project-context",
       "record-project-context",
       "maintain-project-context",
+      "manage-project-work",
       "shape-project-work",
       "write-task-spec",
       "publish-planning-change",
@@ -120,8 +121,8 @@
       "name": "publish-planning-change",
       "group": "planning_publication",
       "config_section": "planning_publication",
-      "requires": ["write-task-spec"],
-      "recommended_with": ["manage-project-work", "execute-project-task"],
+      "requires": ["write-task-spec", "manage-project-work"],
+      "recommended_with": ["execute-project-task"],
       "aliases": ["--publish-spec"],
       "question_stages": ["shaping_and_specs", "review_and_delivery"]
     },
