@@ -69,6 +69,37 @@ itself. After applying a correction package, increment the counter exactly once,
 rerun affected checks, and request review of the new exact head. The corrected
 head produced by the final allowed round still receives that review.
 
+When the current publication manifest already has an in-scope commit on the
+planning branch and a correction changes it, require the materialized
+`committed_correction_review` configuration. Under the supported
+`local_checkpoint_committed_base_diff` strategy, require explicit permission
+for the checkpoint. Apply every in-scope correction while preserving the
+currently authorized content verdict, reread the exact package, rerun
+deterministic checks, and stage only the exact publication manifest.
+Create one local-only correction checkpoint commit before review. Verify the
+worktree is then clean
+and the reviewer sees that exact checkpoint head against the canonical base.
+The configured push policy must remain false until clean review. The checkpoint
+does not count as a second correction round or as clean-review evidence.
+
+When that clean review authorizes a higher content verdict that is not yet
+stored, let `write-task-spec` apply only that verdict mutation from the clean
+handoff. Reread the package, rerun deterministic checks, and create a
+replacement local-only checkpoint containing the promoted verdict. Obtain a
+clean committed-base-diff review for the replacement. This mechanical
+promotion and replacement review do not consume another correction round. The
+final clean-reviewed checkpoint must be pushed and published unchanged; do not
+apply another verdict mutation, amend it, or add another commit after review.
+Missing or incomplete strategy fields stop direct publication before the first
+checkpoint instead of authorizing a partial review.
+
+When the current publication manifest has no in-scope commit yet, keep the
+existing exact uncommitted-review path. Its candidate evidence becomes
+publishable only after the eventual committed head has the identical complete
+path/blob-OID manifest. This path does not use or bypass a committed-correction
+checkpoint; it uses the separately configured
+`verified_uncommitted_manifest_equivalence` binding method.
+
 One clean review for the current head is terminal. Do not keep requesting review
 for an unchanged clean specification. If the final allowed corrected head still
 has a blocking or actionable finding, stop before any further correction,

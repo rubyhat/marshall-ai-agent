@@ -115,6 +115,20 @@ package, rerun affected validation, and review the corrected exact head. A
 correction that reaches the configured maximum still receives this required
 review.
 
+When the current publication manifest already has an in-scope commit on the
+planning branch and a correction changes it, require the configured
+`committed_correction_review` contract. For the supported
+`local_checkpoint_committed_base_diff` strategy, run deterministic checks,
+stage only the exact publication manifest, and make one authorized local-only
+correction checkpoint commit before review. Do not push that checkpoint until
+its exact head receives a clean committed-base-diff review. The checkpoint
+belongs to the current correction round; it is not publication evidence by
+itself.
+When the current publication manifest has no in-scope commit yet, retain the
+existing exact uncommitted-review path and bind its manifest to the eventual
+commit by path/blob-OID equality; the committed-correction checkpoint is not a
+replacement for that separately bound path.
+
 Evaluate every finding against the shaped scope and sources of truth. Route a
 real content correction through `write-task-spec`; route a material outcome or
 scope change back to `shape-project-work`. Rerun affected validation and obtain
@@ -134,9 +148,13 @@ counter implicitly.
 
 Read [publish-reviewed-planning-change.md](references/publish-reviewed-planning-change.md).
 
-After clean review, let `write-task-spec` assign the highest supported content
-verdict for the reviewed head. Run deterministic checks, stage only the exact
-manifest, commit intentionally, push without force, create or reconcile the
+When clean review targeted a local correction checkpoint, reuse it unchanged if
+the highest supported verdict is already stored. If that clean handoff first
+authorizes a higher verdict, let `write-task-spec` apply only that mutation,
+create a replacement local checkpoint, and obtain clean review for the
+replacement without consuming another correction round. For a never-committed
+manifest, assign the authorized verdict, rerun review if that changes content,
+then create the intentional commit. Push without force, create or reconcile the
 exact pull request, and obey reported checks and branch protection. Merge only
 when the configured endpoint and current user authority allow it.
 

@@ -6,26 +6,49 @@ Publish only after the exact current spec head has a clean independent review.
 
 1. Rerun configured spec, link, schema, and documentation checks.
 2. Confirm the diff still matches the approved publication manifest.
-3. Ask `write-task-spec` to assign the highest supported content verdict for
-   the reviewed head.
-4. Reread every changed artifact after the verdict update.
-5. If the verdict update changes a tracked artifact, run the configured bounded
-   independent review against that resulting exact head. Do not publish a head
-   that differs from the clean-review evidence.
-6. Stage only explicit paths. Do not use a broad add when other changes exist.
-7. Create an intentional planning/spec commit using project conventions.
+3. If clean review targeted a local correction checkpoint, verify that the
+   highest supported content verdict is already stored in that commit and that
+   both HEAD and the worktree remain unchanged. Do not apply a post-review
+   verdict mutation. Reuse that exact reviewed checkpoint for publication.
+4. If a clean checkpoint review explicitly authorizes a higher verdict that is
+   not stored yet, let `write-task-spec` apply only that verdict mutation from
+   the clean handoff. Rerun checks, create a replacement local checkpoint, and
+   obtain clean review for the replacement before publication. This mechanical
+   promotion does not consume a correction round.
+5. If step 3 fails for any other reason, invalidate the candidate clean review
+   and stop rather than mutating or publishing an unreviewed checkpoint.
+6. For any path that did not use a local correction checkpoint, ask
+   `write-task-spec` to assign the highest supported content verdict, then
+   reread every changed artifact.
+7. If the verdict update in step 6 changes a tracked artifact, run the
+   configured bounded independent review against that resulting exact head. Do
+   not publish a head that differs from the clean-review evidence.
+8. When there is no reviewed checkpoint to reuse, stage only explicit paths;
+   do not use a broad add when other changes exist, then create an intentional
+   planning/spec commit using project conventions.
 
 After commit, resolve the exact PR-head revision and tree OID and rebuild the
 complete sorted publication-package path/blob-OID manifest. Bind the candidate
-clean-review record to that head only when the manifest exactly equals the one
-seen by the reviewer; require exact path/OID equality. Record whether binding
-was a direct committed-base-diff
-review or verified uncommitted-manifest equivalence. If identity, path set, or
-any blob OID differs, invalidate the candidate and run a fresh independent
-review for the new exact head before push or merge.
+clean-review record by its target kind. For a reviewed local correction
+checkpoint, require the PR-head revision and tree OID to equal
+the reviewed checkpoint exactly and record only
+`direct_committed_base_diff`; path/blob-OID equivalence alone is insufficient.
+For a never-committed manifest, bind candidate evidence to the eventual commit
+only when the complete manifest has exact path/OID equality, including every
+blob OID, and record `verified_uncommitted_manifest_equivalence`. If the
+required revision, tree,
+identity, path set, or any blob OID differs, invalidate the candidate and run a
+fresh independent review for the new exact head before push or merge.
 
 Do not include generated application output, implementation code, unrelated
 memory, or a release-version mutation.
+
+A local correction checkpoint is only a way to present a complete, clean,
+already committed planning diff to the reviewer. It must contain only the exact
+manifest including any required content-verdict update, must remain unpushed
+until clean review, and gains publication evidence only through the same
+exact-head and path/OID binding as any other reviewed commit. Once clean, do
+not amend, replace, or add a commit before pushing that exact checkpoint.
 
 ## Push and create the pull request
 

@@ -126,8 +126,17 @@ When `publish-planning-change` is selected, generate:
   publication alias was invoked. Count correction packages rather than
   findings, review the final allowed corrected head, and fail closed instead of
   resetting or resuming automatically when the exact counter and round history
-  cannot be proven. Do not generate persistent state, locks, archives,
-  migrations, or crash-recovery machinery for this counter;
+  cannot be proven. Materialize the required `committed_correction_review`
+  strategy as `local_checkpoint_committed_base_diff`: explicitly allow one
+  local checkpoint commit, require deterministic checks first, restrict it to
+  the exact publication manifest, and set push-before-clean-review to false. Do
+  materialize this dormant policy for every configured project so a later
+  correction does not require a mid-publication configuration mutation;
+  activate it only when the current publication manifest already has an
+  in-scope planning-branch commit and a correction changes it. Preserve the
+  separately bound uncommitted-review path when the manifest has no in-scope
+  commit yet. Do not generate persistent state, locks, archives, migrations,
+  or crash-recovery machinery for this counter;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
   specification-owner ancestry, exact-task publication evidence, sync, and
   cleanup gates; require an ordinary publication record with evidence kind,
