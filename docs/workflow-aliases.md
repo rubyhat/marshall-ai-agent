@@ -456,3 +456,18 @@ gates. Другие project schema versions не считаются частич
 `schema_version` незавершённого `.codex/project-workflow.setup.json` является
 версией отдельного setup-state формата и не обозначает поддерживаемую версию
 project configuration.
+
+### Переход на workflow kit v0.7.0
+
+В v0.7.0 текущий schema-v3 contract для `publish-planning-change` требует
+положительный `planning_publication.independent_review.max_correction_rounds`;
+значение по умолчанию для новой конфигурации — `5`. После пятого пакета
+исправлений corrected head всё ещё проходит обязательное ревью, но новый пакет
+изменений уже не начинается: workflow останавливается с анализом цикла.
+
+Проект с выбранным `publish-planning-change`, в конфигурации которого поля нет,
+считается невалидным и должен быть прямо перенастроен: синхронизировать все
+выбранные skills на один exact tag v0.7.0, сохранить `schema_version: 3`, добавить
+`max_correction_rounds: 5` и выполнить validation. Compatibility layer и
+автоматическая миграция не предусмотрены. Откат безопасен только совместно для
+конфигурации и всего набора skills на один прежний exact release tag.

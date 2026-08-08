@@ -120,9 +120,14 @@ When `publish-planning-change` is selected, generate:
 - exact primary/supporting artifact classes and forbidden implementation,
   release, deployment, production, secret, and unrelated paths;
 - fresh independent spec-review configuration with model and effort owned by
-  project configuration, scope guards, bounded attempts, and an explicit
-  process working directory bound to the exact planning worktree rather than
-  the checkout from which the publication alias was invoked;
+  project configuration, scope guards, a positive `max_correction_rounds`
+  value that defaults to `5`, and an explicit process working directory bound
+  to the exact planning worktree rather than the checkout from which the
+  publication alias was invoked. Count correction packages rather than
+  findings, review the final allowed corrected head, and fail closed instead of
+  resetting or resuming automatically when the exact counter and round history
+  cannot be proven. Do not generate persistent state, locks, archives,
+  migrations, or crash-recovery machinery for this counter;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
   specification-owner ancestry, exact-task publication evidence, sync, and
   cleanup gates; require an ordinary publication record with evidence kind,

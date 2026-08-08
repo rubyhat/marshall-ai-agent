@@ -54,10 +54,38 @@ Verify findings against primary sources before editing. Use `write-task-spec`
 for an in-scope content correction. Return a material product, architecture,
 scope, or decomposition change to `shape-project-work`.
 
-After a content change, rerun affected checks and review the new exact head.
-One clean generation for the current head is terminal. Do not keep requesting
-review for an unchanged clean spec. Apply configured attempt budgets and stop
-on repeated dismissed findings or scope instability.
+## Enforce the correction-round budget
+
+At the beginning of one new uninterrupted publication attempt:
+
+1. read the configured positive `max_correction_rounds`;
+2. set the in-process `correction_rounds_used` counter to zero;
+3. retain the ordered review results and correction packages for the attempt.
+
+One correction round is one bounded package of changes made in response to one
+non-clean review. Multiple findings corrected together consume one round; a
+finding, file, deterministic check, or clean review does not consume a round by
+itself. After applying a correction package, increment the counter exactly once,
+rerun affected checks, and request review of the new exact head. The corrected
+head produced by the final allowed round still receives that review.
+
+One clean review for the current head is terminal. Do not keep requesting review
+for an unchanged clean specification. If the final allowed corrected head still
+has a blocking or actionable finding, stop before any further correction,
+review request, commit, push, or publication. Do not start a sixth correction
+when `max_correction_rounds` is five.
+
+Report a bounded cycle analysis containing the reviewed heads, finding
+fingerprints and classifications, correction packages, still-open findings,
+and the reason the cycle persists. Return a material scope or outcome problem
+to planning; otherwise stop for an explicit user decision.
+
+Resume the same attempt only when the exact counter and ordered review/correction
+history are provable from the retained conversation state. If an interruption
+or resumed session makes either uncertain, fail closed: do not reset the counter
+or continue automatically. Require an explicit user decision before starting a
+new publication attempt. This limit does not require or authorize persistent
+runtime state files, locks, archives, migrations, or a crash-recovery protocol.
 
 Report the clean-review evidence without copying the full review transcript
 into the specification.
