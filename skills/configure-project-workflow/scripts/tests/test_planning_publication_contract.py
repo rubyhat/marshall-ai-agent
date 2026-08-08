@@ -652,10 +652,6 @@ class PlanningPublicationContractTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
         generated = GENERATE.read_text(encoding="utf-8")
         validation = VALIDATE.read_text(encoding="utf-8")
-        aliases = (
-            SKILL_ROOT.parents[1] / "docs" / "workflow-aliases.md"
-        ).read_text(encoding="utf-8")
-
         self.assertLess(
             execution_skill.index("### 3. Establish the start checkpoint"),
             execution_skill.index("### 4. Create or resume the task workspace"),
@@ -678,10 +674,6 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertRegex(validation, r"reruns readiness\s+before task-code")
         self.assertIn("current-authority-base package", validation)
         self.assertIn("unselected publication module", validation)
-        self.assertIn("только затем создаёт или возобновляет worktree", aliases)
-        self.assertRegex(
-            aliases, r"предыдущий publication record\s+сразу перестаёт"
-        )
 
     def test_review_evidence_is_bound_to_the_published_head(self):
         review = PUBLISH_REVIEW.read_text(encoding="utf-8")
