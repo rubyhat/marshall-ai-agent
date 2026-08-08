@@ -178,7 +178,8 @@
             "verify_reported_workdir_and_branch",
             "model",
             "effort",
-            "max_correction_rounds"
+            "max_correction_rounds",
+            "review_cycle_state"
           ],
           "properties": {
             "required": {"const": true},
@@ -204,6 +205,42 @@
               "type": "integer",
               "minimum": 1,
               "default": 5
+            },
+            "review_cycle_state": {
+              "type": "object",
+              "required": [
+                "storage_root",
+                "relative_directory",
+                "attempt_key_fields",
+                "tracked",
+                "atomic_write_and_readback",
+                "reserve_round_before_correction",
+                "missing_or_ambiguous_resume",
+                "retain_on_limit_stop",
+                "cleanup_after_successful_publication_only"
+              ],
+              "properties": {
+                "storage_root": {"const": "git_common_dir"},
+                "relative_directory": {
+                  "const": "codex/planning-publication"
+                },
+                "attempt_key_fields": {
+                  "const": [
+                    "task_id",
+                    "specification_owner_repository",
+                    "publication_branch"
+                  ]
+                },
+                "tracked": {"const": false},
+                "atomic_write_and_readback": {"const": true},
+                "reserve_round_before_correction": {"const": true},
+                "missing_or_ambiguous_resume": {
+                  "const": "stop_without_reset"
+                },
+                "retain_on_limit_stop": {"const": true},
+                "cleanup_after_successful_publication_only": {"const": true}
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": true

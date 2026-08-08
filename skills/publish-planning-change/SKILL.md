@@ -111,7 +111,10 @@ Before the first review, initialize a correction-round counter for this exact
 publication attempt from the configured `max_correction_rounds`. Count one
 round for each bounded correction package applied after a non-clean review,
 not for each finding or edited file. Preserve the counter across resumes of the
-same publication attempt.
+same publication attempt in the configured non-tracked Git-common-dir review
+cycle record. Create, atomically write, and reread that record before the first
+review; on resume, stop rather than resetting when the exact active record is
+missing, ambiguous, or inconsistent.
 
 Evaluate every finding against the shaped scope and sources of truth. Route a
 real content correction through `write-task-spec`; route a material outcome or

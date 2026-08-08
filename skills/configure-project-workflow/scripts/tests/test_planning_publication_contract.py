@@ -119,6 +119,21 @@ def complete_current_config():
                 "model": "test-reviewer",
                 "effort": "medium",
                 "max_correction_rounds": 5,
+                "review_cycle_state": {
+                    "storage_root": "git_common_dir",
+                    "relative_directory": "codex/planning-publication",
+                    "attempt_key_fields": [
+                        "task_id",
+                        "specification_owner_repository",
+                        "publication_branch",
+                    ],
+                    "tracked": False,
+                    "atomic_write_and_readback": True,
+                    "reserve_round_before_correction": True,
+                    "missing_or_ambiguous_resume": "stop_without_reset",
+                    "retain_on_limit_stop": True,
+                    "cleanup_after_successful_publication_only": True,
+                },
             },
             "readiness": {
                 "input_content_verdict": "spec_ready",
@@ -249,6 +264,27 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertEqual(
             independent_review["properties"]["max_correction_rounds"]["minimum"],
             1,
+        )
+        review_state = independent_review["properties"]["review_cycle_state"]
+        self.assertIn("review_cycle_state", independent_review["required"])
+        self.assertEqual(
+            review_state["properties"]["storage_root"]["const"],
+            "git_common_dir",
+        )
+        self.assertEqual(
+            review_state["properties"]["attempt_key_fields"]["const"],
+            [
+                "task_id",
+                "specification_owner_repository",
+                "publication_branch",
+            ],
+        )
+        self.assertTrue(
+            review_state["properties"]["reserve_round_before_correction"]["const"]
+        )
+        self.assertEqual(
+            review_state["properties"]["missing_or_ambiguous_resume"]["const"],
+            "stop_without_reset",
         )
         self.assertTrue(
             properties["readiness"]["properties"]
@@ -410,6 +446,11 @@ class PlanningPublicationContractTest(unittest.TestCase):
                 "planning_publication",
                 "independent_review",
                 "verify_reported_workdir_and_branch",
+            ),
+            (
+                "planning_publication",
+                "independent_review",
+                "review_cycle_state",
             ),
             ("planning_publication", "readiness", "ordinary_publication_evidence"),
             (
@@ -579,8 +620,14 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("correction_rounds_used", review)
         self.assertIn("Do not start a sixth correction", review)
         self.assertIn("review-cycle analysis", review)
-        self.assertIn("Preserve the counter", review)
+        self.assertIn("never creates a new attempt", review)
         self.assertIn("max_correction_rounds", generated)
+        self.assertIn("Git common directory", review)
+        self.assertIn("atomic rename", review)
+        self.assertIn("stage `reserved`", review)
+        self.assertIn("stop without resetting or guessing", review)
+        self.assertIn("retain it", review)
+        self.assertIn("non-tracked atomic review-cycle record", generated)
 
     def test_direct_publication_requires_schema_v3(self):
         publication_skill = PUBLISH_SKILL.read_text(encoding="utf-8")

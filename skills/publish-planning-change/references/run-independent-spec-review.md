@@ -54,14 +54,41 @@ Verify findings against primary sources before editing. Use `write-task-spec`
 for an in-scope content correction. Return a material product, architecture,
 scope, or decomposition change to `shape-project-work`.
 
-Before the initial review, set `correction_rounds_used` to zero and read the
-positive integer `max_correction_rounds` from project configuration. A
-correction round is one bounded package of accepted current-spec changes made
-after a non-clean verdict; multiple findings fixed together count as one round.
-Increment the counter once after applying that package, then rerun affected
-checks and review the new exact head. Preserve the counter when the same
-publication attempt is resumed; do not reset it because the session, process,
-commit, or reviewer run changed.
+Before the initial review, read the positive integer `max_correction_rounds`
+and `review_cycle_state` contract from project configuration. Resolve the
+specification-owner repository's Git common directory with
+`git rev-parse --git-common-dir`; never put runtime state in the planning
+worktree or publication manifest. Under the configured relative directory,
+derive one path-safe attempt key from the exact Task ID, specification-owner
+repository, and publication branch. Permit only one active attempt for that
+key.
+
+Create a non-tracked JSON record before the first review with at least:
+
+- `record_kind`, `attempt_id`, and the exact attempt-key tuple;
+- Task ID, specification-owner repository, publication branch, planning
+  worktree, and canonical base revision at attempt start;
+- `max_correction_rounds`, `correction_rounds_used: 0`, and current stage;
+- an initially empty `rounds` array plus created/updated timestamps.
+
+Write with a same-directory temporary file and atomic rename, then reread and
+verify the complete record before continuing. On resume, locate and reread the
+single active record by its exact attempt key. Confirm its task, repository,
+branch, configured maximum, worktree/branch identity, counter, round history,
+and current Git state. If the record is missing, duplicated, unreadable, or
+inconsistent, stop without resetting or guessing. A new session, process,
+commit, worktree relocation, or reviewer run never creates a new attempt.
+
+A correction round is one bounded package of accepted current-spec changes
+made after a non-clean verdict; multiple findings fixed together count as one
+round. Before editing, verify `correction_rounds_used < max_correction_rounds`,
+reserve the next round by incrementing the counter and appending its source
+review/head and accepted finding fingerprints with stage `reserved`, then
+atomically write and reread the record. Only after that readback may the content
+mutation begin. A crash after reservation consumes that round; resume must
+reconcile and finish or explicitly abandon it, never decrement it. After the
+package, record its exact changed-path/blob manifest and stage, reread again,
+rerun affected checks, and review the new exact head.
 
 The corrected head after `correction_rounds_used == max_correction_rounds`
 still receives its required review. If that review is clean, continue. If it
@@ -75,7 +102,11 @@ of each finding, the correction package applied in each round, the still-open
 findings, and whether repetition, scope instability, or an unresolved product
 or architecture decision is driving the loop. Return the specification to
 discussion/planning and require explicit user direction or a materially revised
-shaped contract before starting a new publication attempt.
+shaped contract before starting a new publication attempt. Mark the record
+`limit_reached`, persist the analysis reference, and retain it. Remove the
+active record only after successful publication and canonical evidence
+readback. Starting a replacement attempt after a limit stop requires explicit
+user direction and archival of the stopped record; never overwrite it.
 
 One clean generation for the current head is terminal. Do not keep requesting
 review for an unchanged clean spec. Apply separate configured request-attempt

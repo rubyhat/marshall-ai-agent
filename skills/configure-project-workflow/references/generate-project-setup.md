@@ -122,9 +122,11 @@ When `publish-planning-change` is selected, generate:
 - fresh independent spec-review configuration with model and effort owned by
   project configuration, scope guards, a positive explicit
   `max_correction_rounds` value defaulting to five, separate bounded request
-  attempts, and an explicit process working directory bound to the exact
-  planning worktree rather than the checkout from which the publication alias
-  was invoked;
+  attempts, a non-tracked atomic review-cycle record under the specification
+  owner's Git common directory that reserves rounds before correction and
+  stops rather than resets on missing or ambiguous resume state, and an
+  explicit process working directory bound to the exact planning worktree
+  rather than the checkout from which the publication alias was invoked;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
   specification-owner ancestry, exact-task publication evidence, sync, and
   cleanup gates; require an ordinary publication record with evidence kind,
