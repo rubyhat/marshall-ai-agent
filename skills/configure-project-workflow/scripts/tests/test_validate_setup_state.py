@@ -161,7 +161,7 @@ class ValidateSetupStateTest(unittest.TestCase):
         errors, _ = self.module.validate(state, self.catalog)
         self.assertIn("modules.enabled_aliases is required", errors)
 
-    def test_publish_spec_requires_spec_writer(self):
+    def test_publish_spec_requires_spec_writer_and_task_manager(self):
         state = self.valid_state()
         state["modules"]["selected"] = [
             "configure-project-workflow",
@@ -171,6 +171,9 @@ class ValidateSetupStateTest(unittest.TestCase):
         errors, _ = self.module.validate(state, self.catalog)
         self.assertIn(
             "Module publish-planning-change requires write-task-spec", errors
+        )
+        self.assertIn(
+            "Module publish-planning-change requires manage-project-work", errors
         )
 
     def test_publish_spec_alias_requires_selected_owner(self):
@@ -186,6 +189,7 @@ class ValidateSetupStateTest(unittest.TestCase):
         for profile in ("full_product", "core_development"):
             with self.subTest(profile=profile):
                 selected = self.catalog["profiles"][profile]
+                self.assertIn("manage-project-work", selected)
                 self.assertIn("write-task-spec", selected)
                 self.assertIn("publish-planning-change", selected)
                 self.assertIn("execute-project-task", selected)
