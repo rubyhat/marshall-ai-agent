@@ -89,6 +89,38 @@ Git state. If the record is missing, duplicated, unreadable, or inconsistent,
 stop without resetting or guessing. A new session, process, commit, worktree
 relocation, or reviewer run never creates a new attempt.
 
+There is one migration-only case for a publication attempt that began before
+durable review-cycle state was introduced. When the exact task has in-flight
+planning changes, branch, worktree, or pull request evidence but no state
+record, freeze all review, content, Git, and publication mutations. Do not
+adopt it by setting the counter to zero and do not use ordinary missing-state
+recovery. After explicit user approval to cancel that legacy process while
+preserving its content:
+
+1. acquire the attempt lock and inventory the exact task, owner repository,
+   branch, worktree, canonical base, current head/tree, pull request when any,
+   and complete path/blob publication manifest. Also capture a sorted exact
+   dirty-state manifest: every staged, unstaged, untracked, deleted, renamed,
+   type-changed, and submodule entry; original and destination paths for
+   renames; index and worktree mode; index blob OID when present; worktree or
+   untracked content OID computed without writing an object; explicit deletion
+   markers; submodule commit/status when applicable; and a digest of the
+   complete serialized manifest;
+2. create an archive-only record with a new migration record ID, status
+   `cancelled_during_durable_state_migration`, the complete inventory,
+   `correction_rounds_used: unknown`, and no clean-review claim;
+3. atomically write, archive, and reread that record before releasing the lock;
+   leave the planning worktree and content untouched;
+4. only after that readback and separate explicit user authority, create a new
+   active attempt with a new attempt ID, counter zero, the exact preserved input
+   manifest, and `migrates_from_attempt_id` pointing to the archive;
+5. invalidate all legacy review verdicts and require a fresh independent review
+   of the replacement attempt before any publication action.
+
+If the inventory or archive readback cannot be completed, stop. This transition
+is a one-time migration for pre-state attempts, not compatibility behavior for
+an invalid current-schema configuration and not a general counter reset path.
+
 A correction round is one bounded package of accepted current-spec changes
 made after a non-clean verdict; multiple findings fixed together count as one
 round. Before editing, verify `correction_rounds_used < max_correction_rounds`,

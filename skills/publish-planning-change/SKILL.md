@@ -119,6 +119,13 @@ configured per-attempt exclusive lock. A material reshaping handoff archives
 the active attempt and its consumed-round history before an explicitly accepted
 revised shaped contract may start a replacement attempt.
 
+For an in-flight pre-adoption publication that has no durable record, never
+invent a counter or treat the missing record as a fresh attempt. Use only the
+configured explicit cancel/archive/restart migration: preserve the exact Git
+and package state including a content-addressed dirty-state manifest, archive
+the legacy attempt with an unknown counter, and require explicit user authority
+plus a fresh review for a replacement attempt.
+
 Evaluate every finding against the shaped scope and sources of truth. Route a
 real content correction through `write-task-spec`; route a material outcome or
 scope change back to `shape-project-work`. Rerun affected validation and obtain

@@ -222,6 +222,10 @@
                 "stale_lock_recovery",
                 "reserve_round_before_correction",
                 "missing_or_ambiguous_resume",
+                "pre_state_attempt_migration",
+                "unknown_legacy_counter_handling",
+                "replacement_requires_explicit_user_authority",
+                "replacement_requires_fresh_review",
                 "archive_on_material_reshaping",
                 "retain_on_limit_stop",
                 "cleanup_after_successful_publication_only"
@@ -259,6 +263,14 @@
                 "missing_or_ambiguous_resume": {
                   "const": "stop_without_reset"
                 },
+                "pre_state_attempt_migration": {
+                  "const": "explicit_cancel_archive_and_restart"
+                },
+                "unknown_legacy_counter_handling": {
+                  "const": "archive_as_unknown_never_assume_zero"
+                },
+                "replacement_requires_explicit_user_authority": {"const": true},
+                "replacement_requires_fresh_review": {"const": true},
                 "archive_on_material_reshaping": {"const": true},
                 "retain_on_limit_stop": {"const": true},
                 "cleanup_after_successful_publication_only": {"const": true}

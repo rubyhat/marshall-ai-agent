@@ -127,9 +127,11 @@ When `publish-planning-change` is selected, generate:
   monotonic state revision, reserves rounds before correction, stops rather
   than resets on missing or ambiguous resume state, and archives complete
   consumed-round history before a user-accepted material reshaping can start a
-  replacement attempt; plus an explicit process working directory bound to the
-  exact planning worktree rather than the checkout from which the publication
-  alias was invoked;
+  replacement attempt, and provides one explicit cancel/archive/restart
+  migration for pre-state in-flight attempts without ever assuming an unknown
+  legacy counter is zero; plus an explicit process working directory bound to
+  the exact planning worktree rather than the checkout from which the
+  publication alias was invoked;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
   specification-owner ancestry, exact-task publication evidence, sync, and
   cleanup gates; require an ordinary publication record with evidence kind,

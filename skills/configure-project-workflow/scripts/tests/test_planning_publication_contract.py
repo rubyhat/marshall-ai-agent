@@ -142,6 +142,14 @@ def complete_current_config():
                     "stale_lock_recovery": "explicit_inspection",
                     "reserve_round_before_correction": True,
                     "missing_or_ambiguous_resume": "stop_without_reset",
+                    "pre_state_attempt_migration": (
+                        "explicit_cancel_archive_and_restart"
+                    ),
+                    "unknown_legacy_counter_handling": (
+                        "archive_as_unknown_never_assume_zero"
+                    ),
+                    "replacement_requires_explicit_user_authority": True,
+                    "replacement_requires_fresh_review": True,
                     "archive_on_material_reshaping": True,
                     "retain_on_limit_stop": True,
                     "cleanup_after_successful_publication_only": True,
@@ -312,6 +320,21 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertEqual(
             review_state["properties"]["missing_or_ambiguous_resume"]["const"],
             "stop_without_reset",
+        )
+        self.assertEqual(
+            review_state["properties"]["pre_state_attempt_migration"]["const"],
+            "explicit_cancel_archive_and_restart",
+        )
+        self.assertEqual(
+            review_state["properties"]["unknown_legacy_counter_handling"]["const"],
+            "archive_as_unknown_never_assume_zero",
+        )
+        self.assertTrue(
+            review_state["properties"]
+            ["replacement_requires_explicit_user_authority"]["const"]
+        )
+        self.assertTrue(
+            review_state["properties"]["replacement_requires_fresh_review"]["const"]
         )
         self.assertTrue(
             properties["readiness"]["properties"]
@@ -659,6 +682,14 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("retain it", review)
         self.assertIn("`superseded_by_reshaping`", review)
         self.assertIn("`supersedes_attempt_id`", review)
+        self.assertIn("cancelled_during_durable_state_migration", review)
+        self.assertIn("`correction_rounds_used: unknown`", review)
+        self.assertIn("sorted exact\n   dirty-state manifest", review)
+        self.assertIn("untracked content OID", review)
+        self.assertIn("explicit deletion\n   markers", review)
+        self.assertIn("digest of the\n   complete serialized manifest", review)
+        self.assertIn("`migrates_from_attempt_id`", review)
+        self.assertIn("one-time migration", review)
         self.assertIn("non-tracked atomic review-cycle record", generated)
 
     def test_direct_publication_requires_schema_v3(self):

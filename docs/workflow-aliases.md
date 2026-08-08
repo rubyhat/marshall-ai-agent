@@ -477,9 +477,20 @@ feature PR обязан быть squash-merged с Conventional Commit type `feat
    `review_cycle_state` из текущей schema/generation contract;
 3. проверьте конфигурацию текущей bundled schema и только после этого
    возобновляйте `--publish-spec`;
-4. при существующем незавершённом publication attempt не реконструируйте
-   counter догадкой: завершите его вручную либо начните новый attempt только
-   через описанный archive/restart transition.
+4. при существующем незавершённом publication attempt без state record
+   заморозьте review, content, Git и publication mutations; не принимайте
+   неизвестный counter за ноль;
+5. после явного разрешения пользователя сохраните точный task/repository/
+   branch/worktree/base/head/PR и полный path/blob manifest; для dirty state
+   сохраните sorted staged/unstaged/untracked/deleted/renamed/submodule manifest
+   с paths, modes, index/worktree content OID, deletion markers и digest. Затем
+   запишите всё это в archive-only record со статусом
+   `cancelled_during_durable_state_migration`, значением counter `unknown` и без
+   clean-review claim; рабочие файлы не удаляйте и не изменяйте;
+6. только после атомарной записи и readback архива создайте по отдельному
+   явному разрешению новый attempt ID с `migrates_from_attempt_id`, counter `0`
+   и точным preserved input manifest; старое review evidence недействительно,
+   поэтому до публикации обязателен fresh independent review.
 
 Минимальная совместимая версия workflow kit —
 `<release-tag-containing-this-change>`. Rollback на более ранний tag безопасен
