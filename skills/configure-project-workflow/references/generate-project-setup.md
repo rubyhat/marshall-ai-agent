@@ -127,8 +127,9 @@ When `publish-planning-change` is selected, generate:
   monotonic state revision, reserves rounds before correction, stops rather
   than resets on missing or ambiguous resume state, and archives complete
   consumed-round history under a unique immutable attempt-ID path with
-  no-overwrite collision handling before a user-accepted material reshaping can
-  start a replacement attempt, and provides one explicit
+  complete staging/readback and atomic no-replace publish semantics before a
+  user-accepted material reshaping can start a replacement attempt, and
+  provides one explicit
   cancel/archive/restart migration for pre-state in-flight attempts without
   ever assuming an unknown legacy counter is zero; plus an explicit process working directory
   bound to the exact planning worktree rather than the

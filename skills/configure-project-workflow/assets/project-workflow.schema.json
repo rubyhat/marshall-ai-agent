@@ -213,6 +213,9 @@
                 "relative_directory",
                 "archive_directory",
                 "archive_path_format",
+                "archive_staging_path_format",
+                "archive_publish_protocol",
+                "archive_staging_recovery",
                 "archive_collision",
                 "archive_immutable",
                 "attempt_key_fields",
@@ -243,6 +246,15 @@
                 },
                 "archive_path_format": {
                   "const": "<archive_directory>/<attempt_id>/record.json"
+                },
+                "archive_staging_path_format": {
+                  "const": "<archive_directory>/.staging-<attempt_id>-<nonce>"
+                },
+                "archive_publish_protocol": {
+                  "const": "atomic_no_replace_directory_rename"
+                },
+                "archive_staging_recovery": {
+                  "const": "verified_resume_or_stop"
                 },
                 "archive_collision": {"const": "stop_without_overwrite"},
                 "archive_immutable": {"const": true},

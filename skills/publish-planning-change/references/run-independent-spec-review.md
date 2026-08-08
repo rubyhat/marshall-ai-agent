@@ -164,10 +164,30 @@ accepted contract and archived readback, resume or replacement remains blocked.
 
 For every archive transition, require a collision-resistant path-safe
 `attempt_id` and use exactly
-`<archive_directory>/<attempt_id>/record.json`. Create the attempt directory
-with atomic `mkdir`; existing destination means collision and must stop without
-overwriting, merging, deleting, or choosing a suffix. Write and reread
-`record.json` under the held attempt lock, then mark the archive immutable.
+`<archive_directory>/<attempt_id>/record.json` as the final location. Never
+create or populate the final attempt directory incrementally. Under the held
+attempt lock, create a unique sibling staging directory at
+`<archive_directory>/.staging-<attempt_id>-<nonce>`, write and fsync the complete
+`record.json`, write a completion marker containing its digest, fsync the
+staging directory, reread both files, and verify the attempt ID, state revision,
+record digest, and complete manifest before publication.
+
+Publish the complete staging directory to `<archive_directory>/<attempt_id>`
+with a verified platform atomic directory-rename primitive that has no-replace
+semantics. Check support before creating staging; an ordinary replacing rename
+is forbidden. Existing final destination means collision and must stop without
+overwriting, merging, deleting, or choosing a suffix. After publish, fsync the
+archive directory, reread the final record and marker, then mark the archive immutable.
+
+On resume, inspect staging under the same attempt lock before treating the
+final path as a collision. A complete single staging directory whose owner,
+attempt ID, state revision, record digest, and completion marker match the
+active transition may continue the no-replace publish. Missing, multiple,
+incomplete, or mismatched staging records stop for explicit recovery and are
+never silently deleted or treated as final archives. Thus a crash before the
+atomic publish leaves a recoverable staging reservation, while a crash after it
+leaves a complete final archive.
+
 Never use a task/branch-keyed archive filename or ordinary replacing rename.
 Resolve `supersedes_attempt_id` and `migrates_from_attempt_id` only to the exact
 immutable attempt-ID directory and reject missing or mismatched references.

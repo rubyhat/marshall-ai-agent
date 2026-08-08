@@ -126,6 +126,13 @@ def complete_current_config():
                     "archive_path_format": (
                         "<archive_directory>/<attempt_id>/record.json"
                     ),
+                    "archive_staging_path_format": (
+                        "<archive_directory>/.staging-<attempt_id>-<nonce>"
+                    ),
+                    "archive_publish_protocol": (
+                        "atomic_no_replace_directory_rename"
+                    ),
+                    "archive_staging_recovery": "verified_resume_or_stop",
                     "archive_collision": "stop_without_overwrite",
                     "archive_immutable": True,
                     "attempt_key_fields": [
@@ -311,6 +318,18 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertEqual(
             review_state["properties"]["archive_collision"]["const"],
             "stop_without_overwrite",
+        )
+        self.assertEqual(
+            review_state["properties"]["archive_staging_path_format"]["const"],
+            "<archive_directory>/.staging-<attempt_id>-<nonce>",
+        )
+        self.assertEqual(
+            review_state["properties"]["archive_publish_protocol"]["const"],
+            "atomic_no_replace_directory_rename",
+        )
+        self.assertEqual(
+            review_state["properties"]["archive_staging_recovery"]["const"],
+            "verified_resume_or_stop",
         )
         self.assertTrue(
             review_state["properties"]["archive_immutable"]["const"]
@@ -699,6 +718,14 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("`superseded_by_reshaping`", review)
         self.assertIn("`supersedes_attempt_id`", review)
         self.assertIn("`<archive_directory>/<attempt_id>/record.json`", review)
+        self.assertIn(
+            "`<archive_directory>/.staging-<attempt_id>-<nonce>`",
+            review,
+        )
+        self.assertIn("completion marker containing its digest", review)
+        self.assertIn("atomic directory-rename primitive that has no-replace", review)
+        self.assertIn("verified platform", review)
+        self.assertIn("recoverable staging reservation", review)
         self.assertIn("collision and must stop without\noverwriting", review)
         self.assertIn("mark the archive immutable", review)
         self.assertIn("cancelled_during_durable_state_migration", review)
