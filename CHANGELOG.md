@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.7.0...v0.7.1) (2026-08-08)
+
+
+### Исправления
+
+* **workflow:** require task management for spec publication ([#52](https://github.com/rubyhat/marshall-ai-agent/issues/52)) ([1d318e5](https://github.com/rubyhat/marshall-ai-agent/commit/1d318e598e31ed050dac0246c9c68c3448967e72))
+
 ## [0.7.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.8...v0.7.0) (2026-08-08)
 
 
