@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.8...v0.7.0) (2026-08-08)
+
+
+### Новые возможности
+
+* **workflow:** enforce bounded planning review rounds ([#50](https://github.com/rubyhat/marshall-ai-agent/issues/50)) ([32631e3](https://github.com/rubyhat/marshall-ai-agent/commit/32631e3ae17b200b78cbf6ae999c8f927e949388))
+
 ## [0.6.8](https://github.com/rubyhat/marshall-ai-agent/compare/v0.6.7...v0.6.8) (2026-08-08)
 
 
