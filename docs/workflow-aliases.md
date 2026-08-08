@@ -456,3 +456,33 @@ gates. Другие project schema versions не считаются частич
 `schema_version` незавершённого `.codex/project-workflow.setup.json` является
 версией отдельного setup-state формата и не обозначает поддерживаемую версию
 project configuration.
+
+### Migration: durable planning review limits
+
+Изменение затрагивает проекты, которые используют `publish-planning-change` и
+имеют project configuration schema v3 без обязательных
+`planning_publication.independent_review.max_correction_rounds` и
+`review_cycle_state`. Такое состояние определяется отсутствием любого из этих
+полей при наличии `publish-planning-change` в `workflow_kit.selected_modules`.
+Поскольку новые required fields несовместимы с прежним schema-v3 contract,
+feature PR обязан быть squash-merged с Conventional Commit type `feat`; для
+текущей pre-1.0 линии Release Please должен предложить `MINOR`, а не `PATCH`.
+
+Для обновления:
+
+1. синхронизируйте все выбранные skills из одного exact
+   `<release-tag-containing-this-change>`;
+2. оставьте `schema_version: 3`, добавьте положительный
+   `max_correction_rounds` (`5` — out-of-box default) и полный
+   `review_cycle_state` из текущей schema/generation contract;
+3. проверьте конфигурацию текущей bundled schema и только после этого
+   возобновляйте `--publish-spec`;
+4. при существующем незавершённом publication attempt не реконструируйте
+   counter догадкой: завершите его вручную либо начните новый attempt только
+   через описанный archive/restart transition.
+
+Минимальная совместимая версия workflow kit —
+`<release-tag-containing-this-change>`. Rollback на более ранний tag безопасен
+только когда active planning-publication attempt отсутствует; skills и project
+configuration нужно откатывать вместе. Non-tracked state под Git common
+directory при rollback не удаляйте автоматически.

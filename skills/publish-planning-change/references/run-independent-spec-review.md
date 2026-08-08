@@ -72,12 +72,22 @@ Create a non-tracked JSON record before the first review with at least:
 - an initially empty `rounds` array plus created/updated timestamps.
 
 Write with a same-directory temporary file and atomic rename, then reread and
-verify the complete record before continuing. On resume, locate and reread the
-single active record by its exact attempt key. Confirm its task, repository,
-branch, configured maximum, worktree/branch identity, counter, round history,
-and current Git state. If the record is missing, duplicated, unreadable, or
-inconsistent, stop without resetting or guessing. A new session, process,
-commit, worktree relocation, or reviewer run never creates a new attempt.
+verify the complete record before continuing. Serialize creation and every
+read-modify-write transition with a sibling per-attempt lock directory acquired
+by atomic `mkdir`. Store the configured lock-owner fields inside it. If the lock
+already exists, stop without reading stale state or mutating content; never
+steal it by timeout. Stale-lock recovery requires explicit inspection of the
+record, owner, process, worktree, and Git state. Hold the lock through state
+readback, advance a monotonic `state_revision` on every write, and release it
+only after successful verification. Atomic rename protects record integrity;
+the exclusive lock protects transition serialization.
+
+On resume, acquire that lock, then locate and reread the single active record by
+its exact attempt key. Confirm its task, repository, branch, configured maximum,
+worktree/branch identity, counter, round history, state revision, and current
+Git state. If the record is missing, duplicated, unreadable, or inconsistent,
+stop without resetting or guessing. A new session, process, commit, worktree
+relocation, or reviewer run never creates a new attempt.
 
 A correction round is one bounded package of accepted current-spec changes
 made after a non-clean verdict; multiple findings fixed together count as one
@@ -107,6 +117,17 @@ shaped contract before starting a new publication attempt. Mark the record
 active record only after successful publication and canonical evidence
 readback. Starting a replacement attempt after a limit stop requires explicit
 user direction and archival of the stopped record; never overwrite it.
+
+When a verified pre-limit finding instead requires material product,
+architecture, scope, or decomposition reshaping, do not leave an unusable
+active record. Under the same exclusive lock, mark it
+`superseded_by_reshaping`, persist the triggering finding and complete consumed-
+round history, atomically move it to the configured archive directory, and
+reread the archive before releasing the lock. Stop publication and hand off to
+`shape-project-work`. Only after the user explicitly accepts a materially
+revised shaped contract may a new attempt ID be created for the same task and
+branch; its record must name the archived `supersedes_attempt_id`. Without that
+accepted contract and archived readback, resume or replacement remains blocked.
 
 One clean generation for the current head is terminal. Do not keep requesting
 review for an unchanged clean spec. Apply separate configured request-attempt

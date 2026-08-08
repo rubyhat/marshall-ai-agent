@@ -211,11 +211,18 @@
               "required": [
                 "storage_root",
                 "relative_directory",
+                "archive_directory",
                 "attempt_key_fields",
                 "tracked",
                 "atomic_write_and_readback",
+                "state_revision_required",
+                "lock_protocol",
+                "lock_owner_fields",
+                "lock_conflict",
+                "stale_lock_recovery",
                 "reserve_round_before_correction",
                 "missing_or_ambiguous_resume",
+                "archive_on_material_reshaping",
                 "retain_on_limit_stop",
                 "cleanup_after_successful_publication_only"
               ],
@@ -223,6 +230,9 @@
                 "storage_root": {"const": "git_common_dir"},
                 "relative_directory": {
                   "const": "codex/planning-publication"
+                },
+                "archive_directory": {
+                  "const": "codex/planning-publication/archive"
                 },
                 "attempt_key_fields": {
                   "const": [
@@ -233,10 +243,23 @@
                 },
                 "tracked": {"const": false},
                 "atomic_write_and_readback": {"const": true},
+                "state_revision_required": {"const": true},
+                "lock_protocol": {"const": "atomic_mkdir"},
+                "lock_owner_fields": {
+                  "const": [
+                    "attempt_id",
+                    "process_id",
+                    "hostname",
+                    "acquired_at"
+                  ]
+                },
+                "lock_conflict": {"const": "stop_without_mutation"},
+                "stale_lock_recovery": {"const": "explicit_inspection"},
                 "reserve_round_before_correction": {"const": true},
                 "missing_or_ambiguous_resume": {
                   "const": "stop_without_reset"
                 },
+                "archive_on_material_reshaping": {"const": true},
                 "retain_on_limit_stop": {"const": true},
                 "cleanup_after_successful_publication_only": {"const": true}
               },

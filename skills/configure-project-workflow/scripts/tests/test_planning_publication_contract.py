@@ -122,6 +122,7 @@ def complete_current_config():
                 "review_cycle_state": {
                     "storage_root": "git_common_dir",
                     "relative_directory": "codex/planning-publication",
+                    "archive_directory": "codex/planning-publication/archive",
                     "attempt_key_fields": [
                         "task_id",
                         "specification_owner_repository",
@@ -129,8 +130,19 @@ def complete_current_config():
                     ],
                     "tracked": False,
                     "atomic_write_and_readback": True,
+                    "state_revision_required": True,
+                    "lock_protocol": "atomic_mkdir",
+                    "lock_owner_fields": [
+                        "attempt_id",
+                        "process_id",
+                        "hostname",
+                        "acquired_at",
+                    ],
+                    "lock_conflict": "stop_without_mutation",
+                    "stale_lock_recovery": "explicit_inspection",
                     "reserve_round_before_correction": True,
                     "missing_or_ambiguous_resume": "stop_without_reset",
+                    "archive_on_material_reshaping": True,
                     "retain_on_limit_stop": True,
                     "cleanup_after_successful_publication_only": True,
                 },
@@ -281,6 +293,21 @@ class PlanningPublicationContractTest(unittest.TestCase):
         )
         self.assertTrue(
             review_state["properties"]["reserve_round_before_correction"]["const"]
+        )
+        self.assertEqual(
+            review_state["properties"]["lock_protocol"]["const"],
+            "atomic_mkdir",
+        )
+        self.assertEqual(
+            review_state["properties"]["lock_conflict"]["const"],
+            "stop_without_mutation",
+        )
+        self.assertEqual(
+            review_state["properties"]["stale_lock_recovery"]["const"],
+            "explicit_inspection",
+        )
+        self.assertTrue(
+            review_state["properties"]["archive_on_material_reshaping"]["const"]
         )
         self.assertEqual(
             review_state["properties"]["missing_or_ambiguous_resume"]["const"],
@@ -624,9 +651,14 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("max_correction_rounds", generated)
         self.assertIn("Git common directory", review)
         self.assertIn("atomic rename", review)
+        self.assertIn("atomic `mkdir`", review)
+        self.assertIn("monotonic `state_revision`", review)
+        self.assertIn("never\nsteal it by timeout", review)
         self.assertIn("stage `reserved`", review)
         self.assertIn("stop without resetting or guessing", review)
         self.assertIn("retain it", review)
+        self.assertIn("`superseded_by_reshaping`", review)
+        self.assertIn("`supersedes_attempt_id`", review)
         self.assertIn("non-tracked atomic review-cycle record", generated)
 
     def test_direct_publication_requires_schema_v3(self):

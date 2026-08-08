@@ -114,7 +114,10 @@ not for each finding or edited file. Preserve the counter across resumes of the
 same publication attempt in the configured non-tracked Git-common-dir review
 cycle record. Create, atomically write, and reread that record before the first
 review; on resume, stop rather than resetting when the exact active record is
-missing, ambiguous, or inconsistent.
+missing, ambiguous, or inconsistent. Serialize every state transition with the
+configured per-attempt exclusive lock. A material reshaping handoff archives
+the active attempt and its consumed-round history before an explicitly accepted
+revised shaped contract may start a replacement attempt.
 
 Evaluate every finding against the shaped scope and sources of truth. Route a
 real content correction through `write-task-spec`; route a material outcome or
