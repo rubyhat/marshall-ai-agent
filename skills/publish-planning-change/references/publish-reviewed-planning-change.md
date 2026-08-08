@@ -17,7 +17,8 @@ Publish only after the exact current spec head has a clean independent review.
    promotion does not consume a correction round.
 5. If step 3 fails for any other reason, invalidate the candidate clean review
    and stop rather than mutating or publishing an unreviewed checkpoint.
-6. For any path that did not use a local correction checkpoint, ask
+6. For an uncommitted-review path that did not use a local correction
+   checkpoint, ask
    `write-task-spec` to assign the highest supported content verdict, then
    reread every changed artifact.
 7. If the verdict update in step 6 changes a tracked artifact, run the
@@ -33,9 +34,9 @@ clean-review record by its target kind. For a reviewed local correction
 checkpoint, require the PR-head revision and tree OID to equal
 the reviewed checkpoint exactly and record only
 `direct_committed_base_diff`; path/blob-OID equivalence alone is insufficient.
-For a never-committed manifest, bind candidate evidence to the eventual commit
-only when the complete manifest has exact path/OID equality, including every
-blob OID, and record `verified_uncommitted_manifest_equivalence`. If the
+For an uncommitted-review candidate, bind evidence to the eventual commit only
+when the complete manifest has exact path/OID equality, including every blob
+OID, and record `verified_uncommitted_manifest_equivalence`. If the
 required revision, tree,
 identity, path set, or any blob OID differs, invalidate the candidate and run a
 fresh independent review for the new exact head before push or merge.

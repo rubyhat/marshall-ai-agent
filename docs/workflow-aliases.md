@@ -477,11 +477,12 @@ project configuration.
 В v0.7.2 schema-v3 contract дополнительно требует
 `planning_publication.independent_review.committed_correction_review`. Текущая
 поддерживаемая стратегия — `local_checkpoint_committed_base_diff`: после
-исправления publication manifest, уже имеющего собственный commit в planning
-branch, агент выполняет deterministic checks, создаёт exact-manifest локальный
-checkpoint commit, проверяет его полным diff от canonical base и не пушит до
-clean review. Для ещё не закоммиченного publication manifest сохраняется
-отдельный uncommitted-review путь с обязательной path/blob-OID equivalence.
+correction package после non-clean review для publication manifest, уже имеющего
+собственный commit в planning branch, агент выполняет deterministic checks,
+создаёт exact-manifest локальный checkpoint commit, проверяет его полным diff от
+canonical base и не пушит до clean review. До первого independent review полный
+uncommitted candidate разрешён и при наличии раннего in-scope commit; для него,
+как и для ещё не закоммиченного manifest, обязательна path/blob-OID equivalence.
 Объект materialized при setup как dormant policy, чтобы не менять конфигурацию
 посреди publication; наличие объекта само по себе не активирует checkpoint path.
 

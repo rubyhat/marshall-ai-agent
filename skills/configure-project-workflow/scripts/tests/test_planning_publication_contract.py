@@ -261,6 +261,7 @@ class PlanningPublicationContractTest(unittest.TestCase):
         ]
         self.assertIn("Required dormant policy", committed_correction["description"])
         self.assertIn("activated only", committed_correction["description"])
+        self.assertIn("after a non-clean review", committed_correction["description"])
         self.assertEqual(
             committed_correction["properties"]["strategy"]["const"],
             "local_checkpoint_committed_base_diff",
@@ -549,7 +550,8 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("apply only that verdict mutation", review)
         self.assertIn("do not consume another correction round", review)
         self.assertIn("pushed and published unchanged", review)
-        self.assertIn("has no in-scope commit yet", review)
+        self.assertIn("mixed committed-plus-uncommitted candidate", review)
+        self.assertIn("before its first\nindependent review", review)
         self.assertIn("verified_uncommitted_manifest_equivalence", review)
         self.assertIn("Do not apply a post-review\n   verdict mutation", prepare)
         self.assertIn("Reuse that exact reviewed checkpoint", prepare)
@@ -559,9 +561,7 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("PR-head revision and tree OID to equal", prepare)
         self.assertIn("path/blob-OID equivalence alone is insufficient", prepare)
         self.assertIn("record only\n`direct_committed_base_diff`", prepare)
-        self.assertRegex(
-            publication_skill, r"For a never-committed\s+manifest"
-        )
+        self.assertIn("For an\nuncommitted-review candidate", publication_skill)
         self.assertIn("reuse it unchanged", publication_skill)
         self.assertRegex(
             prepare, r"do\s+not amend, replace, or add a commit"
@@ -570,6 +570,7 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertRegex(
             generated, r"Preserve the\s+separately bound uncommitted-review path"
         )
+        self.assertIn("mixed committed-plus-uncommitted candidate", generated)
         self.assertIn("push-before-clean-review to false", generated)
         self.assertIn("Do not start a sixth correction", publication_skill)
 

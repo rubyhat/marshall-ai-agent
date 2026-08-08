@@ -69,9 +69,9 @@ itself. After applying a correction package, increment the counter exactly once,
 rerun affected checks, and request review of the new exact head. The corrected
 head produced by the final allowed round still receives that review.
 
-When the current publication manifest already has an in-scope commit on the
-planning branch and a correction changes it, require the materialized
-`committed_correction_review` configuration. Under the supported
+When a correction package after a non-clean review changes a publication
+manifest that already has an in-scope commit on the planning branch, require the
+materialized `committed_correction_review` configuration. Under the supported
 `local_checkpoint_committed_base_diff` strategy, require explicit permission
 for the checkpoint. Apply every in-scope correction while preserving the
 currently authorized content verdict, reread the exact package, rerun
@@ -93,11 +93,12 @@ apply another verdict mutation, amend it, or add another commit after review.
 Missing or incomplete strategy fields stop direct publication before the first
 checkpoint instead of authorizing a partial review.
 
-When the current publication manifest has no in-scope commit yet, keep the
-existing exact uncommitted-review path. Its candidate evidence becomes
-publishable only after the eventual committed head has the identical complete
-path/blob-OID manifest. This path does not use or bypass a committed-correction
-checkpoint; it uses the separately configured
+Keep the exact uncommitted-review path when the manifest has no in-scope commit
+and for a complete mixed committed-plus-uncommitted candidate before its first
+independent review. Its candidate evidence becomes publishable only after the
+eventual committed head has the identical complete path/blob-OID manifest. This
+path does not use or bypass a committed-correction checkpoint; it uses the
+separately configured
 `verified_uncommitted_manifest_equivalence` binding method.
 
 One clean review for the current head is terminal. Do not keep requesting review

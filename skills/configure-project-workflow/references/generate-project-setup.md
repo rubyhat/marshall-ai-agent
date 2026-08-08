@@ -132,11 +132,12 @@ When `publish-planning-change` is selected, generate:
   the exact publication manifest, and set push-before-clean-review to false. Do
   materialize this dormant policy for every configured project so a later
   correction does not require a mid-publication configuration mutation;
-  activate it only when the current publication manifest already has an
-  in-scope planning-branch commit and a correction changes it. Preserve the
+  activate it only when a correction package after a non-clean review changes a
+  manifest that already has an in-scope planning-branch commit. Preserve the
   separately bound uncommitted-review path when the manifest has no in-scope
-  commit yet. Do not generate persistent state, locks, archives, migrations,
-  or crash-recovery machinery for this counter;
+  commit and for a complete mixed committed-plus-uncommitted candidate before
+  its first independent review. Do not generate persistent state, locks,
+  archives, migrations, or crash-recovery machinery for this counter;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
   specification-owner ancestry, exact-task publication evidence, sync, and
   cleanup gates; require an ordinary publication record with evidence kind,

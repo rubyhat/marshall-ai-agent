@@ -208,7 +208,7 @@
             },
             "committed_correction_review": {
               "type": "object",
-              "description": "Required dormant policy materialized during setup and activated only when a correction changes a publication manifest that already has an in-scope planning-branch commit.",
+              "description": "Required dormant policy materialized during setup and activated only when a correction package after a non-clean review changes a publication manifest that already has an in-scope planning-branch commit.",
               "required": [
                 "strategy",
                 "checkpoint_commit_allowed",
