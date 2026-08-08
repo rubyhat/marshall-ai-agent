@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.4](https://github.com/rubyhat/marshall-ai-agent/compare/v0.7.3...v0.7.4) (2026-08-08)
+
+
+### Исправления
+
+* **configure:** keep contract test portable ([#58](https://github.com/rubyhat/marshall-ai-agent/issues/58)) ([1b8f924](https://github.com/rubyhat/marshall-ai-agent/commit/1b8f9247a96987052a53349c94b965ac05855594))
+
 ## [0.7.3](https://github.com/rubyhat/marshall-ai-agent/compare/v0.7.2...v0.7.3) (2026-08-08)
 
 
