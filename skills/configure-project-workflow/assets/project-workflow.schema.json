@@ -567,7 +567,10 @@
           "required": [
             "max_correction_rounds",
             "fresh_generation_after_each_correction_package",
-            "new_head_resets_request_budget_only"
+            "new_head_resets_request_budget_only",
+            "heartbeat",
+            "state_machine",
+            "post_clean"
           ],
           "properties": {
             "max_correction_rounds": {
@@ -576,7 +579,52 @@
               "default": 5
             },
             "fresh_generation_after_each_correction_package": {"const": true},
-            "new_head_resets_request_budget_only": {"const": true}
+            "new_head_resets_request_budget_only": {"const": true},
+            "heartbeat": {
+              "type": "object",
+              "required": [
+                "delete_on_review_terminal_state",
+                "delete_after_pr_terminal"
+              ],
+              "properties": {
+                "delete_on_review_terminal_state": {"const": false},
+                "delete_after_pr_terminal": {"const": true}
+              },
+              "additionalProperties": true
+            },
+            "state_machine": {
+              "type": "object",
+              "required": ["states"],
+              "properties": {
+                "states": {
+                  "type": "array",
+                  "allOf": [
+                    {"contains": {"const": "request_not_created"}},
+                    {"contains": {"const": "request_pending"}},
+                    {"contains": {"const": "not_started"}},
+                    {"contains": {"const": "in_progress"}},
+                    {"contains": {"const": "findings_received"}},
+                    {"contains": {"const": "scope_disagreement"}},
+                    {"contains": {"const": "transient_error"}},
+                    {"contains": {"const": "clean"}},
+                    {"contains": {"const": "stopped"}},
+                    {"contains": {"const": "terminal"}},
+                    {"contains": {"const": "pr_terminal"}},
+                    {"contains": {"const": "head_mismatch"}},
+                    {"contains": {"const": "unclassified_response"}}
+                  ]
+                }
+              },
+              "additionalProperties": true
+            },
+            "post_clean": {
+              "type": "object",
+              "required": ["delete_review_heartbeat_immediately"],
+              "properties": {
+                "delete_review_heartbeat_immediately": {"const": false}
+              },
+              "additionalProperties": true
+            }
           },
           "additionalProperties": true
         }
