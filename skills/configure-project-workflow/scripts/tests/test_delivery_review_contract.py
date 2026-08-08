@@ -26,6 +26,22 @@ RECOVERY = DELIVERY_ROOT / "references" / "recover-stalled-or-failed-review.md"
 FINALIZATION = DELIVERY_ROOT / "references" / "finalize-codex-review-state.md"
 PLANNING_TEST = Path(__file__).with_name("test_planning_publication_contract.py")
 
+REQUIRED_GITHUB_REVIEW_STATES = (
+    "request_not_created",
+    "request_pending",
+    "not_started",
+    "in_progress",
+    "findings_received",
+    "scope_disagreement",
+    "transient_error",
+    "clean",
+    "stopped",
+    "terminal",
+    "pr_terminal",
+    "head_mismatch",
+    "unclassified_response",
+)
+
 
 def resolve_public_aliases(repository_root=REPOSITORY_ROOT):
     candidates = (
@@ -119,6 +135,12 @@ def complete_review_contract():
             "max_correction_rounds": 5,
             "fresh_generation_after_each_correction_package": True,
             "new_head_resets_request_budget_only": True,
+            "heartbeat": {
+                "delete_on_review_terminal_state": False,
+                "delete_after_pr_terminal": True,
+            },
+            "state_machine": {"states": list(REQUIRED_GITHUB_REVIEW_STATES)},
+            "post_clean": {"delete_review_heartbeat_immediately": False},
         },
     }
 
@@ -158,6 +180,28 @@ class DeliveryReviewContractTest(unittest.TestCase):
                 self.assertEqual(limit["type"], "integer")
                 self.assertEqual(limit["const"], 5)
                 self.assertEqual(limit["default"], 5)
+
+        github = review["properties"]["github_codex"]
+        for required in ("heartbeat", "state_machine", "post_clean"):
+            self.assertIn(required, github["required"])
+        self.assertFalse(
+            github["properties"]["heartbeat"]["properties"]
+            ["delete_on_review_terminal_state"]["const"]
+        )
+        self.assertTrue(
+            github["properties"]["heartbeat"]["properties"]
+            ["delete_after_pr_terminal"]["const"]
+        )
+        self.assertFalse(
+            github["properties"]["post_clean"]["properties"]
+            ["delete_review_heartbeat_immediately"]["const"]
+        )
+        required_states = {
+            item["contains"]["const"]
+            for item in github["properties"]["state_machine"]["properties"]
+            ["states"]["allOf"]
+        }
+        self.assertEqual(required_states, set(REQUIRED_GITHUB_REVIEW_STATES))
 
         policy = review["properties"]["correction_policy"]
         self.assertEqual(
@@ -219,6 +263,9 @@ class DeliveryReviewContractTest(unittest.TestCase):
             ("review", "correction_policy", "ordered_history_required"),
             ("review", "local", "max_correction_rounds"),
             ("review", "github_codex", "max_correction_rounds"),
+            ("review", "github_codex", "heartbeat"),
+            ("review", "github_codex", "state_machine"),
+            ("review", "github_codex", "post_clean"),
         ):
             with self.subTest(missing=".".join(path)):
                 incomplete = copy.deepcopy(complete)
@@ -239,6 +286,32 @@ class DeliveryReviewContractTest(unittest.TestCase):
                     "max_correction_rounds"
                 ] = invalid_value
                 self.assertTrue(list(validator.iter_errors(invalid_limit)))
+
+        invalid_heartbeat = copy.deepcopy(complete)
+        invalid_heartbeat["review"]["github_codex"]["heartbeat"][
+            "delete_on_review_terminal_state"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(invalid_heartbeat)))
+
+        invalid_pr_terminal_deletion = copy.deepcopy(complete)
+        invalid_pr_terminal_deletion["review"]["github_codex"]["heartbeat"][
+            "delete_after_pr_terminal"
+        ] = False
+        self.assertTrue(list(validator.iter_errors(invalid_pr_terminal_deletion)))
+
+        invalid_post_clean = copy.deepcopy(complete)
+        invalid_post_clean["review"]["github_codex"]["post_clean"][
+            "delete_review_heartbeat_immediately"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(invalid_post_clean)))
+
+        for missing_state in REQUIRED_GITHUB_REVIEW_STATES:
+            with self.subTest(missing_state=missing_state):
+                invalid_states = copy.deepcopy(complete)
+                invalid_states["review"]["github_codex"]["state_machine"][
+                    "states"
+                ].remove(missing_state)
+                self.assertTrue(list(validator.iter_errors(invalid_states)))
 
     def test_delivery_skill_fails_closed_before_a_sixth_package(self):
         skill = DELIVERY_SKILL.read_text(encoding="utf-8")
@@ -480,16 +553,16 @@ class DeliveryReviewContractTest(unittest.TestCase):
         self.assertIn("technical retry и contextual re-review", aliases)
         self.assertIn("без нового review request", aliases)
         self.assertIn("Если ему нужна\nшестая правка", aliases)
-        self.assertIn("Переход на workflow kit v0.8.0", aliases)
+        self.assertIn("Переход на workflow kit v0.8.2", aliases)
         self.assertIn("корневую секцию `review` с четырьмя полными группами", aliases)
-        migration = aliases.split("### Переход на workflow kit v0.8.0", 1)[1]
+        migration = aliases.split("### Переход на workflow kit v0.8.2", 1)[1]
         documented_contract = migration.split("```json\n", 1)[1].split("\n```", 1)[0]
         self.assertEqual(
             json.loads(documented_contract),
             {"review": complete_review_contract()},
         )
         self.assertIn("материализовать указанный `review` contract", aliases)
-        self.assertIn("`workflow_kit.revision: v0.8.0`", migration)
+        self.assertIn("`workflow_kit.revision: v0.8.2`", migration)
         self.assertIn("и выполнить validation записанной revision", migration)
         self.assertIn("`--deliver-task` остаётся fail-closed", migration)
         self.assertIn("Безопасный откат требует вернуть и project configuration", aliases)

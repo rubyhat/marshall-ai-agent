@@ -571,9 +571,9 @@ head с `Ready for implementation` до `Spec ready`. Если в planning workt
 exact manifest, а `push_before_clean_review` установить в `false`. Отсутствующий
 или неполный объект делает `--publish-spec` невалидным до mutations.
 
-### Переход на workflow kit v0.8.0
+### Переход на workflow kit v0.8.2
 
-В v0.8.0 schema-v3 contract для выбранного `deliver-reviewed-change` требует
+В v0.8.2 schema-v3 contract для выбранного `deliver-reviewed-change` требует
 корневую секцию `review` с четырьмя полными группами:
 
 ```json
@@ -645,17 +645,50 @@ exact manifest, а `push_before_clean_review` установить в `false`. �
     "github_codex": {
       "max_correction_rounds": 5,
       "fresh_generation_after_each_correction_package": true,
-      "new_head_resets_request_budget_only": true
+      "new_head_resets_request_budget_only": true,
+      "heartbeat": {
+        "delete_on_review_terminal_state": false,
+        "delete_after_pr_terminal": true
+      },
+      "state_machine": {
+        "states": [
+          "request_not_created",
+          "request_pending",
+          "not_started",
+          "in_progress",
+          "findings_received",
+          "scope_disagreement",
+          "transient_error",
+          "clean",
+          "stopped",
+          "terminal",
+          "pr_terminal",
+          "head_mismatch",
+          "unclassified_response"
+        ]
+      },
+      "post_clean": {
+        "delete_review_heartbeat_immediately": false
+      }
     }
   }
 }
 ```
 
+Эти три вложенные группы обязательны: schema не принимает удаление heartbeat на
+review-terminal transition, требует его удаление после доказанного
+`pr_terminal` и полный lifecycle states для provisional request, monitoring и
+terminal finalization.
+
+Этот migration contract публикуется Release Please в v0.8.2. До появления
+exact tag v0.8.2 установку по этой инструкции не выполнять; unreleased testing
+разрешён только по полному commit SHA.
+
 Ранее валидный schema-v3 проект с выбранным `deliver-reviewed-change`, но без
 этой полной секции, после обновления считается невалидным. До следующего
 `--deliver-task` нужно запустить подтверждённый `--workflow-setup`
 reconfiguration: синхронизировать все выбранные skills на один exact tag
-v0.8.0, установить `workflow_kit.revision: v0.8.0`, сохранить
+v0.8.2, установить `workflow_kit.revision: v0.8.2`, сохранить
 `schema_version: 3`, материализовать указанный `review` contract с
 project-specific reviewer settings и выполнить validation записанной revision,
 активных skill copies и project configuration. Нельзя добавлять только counters
@@ -664,4 +697,4 @@ project-specific reviewer settings и выполнить validation записа
 Если reconfiguration нельзя завершить, `--deliver-task` остаётся fail-closed до
 устранения drift. Безопасный откат требует вернуть и project configuration, и
 весь выбранный набор skills на один прежний exact release tag; удалять `review`
-при оставленных skills v0.8.0 или смешивать revisions нельзя.
+при оставленных skills v0.8.2 или смешивать revisions нельзя.
