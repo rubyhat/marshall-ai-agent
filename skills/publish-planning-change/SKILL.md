@@ -107,11 +107,28 @@ it the exact task anchor, shaped contract, spec diff, and only the architecture,
 code, and policy context required to verify the specification. Treat the
 author's self-check as useful evidence, never as independent review.
 
+For one publication attempt, read the configured positive
+`max_correction_rounds` and start `correction_rounds_used` at zero. Count one
+round for one bounded package of corrections made after a non-clean review,
+not for each finding or file. Increment the counter once after applying that
+package, rerun affected validation, and review the corrected exact head. A
+correction that reaches the configured maximum still receives this required
+review.
+
 Evaluate every finding against the shaped scope and sources of truth. Route a
 real content correction through `write-task-spec`; route a material outcome or
 scope change back to `shape-project-work`. Rerun affected validation and obtain
 a clean review for the current spec head. Do not expand the task for speculative
 edge cases or general improvements.
+
+If the corrected head is still not clean after the maximum round, stop before
+another correction, review request, commit, push, or publication. Report a
+bounded cycle analysis and return the specification to planning or the user.
+Do not start a sixth correction when the configured maximum is five. On resume,
+continue only when the exact counter and ordered review/correction history for
+the same attempt are provable; otherwise fail closed and require an explicit
+user decision to start a new publication attempt rather than resetting the
+counter implicitly.
 
 ### 4. Publish the reviewed change
 

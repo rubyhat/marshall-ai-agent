@@ -118,6 +118,7 @@ def complete_current_config():
                 "verify_reported_workdir_and_branch": True,
                 "model": "test-reviewer",
                 "effort": "medium",
+                "max_correction_rounds": 5,
             },
             "readiness": {
                 "input_content_verdict": "spec_ready",
@@ -239,6 +240,14 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn(
             "effort", independent_review["required"]
         )
+        self.assertIn("max_correction_rounds", independent_review["required"])
+        correction_limit = independent_review["properties"][
+            "max_correction_rounds"
+        ]
+        self.assertEqual(correction_limit["type"], "integer")
+        self.assertEqual(correction_limit["minimum"], 1)
+        self.assertEqual(correction_limit["default"], 5)
+        self.assertNotIn("review_cycle_state", independent_review["properties"])
         self.assertTrue(
             properties["readiness"]["properties"]
             ["canonical_merge_required_before_implementation"]["const"]
@@ -400,6 +409,11 @@ class PlanningPublicationContractTest(unittest.TestCase):
                 "independent_review",
                 "verify_reported_workdir_and_branch",
             ),
+            (
+                "planning_publication",
+                "independent_review",
+                "max_correction_rounds",
+            ),
             ("planning_publication", "readiness", "ordinary_publication_evidence"),
             (
                 "planning_publication",
@@ -476,6 +490,23 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("current-schema pre-mutation", review)
         self.assertIn("Do not apply compatibility", review)
         self.assertIn("stopped direct publication", review)
+
+    def test_review_correction_budget_is_bounded_and_fail_closed(self):
+        generated = GENERATE.read_text(encoding="utf-8")
+        review = PUBLISH_REVIEW.read_text(encoding="utf-8")
+        publication_skill = PUBLISH_SKILL.read_text(encoding="utf-8")
+
+        self.assertIn("max_correction_rounds", generated)
+        self.assertIn("defaults to `5`", generated)
+        self.assertIn("correction_rounds_used", review)
+        self.assertIn("Multiple findings corrected together consume one round", review)
+        self.assertIn("final allowed round still receives that review", review)
+        self.assertIn("Do not start a sixth correction", review)
+        self.assertIn("bounded cycle analysis", review)
+        self.assertIn("fail closed", review)
+        self.assertIn("do not reset the counter", review)
+        self.assertIn("persistent\nruntime state files, locks, archives", review)
+        self.assertIn("Do not start a sixth correction", publication_skill)
 
     def test_existing_ready_specs_get_deterministic_adoption_evidence(self):
         generated = GENERATE.read_text(encoding="utf-8")
