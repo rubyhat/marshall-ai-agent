@@ -66,6 +66,19 @@ It must equal the persisted reviewed manifest exactly. PR prose, an open or
 merged PR, a status field, or a model/effort pair without the bound clean record
 is insufficient.
 
+Also rebuild the same complete sorted package manifest from the current
+specification-owner authority base, not only from the record's older merged
+revision. Require exact path and blob-OID equality with the selected persisted
+manifest before returning a ready result. A missing, added, or changed
+task-owned specification or annex invalidates the selected path even when the
+old merged revision remains in ancestry.
+
+If implementation discovery causes any package change, invalidate the selected
+path immediately. Require the corrected package to pass its configured
+planning-publication workflow and rerun this complete readiness gate against
+the new persisted record before resuming task-code edits. Do not reuse the
+earlier record or preserve its ready verdict across the correction.
+
 ## Resolve pre-adoption ready specifications
 
 If the ordinary publication readiness path is missing or incomplete, inspect

@@ -169,6 +169,21 @@ When `publish-planning-change` is selected, generate:
 - a `--publish-spec` handoff after `Spec ready` and a hard implementation gate
   until the reviewed spec is merged into the canonical target.
 
+When `execute-project-task` is selected, generate:
+
+- the implementation-start tracker checkpoint after readiness succeeds and
+  before implementation worktree or feature-branch creation.
+
+When both `execute-project-task` and `publish-planning-change` are selected,
+also generate a hard rule that any task-owned specification or annex correction
+during implementation invalidates the selected publication evidence, stops
+  task-code edits, returns the correction through `write-task-spec` and
+  `publish-planning-change`, and reruns the complete readiness gate against the
+  new persisted publication record before implementation resumes. Require the
+  readiness gate to rebuild the complete task-owned package manifest at the
+  current specification-owner authority base and compare every path/blob OID
+  with the selected record.
+
 Do not copy project-specific values from an example project.
 
 ## Create project docs conditionally

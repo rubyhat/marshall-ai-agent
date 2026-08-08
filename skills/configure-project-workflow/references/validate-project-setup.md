@@ -77,6 +77,15 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   `publish-planning-change` before implementation and that
   `execute-project-task` has a canonical-publication gate when the module is
   selected.
+- Confirm `execute-project-task` establishes its implementation-start status
+  after readiness and before workspace creation.
+- When `publish-planning-change` is also selected, confirm that a later
+  task-owned specification-package correction invalidates the selected
+  evidence, requires a new canonical publication record, and reruns readiness
+  before task-code edits resume. Require current-authority-base package
+  path/blob-OID equality with the selected record; checking only the record's
+  older merged revision is insufficient. Do not route a selective installation
+  to an unselected publication module.
 - Confirm publication ancestry is required only in the repository that owns
   the specification revision. For implementation repositories with separate
   Git histories, require the same resolvable exact-task reviewed-publication

@@ -634,6 +634,55 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("Reread the persisted tuple", task_linkage)
         self.assertIn("complete path/OID set", task_linkage)
 
+    def test_execution_republishes_contract_corrections_before_resume(self):
+        execution_skill = (
+            SKILL_ROOT.parent / "execute-project-task" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        scope_control = (
+            SKILL_ROOT.parent
+            / "execute-project-task"
+            / "references"
+            / "implement-with-scope-control.md"
+        ).read_text(encoding="utf-8")
+        readiness = (
+            SKILL_ROOT.parent
+            / "execute-project-task"
+            / "references"
+            / "check-task-readiness.md"
+        ).read_text(encoding="utf-8")
+        generated = GENERATE.read_text(encoding="utf-8")
+        validation = VALIDATE.read_text(encoding="utf-8")
+        aliases = (
+            SKILL_ROOT.parents[1] / "docs" / "workflow-aliases.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertLess(
+            execution_skill.index("### 3. Establish the start checkpoint"),
+            execution_skill.index("### 4. Create or resume the task workspace"),
+        )
+        self.assertIn(
+            "treat the selected publication evidence as invalid", execution_skill
+        )
+        self.assertIn("rerun the readiness gate before resuming", execution_skill)
+        self.assertIn("current specification-owner authority base", execution_skill)
+        self.assertIn("Stop task-code edits", scope_control)
+        self.assertIn("publish the complete corrected package", scope_control)
+        self.assertIn("rerun the complete implementation-readiness gate", scope_control)
+        self.assertRegex(readiness, r"invalidate the selected\s+path immediately")
+        self.assertIn("not only from the record's older merged", readiness)
+        self.assertIn("exact path and blob-OID equality", readiness)
+        self.assertIn("before implementation worktree", generated)
+        self.assertIn(
+            "both `execute-project-task` and `publish-planning-change`", generated
+        )
+        self.assertRegex(validation, r"reruns readiness\s+before task-code")
+        self.assertIn("current-authority-base package", validation)
+        self.assertIn("unselected publication module", validation)
+        self.assertIn("только затем создаёт или возобновляет worktree", aliases)
+        self.assertRegex(
+            aliases, r"предыдущий publication record\s+сразу перестаёт"
+        )
+
     def test_review_evidence_is_bound_to_the_published_head(self):
         review = PUBLISH_REVIEW.read_text(encoding="utf-8")
         prepare = PUBLISH_PREPARE.read_text(encoding="utf-8")

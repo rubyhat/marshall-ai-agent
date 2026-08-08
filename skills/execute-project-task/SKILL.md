@@ -86,7 +86,9 @@ select one complete readiness path in this precedence order:
   canonical specification revision, and proof that the specification-owner
   authority base contains or descends from that revision. Require the complete
   persisted and reread `reviewed_canonical_publication` record defined in
-  [check-task-readiness.md](references/check-task-readiness.md);
+  [check-task-readiness.md](references/check-task-readiness.md), rebuild the
+  complete package manifest at the current specification-owner authority base,
+  and require exact path/blob-OID equality with that record;
 - otherwise, when project policy explicitly enables it for specs that were already
   implementation-ready before planning publication was configured, the
   deterministic baseline evidence defined in
@@ -137,7 +139,15 @@ Read [implement-with-scope-control.md](references/implement-with-scope-control.m
 
 Implement the smallest coherent change that satisfies the agreed outcome and acceptance criteria. Follow current project architecture and repository instructions. Use current code as evidence, not as silent authority to change promised behavior.
 
-When discoveries change a durable contract, update the specification through `write-task-spec`. When they change outcome, scope, architecture, security posture, or dependency direction, stop and return to `shape-project-work`.
+When discoveries change a durable contract, stop implementation and route the
+exact correction through `write-task-spec`. When canonical planning publication
+is configured, treat the selected publication evidence as invalid as soon as
+any task-owned specification or annex changes, republish the complete corrected
+package through `publish-planning-change`, reread the new publication record,
+and rerun the readiness gate before resuming implementation. A local edit,
+content verdict, or merged PR without the new bound record is insufficient.
+When discoveries change outcome, scope, architecture, security posture, or
+dependency direction, stop and return to `shape-project-work`.
 
 ### 7. Run relevant quality gates
 
