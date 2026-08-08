@@ -120,6 +120,20 @@ class ValidateSetupStateTest(unittest.TestCase):
         ):
             self.module.module_index(catalog)
 
+    def test_additional_config_sections_are_validated(self):
+        catalog = copy.deepcopy(self.catalog)
+        delivery = next(
+            item
+            for item in catalog["modules"]
+            if item["name"] == "deliver-reviewed-change"
+        )
+        self.assertEqual(delivery["config_section"], "delivery")
+        self.assertEqual(delivery["additional_config_sections"], ["review"])
+
+        delivery["additional_config_sections"] = ["delivery"]
+        with self.assertRaisesRegex(ValueError, "configuration sections must be unique"):
+            self.module.module_index(catalog)
+
     def test_enabled_conditional_alias_requires_selected_module(self):
         state = self.valid_state()
         state["modules"]["selected"] = [

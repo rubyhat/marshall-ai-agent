@@ -164,7 +164,7 @@ analyze-product-reference
 | `write-task-spec` | Создаёт, обновляет и проверяет full или lightweight task specifications. |
 | `publish-planning-change` | Проводит exact task specification через independent review, PR, merge, canonical-revision verification и cleanup planning workspace. |
 | `execute-project-task` | Выполняет одну implementation-ready задачу в изолированном workspace до local-review handoff. |
-| `deliver-reviewed-change` | Проводит точную задачу через independent review, PR, review feedback, merge и cleanup. |
+| `deliver-reviewed-change` | Проводит точную задачу через bounded local/GitHub review correction cycles, PR, merge и cleanup. |
 | `design-frontend-flow` | Проектирует frontend surfaces, states, actions, recovery, responsive behavior и contract needs. |
 | `triage-frontend-qa` | Воспроизводит и классифицирует один конкретный frontend-дефект. |
 | `analyze-product-reference` | Исследует внешний продукт как bounded evidence и адаптирует findings к целевому проекту. |

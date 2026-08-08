@@ -50,4 +50,9 @@ Stop when the authorized endpoint is PR creation only. Do not start external rev
 
 ## Handle multi-repository delivery
 
-Use one PR per configured repository task unless project policy says otherwise. Preserve dependency order and track review state per PR. Never let a clean verdict on one PR complete another PR's review generation.
+Use one PR per configured repository task unless project policy says otherwise.
+Preserve dependency order and give every PR its own GitHub correction counter,
+ordered history, technical request state, and heartbeat. The first generation
+of each PR starts its GitHub counter at zero; later heads of that same PR
+preserve it. Never synchronize counters between PRs or let a clean verdict on
+one PR complete another PR's review generation.

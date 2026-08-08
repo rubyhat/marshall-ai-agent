@@ -290,6 +290,70 @@ heartbeat, merge, tracker mutations и cleanup.
 Проводит точную задачу через configured independent review и delivery flow.
 Точная конечная точка может быть сужена дополнительным текстом пользователя.
 
+До первого local review фиксирует immutable delivery baseline: Task ID,
+specification или эквивалентный contract, acceptance criteria, non-goals,
+начальный полный diff manifest и статистику. Reviewer получает этот bounded
+контекст без истории реализации и должен связать actionable finding с
+конкретным дефектом текущей задачи или обязательным достоверным риском.
+
+Local independent review и GitHub Pull Request review имеют отдельные bounded
+циклы исправлений — не более пяти correction packages каждый.
+Один пакет может закрывать несколько findings одного review result. Технический
+retry, clean review, ответ без изменения кода и contextual re-review
+неизменённого head раунд не расходуют. Новый PR head обнуляет только technical
+request budget, но не GitHub correction counter и не историю.
+
+До создания PR baseline, local counter и local history сохраняются одним
+machine-readable state block в текущей Codex-задаче и перечитываются после
+каждого local transition. При создании heartbeat нового PR этот state
+копируется без пересборки, после чего GitHub counter и history данного PR
+инициализируются нулём и пустым списком. Другая сессия без доказуемого state не
+продолжает существующий review автоматически.
+
+Перед каждой следующей GitHub generation workflow повторно читает authoritative
+local counter/history из task block, проверяет тот же baseline и обновляет ими
+heartbeat exact PR. PR-owned GitHub counter, history, fingerprints и technical
+state при этом сохраняются без изменений и не копируются обратно в task block
+либо в другой PR.
+
+В multi-repository delivery каждый PR имеет собственный GitHub correction
+counter и ordered history. Первый review generation нового PR начинается с
+нуля; новый head того же PR сохраняет его counter; другой PR начинает отдельные
+пять раундов с нуля. Counters, histories, dismissed-finding fingerprints и
+heartbeat state разных PR не синхронизируются.
+
+Пока review активен, GitHub state хранится в heartbeat точного PR. Перед
+отправкой review request workflow сначала создаёт и перечитывает provisional
+heartbeat этого PR, затем добавляет в него доказанный request identity и снова
+перечитывает state. Поэтому между remote request и мониторингом не возникает
+неперсистентного состояния. Тот же переход обязателен для initial request,
+technical retry и contextual re-review.
+
+При clean review, исчерпании budget или другом review-terminal state открытого
+PR workflow сохраняет terminal reason и отдельный `terminal_head_sha` прямо в
+heartbeat точного PR, перечитывает state и ставит этот heartbeat на pause. Он не
+создаёт terminal snapshot и не переносит PR-owned state в текущую Codex-задачу.
+На неизменённом terminal head workflow возвращает уже зафиксированный outcome
+без нового review request. Авторизованный более поздний head того же PR повторно
+активирует тот же heartbeat с сохранёнными GitHub counter, history и
+fingerprints. Перед workflow-owned push, который изменит head, этот exact
+heartbeat обязательно сохраняется и перечитывается в paused finding state;
+поэтому monitor не может ошибочно финализировать controlled push как внешний
+`head_mismatch`. Удалить heartbeat можно только после provider-доказательства,
+что точный PR merged или closed. Если identity PR или обязательный state нельзя
+доказать, heartbeat остаётся paused без удаления и без выдуманного state.
+
+Все terminal branches выбирают reason из единой матрицы и вызывают
+`finalize_codex_review_state`; pause/reactivation/delete правила не копируются
+в отдельные ветки workflow.
+
+Head после пятого разрешённого пакета всё равно проходит review. Если ему нужна
+шестая правка, workflow останавливается до edit, commit, push или нового review
+request и возвращает cycle analysis: исходный и текущий diff, все findings и
+пакеты, review-only growth, повторяющиеся категории и признаки scope drift.
+General hardening, недоказанные edge cases, unrelated defects и необъяснимый
+рост diff не расширяют задачу автоматически.
+
 Не разрешает bypass review/CI, force-push, deploy, production data mutation или
 работу с unrelated PR.
 
@@ -506,3 +570,98 @@ head с `Ready for implementation` до `Spec ready`. Если в planning workt
 добавить разрешение checkpoint commit, обязательность deterministic checks и
 exact manifest, а `push_before_clean_review` установить в `false`. Отсутствующий
 или неполный объект делает `--publish-spec` невалидным до mutations.
+
+### Переход на workflow kit v0.8.0
+
+В v0.8.0 schema-v3 contract для выбранного `deliver-reviewed-change` требует
+корневую секцию `review` с четырьмя полными группами:
+
+```json
+{
+  "review": {
+    "scope_binding": {
+      "exact_task_contract_required": true,
+      "required_context": [
+        "task_id",
+        "issue",
+        "specification_or_equivalent_contract",
+        "specification_revision_or_not_applicable",
+        "acceptance_criteria",
+        "non_goals",
+        "repositories",
+        "worktrees",
+        "branches",
+        "target_branches",
+        "initial_diff_manifest",
+        "initial_diff_stats"
+      ],
+      "initial_diff_baseline_required": true,
+      "baseline_immutable_for_delivery_attempt": true,
+      "actionable_finding_requires_concrete_current_task_failure": true,
+      "speculative_or_general_hardening_is_non_actionable": true,
+      "material_scope_or_contract_change_returns_to_owner": true,
+      "material_cumulative_diff_growth_stops_for_analysis": true
+    },
+    "correction_policy": {
+      "round_unit": "review_driven_correction_package",
+      "separate_local_and_github_counters": true,
+      "multiple_findings_in_one_result_consume_one_round": true,
+      "technical_retry_consumes_no_round": true,
+      "unchanged_head_contextual_rereview_consumes_no_round": true,
+      "final_allowed_round_receives_review": true,
+      "next_required_round_stops_before_mutation": true,
+      "new_head_resets_request_attempts_only": true,
+      "ordered_history_required": true,
+      "pre_pr_state_store": "current_codex_task",
+      "persist_and_read_back_after_each_local_transition": true,
+      "refresh_local_state_before_each_github_generation": true,
+      "github_correction_budget_scope": "pull_request",
+      "github_counter_owner": "exact_pr_state",
+      "github_state_store": "exact_pr_heartbeat",
+      "open_pull_request_terminal_state_pauses_heartbeat": true,
+      "same_pull_request_resume_reactivates_heartbeat": true,
+      "owned_head_changing_push_requires_paused_heartbeat": true,
+      "heartbeat_deletion_requires_pull_request_terminal": true,
+      "terminal_head_records_observed_pr_head": true,
+      "terminal_finalization_procedure": "finalize_codex_review_state",
+      "terminal_state_matrix_required": true,
+      "terminal_rules_must_not_be_duplicated": true,
+      "new_pull_request_starts_github_counter_at_zero": true,
+      "different_pull_requests_do_not_share_counters_or_histories": true,
+      "different_pull_requests_do_not_share_terminal_state": true,
+      "github_dismissed_finding_fingerprints_scope": "pull_request",
+      "github_heartbeat_state_scope": "pull_request",
+      "github_heartbeat_exists_before_review_request": true,
+      "same_terminal_head_forbids_new_request": true,
+      "different_conversation_requires_proven_state": true,
+      "resume_requires_provable_counters_and_history": true,
+      "lost_history_stops_delivery": true,
+      "bounded_cycle_analysis_required": true
+    },
+    "local": {
+      "max_correction_rounds": 5,
+      "fresh_review_after_each_correction_package": true
+    },
+    "github_codex": {
+      "max_correction_rounds": 5,
+      "fresh_generation_after_each_correction_package": true,
+      "new_head_resets_request_budget_only": true
+    }
+  }
+}
+```
+
+Ранее валидный schema-v3 проект с выбранным `deliver-reviewed-change`, но без
+этой полной секции, после обновления считается невалидным. До следующего
+`--deliver-task` нужно запустить подтверждённый `--workflow-setup`
+reconfiguration: синхронизировать все выбранные skills на один exact tag
+v0.8.0, установить `workflow_kit.revision: v0.8.0`, сохранить
+`schema_version: 3`, материализовать указанный `review` contract с
+project-specific reviewer settings и выполнить validation записанной revision,
+активных skill copies и project configuration. Нельзя добавлять только counters
+поверх неполной секции или рассчитывать на compatibility defaults.
+
+Если reconfiguration нельзя завершить, `--deliver-task` остаётся fail-closed до
+устранения drift. Безопасный откат требует вернуть и project configuration, и
+весь выбранный набор skills на один прежний exact release tag; удалять `review`
+при оставленных skills v0.8.0 или смешивать revisions нельзя.

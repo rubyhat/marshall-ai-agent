@@ -79,6 +79,51 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   selected.
 - Confirm `execute-project-task` establishes its implementation-start status
   after readiness and before workspace creation.
+- When `deliver-reviewed-change` is selected, confirm that local and GitHub
+  review have separate positive correction-round limits set to five and unable
+  to exceed five,
+  share one immutable exact-task delivery baseline, retain independent ordered
+  histories across resume, and stop before a correction beyond either limit.
+  Confirm a new PR head resets only technical request attempts, the final
+  allowed correction still receives review, lost history fails closed, and a
+  bounded cycle analysis is required on exhaustion or material scope drift.
+  Require one machine-readable pre-PR state block in the retained current Codex
+  task, update/readback after every local transition, and exact transfer into
+  the first GitHub heartbeat. A different conversation without proven state
+  must not reset or resume the counters automatically.
+  Confirm every later GitHub generation refreshes and reads back authoritative
+  local correction state from that task block into the exact PR heartbeat after
+  baseline verification, without replacing the heartbeat's PR-owned GitHub
+  state.
+  For multi-repository delivery, require one independent GitHub correction
+  counter per PR: a new PR starts at zero, a new head preserves the same PR's
+  counter, and different PRs do not share or synchronize counters, histories,
+  dismissed-finding fingerprints, heartbeat state, or terminal state. Require
+  one exact-PR heartbeat to own both active and paused GitHub state. Confirm
+  every review-terminal outcome pauses that heartbeat while the PR remains
+  open, an authorized later head of the same PR reactivates that heartbeat, and
+  only provider-proven merge or close permits deletion. Require every
+  workflow-owned push that changes the PR head to begin only after that heartbeat
+  persists and reads back a paused finding state, so its monitor cannot classify
+  the controlled push as an external `head_mismatch`. Confirm it stores the PR
+  head observed at terminal transition as `terminal_head_sha`, separate from the
+  generation `head_sha`, and uses the observed terminal head for resume,
+  including `head_mismatch`. If exact PR identity or required state is not
+  provable, require pause without heartbeat deletion or fabricated state.
+  Confirm a provisional exact-PR heartbeat is persisted and read back before a
+  remote review request, then updated and reread with proven request identity.
+  Confirm every retry and contextual request uses the same heartbeat and
+  request-identity transition before monitoring.
+  Confirm an unchanged terminal head in a paused heartbeat returns its recorded
+  outcome without another review request and a later authorized same-PR head
+  reuses that heartbeat instead of creating a replacement.
+  Confirm one `finalize_codex_review_state` procedure owns the exhaustive
+  terminal-reason matrix and every terminal branch delegates to it without
+  duplicating mutation rules.
+- Confirm reviewer context is bound to the exact task contract, acceptance
+  criteria, non-goals, initial diff manifest and statistics. Generalized
+  hardening, unsubstantiated edge cases, unrelated defects, and unexplained
+  material cumulative diff growth must not silently expand delivery scope.
 - When `publish-planning-change` is also selected, confirm that a later
   task-owned specification-package correction invalidates the selected
   evidence, requires a new canonical publication record, and reruns readiness

@@ -184,6 +184,65 @@ during implementation invalidates the selected publication evidence, stops
   current specification-owner authority base and compare every path/blob OID
   with the selected record.
 
+When `deliver-reviewed-change` is selected, generate:
+
+- one immutable delivery baseline bound to the exact task, specification or
+  equivalent contract, acceptance criteria, non-goals, initial complete diff
+  manifest, and initial diff statistics;
+- separate positive `max_correction_rounds` values for local independent review
+  and GitHub pull-request review, each materialized as `5` and forbidden from
+  exceeding `5`;
+- one correction round as one coherent review-driven correction package, with
+  multiple findings from one result grouped together and technical retries or
+  unchanged-head contextual re-reviews consuming no round;
+- a fresh review of the candidate produced by the final allowed round, followed
+  by fail-closed stop before mutations when another package would be required;
+- ordered local and GitHub correction histories retained across resume, with a
+  new PR head resetting only technical request attempts and lost history
+  stopping delivery instead of resetting either counter;
+- one independent GitHub correction counter and ordered history per pull
+  request: each PR starts at zero, later heads of the same PR preserve it, and
+  different PRs never share or synchronize correction state;
+- a compact machine-readable pre-PR state block owned by the retained current
+  Codex task, containing the baseline and local correction state only, updated
+  and read back after every local transition, then copied into each new PR
+  heartbeat before that PR initializes its GitHub counter and history to zero;
+- authoritative local correction state refreshed and read back from that task
+  block into the exact PR heartbeat before every GitHub generation after proving
+  the same baseline, while preserving all PR-owned GitHub state unchanged;
+- one single exact-PR heartbeat for active and paused GitHub state: pause it for
+  every review-terminal outcome while the PR remains open, reactivate that same
+  heartbeat only for an authorized later head of the same PR, and delete it only
+  after provider evidence proves that exact PR merged or closed; never copy its
+  terminal state into retained current-task state or another PR; before every
+  workflow-owned push that changes the PR head, require that heartbeat to persist
+  and read back a paused finding state, then reactivate it only after the pushed
+  head is proven;
+  store the PR head observed at terminal transition as `terminal_head_sha`,
+  distinct from the generation `head_sha`, and compare resume with the observed
+  terminal head, including after `head_mismatch`; require pause without deletion
+  when exact PR identity or required state cannot be proven, updated, or read
+  back;
+- a provisional exact-PR heartbeat created and read back before any remote
+  review request, then updated and read back with the proven request identity;
+  require the same addressable-heartbeat and request-identity transition for
+  every initial, retry, and contextual request;
+  require an unchanged terminal head from a paused heartbeat to return its
+  recorded outcome without posting another review request, and require a later
+  authorized head of the same PR to reuse and reactivate that heartbeat;
+- one centralized `finalize_codex_review_state` procedure with an exhaustive
+  terminal-reason matrix; require every terminal branch to call it and forbid
+  duplicated pause, reactivation, or deletion rules in branch runbooks;
+- bounded cycle analysis on exhaustion and scope-drift gates that reject
+  generalized hardening, unsubstantiated edge cases, unrelated defects, and
+  unexplained material cumulative diff growth.
+
+Require the local reviewer and reviewer-visible pull-request context to receive
+the exact task contract, acceptance criteria, non-goals, and complete current
+diff without implementation discussion or an intended verdict. Require every
+actionable finding to name a concrete current-task failure or credible mandatory
+risk before it may authorize a correction package.
+
 Do not copy project-specific values from an example project.
 
 ## Create project docs conditionally

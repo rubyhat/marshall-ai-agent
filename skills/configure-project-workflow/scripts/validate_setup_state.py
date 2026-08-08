@@ -118,6 +118,23 @@ def module_index(catalog: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
         name = module["name"]
         if name in result:
             raise ValueError(f"Duplicate module in catalog: {name}")
+
+        config_section = module.get("config_section")
+        if not isinstance(config_section, str) or not config_section:
+            raise ValueError(f"Module {name} config_section must be a name")
+        additional_config_sections = module.get("additional_config_sections", [])
+        if not isinstance(additional_config_sections, list) or not all(
+            isinstance(item, str) and item for item in additional_config_sections
+        ):
+            raise ValueError(
+                f"Module {name} additional_config_sections must be an array of names"
+            )
+        if config_section in additional_config_sections or len(
+            set(additional_config_sections)
+        ) != len(additional_config_sections):
+            raise ValueError(
+                f"Module {name} configuration sections must be unique"
+            )
         result[name] = module
 
     seen_aliases: Dict[str, str] = {}
