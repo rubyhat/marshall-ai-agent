@@ -90,6 +90,7 @@ planning_publication:
         --minimum-stable-scans "<MINIMUM_STABLE_SCANS>"
         --settle-interval-seconds "<SETTLE_INTERVAL_SECONDS>"
         --settlement-timeout-seconds "<SETTLEMENT_TIMEOUT_SECONDS>"
+        --invocation-timeout-seconds "<INVOCATION_TIMEOUT_SECONDS>"
       required_placeholders:
         - "<ACTIVE_SKILL_PATH>"
         - "<PLANNING_WORKTREE>"
@@ -101,6 +102,7 @@ planning_publication:
         - "<MINIMUM_STABLE_SCANS>"
         - "<SETTLE_INTERVAL_SECONDS>"
         - "<SETTLEMENT_TIMEOUT_SECONDS>"
+        - "<INVOCATION_TIMEOUT_SECONDS>"
       direct_codex_review_allowed: false
     result_capture:
       authoritative_source: child_session_task_complete_last_agent_message
@@ -120,6 +122,7 @@ planning_publication:
       minimum_stable_scans: 2
       settle_interval_seconds: 2
       settlement_timeout_seconds: 30
+      invocation_timeout_seconds: 900
       final_rescan_before_verdict: true
       capture_cumulative_token_usage: true
   readiness:

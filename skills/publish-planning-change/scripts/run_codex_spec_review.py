@@ -66,6 +66,7 @@ EXIT_BY_STATUS = {
     "technical_retry_budget_exhausted": 14,
     "session_settlement_timeout": 15,
     "no_authoritative_terminal_result": 16,
+    "review_invocation_timeout": 17,
 }
 
 
@@ -109,6 +110,8 @@ class Invocation:
     stdout_sha256: str | None = None
     stderr_sha256: str | None = None
     binding_error: str | None = None
+    timed_out: bool = False
+    timeout_seconds: float | None = None
 
     def as_result(self) -> dict[str, Any]:
         return {
@@ -119,6 +122,8 @@ class Invocation:
             "started_at": format_time(self.started_at),
             "completed_at": format_time(self.completed_at),
             "process_exit_code": self.process_exit_code,
+            "timed_out": self.timed_out,
+            "timeout_seconds": self.timeout_seconds,
             "stdout_diagnostic": {
                 "bytes": self.stdout_bytes,
                 "sha256": self.stdout_sha256,
@@ -387,6 +392,7 @@ def build_target_snapshot(
         {"path": path, "blob_oid": blob_oid} for path, blob_oid in manifest
     ]
     state_payload = {
+        "branch": branch,
         "head": current_head,
         "status_sha256": hashlib.sha256(status).hexdigest(),
         "manifest": manifest_payload,
@@ -1029,6 +1035,7 @@ def launch_codex_review(
     effort: str,
     invocation_kind: str,
     correlation_id: str,
+    invocation_timeout_seconds: float = 900.0,
 ) -> Invocation:
     started = utc_now()
     review_instructions = build_review_instructions(target, task_id)
@@ -1060,15 +1067,22 @@ def launch_codex_review(
     with tempfile.TemporaryDirectory(prefix="codex-spec-review-") as temporary:
         stdout_path = Path(temporary) / "stdout"
         stderr_path = Path(temporary) / "stderr"
+        timed_out = False
         with stdout_path.open("wb") as stdout_handle, stderr_path.open("wb") as stderr_handle:
-            process = subprocess.run(
+            process = subprocess.Popen(
                 command,
                 cwd=target.worktree,
                 stdin=subprocess.DEVNULL,
                 stdout=stdout_handle,
                 stderr=stderr_handle,
-                check=False,
             )
+            try:
+                process.wait(timeout=invocation_timeout_seconds)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                process.kill()
+                process.wait()
+            process_exit_code = process.returncode
         stdout_data = stdout_path.read_bytes()
         stderr_data = stderr_path.read_bytes()
         captured = stdout_data.decode("utf-8", errors="replace")
@@ -1076,9 +1090,9 @@ def launch_codex_review(
     matches = SESSION_ID_RE.findall(captured)
     parent_id = matches[0] if len(matches) == 1 else None
     binding_error = None
-    if not matches:
+    if not matches and not timed_out:
         binding_error = "missing_startup_session_id"
-    elif len(matches) != 1:
+    elif len(matches) != 1 and not timed_out:
         binding_error = "ambiguous_startup_session_id"
     return Invocation(
         invocation_id=str(uuid.uuid4()),
@@ -1087,12 +1101,14 @@ def launch_codex_review(
         started_at=started,
         completed_at=utc_now(),
         review_parent_session_id=parent_id,
-        process_exit_code=process.returncode,
+        process_exit_code=process_exit_code,
         stdout_bytes=len(stdout_data),
         stderr_bytes=len(stderr_data),
         stdout_sha256=hashlib.sha256(stdout_data).hexdigest(),
         stderr_sha256=hashlib.sha256(stderr_data).hexdigest(),
         binding_error=binding_error,
+        timed_out=timed_out,
+        timeout_seconds=invocation_timeout_seconds,
     )
 
 
@@ -1108,6 +1124,10 @@ def validate_runtime_contract(args: argparse.Namespace) -> None:
     if not args.settle_interval_seconds < args.settlement_timeout_seconds <= 120:
         raise RunnerConfigurationError(
             "settlement timeout must satisfy interval < timeout <= 120 seconds"
+        )
+    if not 0 < args.invocation_timeout_seconds <= 3600:
+        raise RunnerConfigurationError(
+            "review invocation timeout must satisfy 0 < timeout <= 3600 seconds"
         )
     if args.technical_retry_limit != 1:
         raise RunnerConfigurationError("technical retry limit must equal 1")
@@ -1153,6 +1173,9 @@ def build_result(
         "findings": findings,
         "diagnostics": {
             "process_exit_codes": [item.process_exit_code for item in invocations],
+            "timed_out_invocation_ids": [
+                item.invocation_id for item in invocations if item.timed_out
+            ],
             "outer_stdout_truncated_or_unknown": any(
                 item.stdout_sha256 is None or item.stderr_sha256 is None
                 for item in invocations
@@ -1199,8 +1222,23 @@ def execute(
             effort=args.effort,
             invocation_kind=invocation_kind,
             correlation_id=correlation_id,
+            invocation_timeout_seconds=args.invocation_timeout_seconds,
         )
         invocations.append(invocation)
+        if invocation.timed_out:
+            now = utc_now()
+            timeout_bound = bind_sessions([], invocations, target_before.worktree)
+            settlement = SettlementResult(
+                status="review_invocation_timeout",
+                started_at=now,
+                completed_at=now,
+                stable_scans_observed=0,
+                last_change_observed_at=now,
+                final_rescan_at=now,
+                bound=timeout_bound,
+            )
+            status = "review_invocation_timeout"
+            break
         if invocation.binding_error:
             now = utc_now()
             empty_bound = bind_sessions([], invocations, target_before.worktree)
@@ -1299,6 +1337,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--minimum-stable-scans", type=int, default=2)
     parser.add_argument("--settle-interval-seconds", type=float, default=2.0)
     parser.add_argument("--settlement-timeout-seconds", type=float, default=30.0)
+    parser.add_argument("--invocation-timeout-seconds", type=float, default=900.0)
     parser.add_argument("--technical-retry-limit", type=int, default=1)
     return parser
 

@@ -569,6 +569,7 @@ class EndToEndNoModelTest(unittest.TestCase):
             minimum_stable_scans=2,
             settle_interval_seconds=0.002,
             settlement_timeout_seconds=0.03,
+            invocation_timeout_seconds=900.0,
             technical_retry_limit=1,
         )
 
@@ -604,6 +605,7 @@ class EndToEndNoModelTest(unittest.TestCase):
             arguments = captured_arguments.read_text(encoding="utf-8").splitlines()
         self.assertEqual(invocation.review_parent_session_id, OUTER_ID)
         self.assertEqual(invocation.process_exit_code, 23)
+        self.assertFalse(invocation.timed_out)
         self.assertGreater(invocation.stdout_bytes, 0)
         self.assertGreater(invocation.stderr_bytes, 0)
         self.assertEqual(len(invocation.stdout_sha256), 64)
@@ -617,6 +619,39 @@ class EndToEndNoModelTest(unittest.TestCase):
         self.assertIn("--uncommitted", arguments)
         self.assertNotIn("--base", arguments)
         self.assertNotIn(base, arguments)
+
+    def test_invocation_timeout_is_reaped_and_fails_closed_without_retry(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            worktree = root / "repository"
+            sessions = root / "sessions"
+            worktree.mkdir()
+            sessions.mkdir()
+            base = initialize_git_fixture(worktree)
+            fake_codex = root / "fake-codex"
+            fake_codex.write_text(
+                "#!/bin/sh\n"
+                f"printf 'session id: {OUTER_ID}\\n'\n"
+                "exec sleep 10\n",
+                encoding="utf-8",
+            )
+            fake_codex.chmod(0o755)
+            args = self.make_args(worktree, sessions, base)
+            args.codex_bin = str(fake_codex)
+            args.invocation_timeout_seconds = 0.05
+
+            result = runner.execute(args)
+
+        self.assertEqual(result["status"], "review_invocation_timeout")
+        self.assertEqual(result["technical_retries_used"], 0)
+        self.assertEqual(len(result["invocations"]), 1)
+        self.assertTrue(result["invocations"][0]["timed_out"])
+        self.assertNotEqual(result["invocations"][0]["process_exit_code"], 0)
+        self.assertEqual(
+            result["diagnostics"]["timed_out_invocation_ids"],
+            [result["invocations"][0]["invocation_id"]],
+        )
+        self.assertEqual(runner.EXIT_BY_STATUS["review_invocation_timeout"], 17)
 
     def test_committed_target_selects_base_review_mode(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -899,6 +934,52 @@ class EndToEndNoModelTest(unittest.TestCase):
         self.assertEqual(len(result["invocations"]), 1)
         self.assertIsNone(result["diagnostics"]["target_change_error"])
 
+    def test_branch_switch_after_review_is_fail_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            worktree = root / "repository"
+            sessions = root / "sessions"
+            worktree.mkdir()
+            sessions.mkdir()
+            base = initialize_git_fixture(worktree)
+
+            def launcher(**kwargs):
+                invocation = runner.Invocation(
+                    invocation_id="invocation-0",
+                    kind=kwargs["invocation_kind"],
+                    correlation_id=kwargs["correlation_id"],
+                    started_at=runner.utc_now(),
+                    completed_at=runner.utc_now(),
+                    review_parent_session_id=OUTER_ID,
+                    process_exit_code=0,
+                )
+                write_session(
+                    sessions,
+                    session_id=OUTER_ID,
+                    parent_id=None,
+                    worktree=worktree,
+                    source="exec",
+                    terminal_message="launcher complete",
+                )
+                write_session(
+                    sessions,
+                    session_id="22222222-2222-7222-8222-222222222222",
+                    parent_id=OUTER_ID,
+                    worktree=worktree,
+                    source={"subagent": "review"},
+                    terminal_message=clean_message(),
+                )
+                git(worktree, "switch", "-qc", "codex/switched")
+                return invocation
+
+            result = runner.execute(
+                self.make_args(worktree, sessions, base), launcher=launcher
+            )
+
+        self.assertEqual(result["status"], "target_changed")
+        self.assertEqual(result["review_target"]["branch"], "codex/test")
+        self.assertEqual(len(result["invocations"]), 1)
+
     def test_invalid_post_review_snapshot_returns_normalized_target_changed(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -1010,6 +1091,13 @@ class EndToEndNoModelTest(unittest.TestCase):
                     args.settlement_timeout_seconds = timeout
                     with self.assertRaises(runner.RunnerConfigurationError):
                         runner.validate_runtime_contract(args)
+            args.settle_interval_seconds = 0.002
+            args.settlement_timeout_seconds = 0.03
+            for timeout in (0, 3601):
+                with self.subTest(invocation_timeout=timeout):
+                    args.invocation_timeout_seconds = timeout
+                    with self.assertRaises(runner.RunnerConfigurationError):
+                        runner.validate_runtime_contract(args)
 
     def test_runtime_accepts_documented_boundary_values(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -1022,6 +1110,7 @@ class EndToEndNoModelTest(unittest.TestCase):
             args = self.make_args(worktree, sessions, base)
             args.settle_interval_seconds = 10
             args.settlement_timeout_seconds = 120
+            args.invocation_timeout_seconds = 3600
             args.effort = "xhigh"
             runner.validate_runtime_contract(args)
 

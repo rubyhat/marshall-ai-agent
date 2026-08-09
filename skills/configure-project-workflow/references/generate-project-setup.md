@@ -149,12 +149,13 @@ When `publish-planning-change` is selected, generate:
   persistent state, locks, archives, migrations, or crash-recovery machinery
   for this counter;
 - the canonical authoritative-session review runner, required command-template
-  placeholders including every configured settlement value, strict native
+  placeholders including every configured settlement value and the bounded
+  reviewer invocation timeout, strict native
   terminal-result schema, exact parent/child/cwd/
   target binding, two stable settlement scans, final rescan, cumulative usage,
   and one technical retry only after settled absence of any authoritative
   terminal result. Materialize settlement intervals as whole seconds and
-  require timeout strictly greater than interval. Reject a direct `codex review`
+  require settlement timeout strictly greater than interval. Reject a direct `codex review`
   command template;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
   specification-owner ancestry, exact-task publication evidence, sync, and

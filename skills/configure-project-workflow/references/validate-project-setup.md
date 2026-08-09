@@ -81,11 +81,12 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   after readiness and before workspace creation.
 - When `publish-planning-change` is selected, require the canonical runner
   command template rather than direct `codex review`, all runtime placeholders,
-  including every configured settlement value,
+  including every configured settlement value and the bounded reviewer
+  invocation timeout,
   exact parent/child/cwd/target binding, strict native terminal JSON, one
   technical retry only after settled absence, at least two stable scans,
-  bounded whole-second interval values, timeout strictly greater than interval,
-  final rescan, cumulative token capture, and
+  bounded whole-second interval values, settlement timeout strictly greater
+  than interval, final rescan, cumulative token capture, and
   the full current provenance tuple in publication evidence.
 - When `deliver-reviewed-change` is selected, confirm that local and GitHub
   review have separate positive correction-round limits set to five and unable

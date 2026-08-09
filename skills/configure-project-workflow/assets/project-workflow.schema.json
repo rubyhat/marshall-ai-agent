@@ -260,7 +260,8 @@
                     {"pattern": "<REVIEWER_EFFORT>"},
                     {"pattern": "<MINIMUM_STABLE_SCANS>"},
                     {"pattern": "<SETTLE_INTERVAL_SECONDS>"},
-                    {"pattern": "<SETTLEMENT_TIMEOUT_SECONDS>"}
+                    {"pattern": "<SETTLEMENT_TIMEOUT_SECONDS>"},
+                    {"pattern": "<INVOCATION_TIMEOUT_SECONDS>"}
                   ],
                   "not": {
                     "pattern": "(?:^|\\s)codex\\s+review(?:\\s|$)"
@@ -277,7 +278,8 @@
                     "<REVIEWER_EFFORT>",
                     "<MINIMUM_STABLE_SCANS>",
                     "<SETTLE_INTERVAL_SECONDS>",
-                    "<SETTLEMENT_TIMEOUT_SECONDS>"
+                    "<SETTLEMENT_TIMEOUT_SECONDS>",
+                    "<INVOCATION_TIMEOUT_SECONDS>"
                   ]
                 },
                 "direct_codex_review_allowed": {"const": false}
@@ -304,6 +306,7 @@
                 "minimum_stable_scans",
                 "settle_interval_seconds",
                 "settlement_timeout_seconds",
+                "invocation_timeout_seconds",
                 "final_rescan_before_verdict",
                 "capture_cumulative_token_usage"
               ],
@@ -344,6 +347,12 @@
                   "exclusiveMinimum": 0,
                   "maximum": 120,
                   "default": 30
+                },
+                "invocation_timeout_seconds": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 3600,
+                  "default": 900
                 },
                 "final_rescan_before_verdict": {"const": true},
                 "capture_cumulative_token_usage": {"const": true}

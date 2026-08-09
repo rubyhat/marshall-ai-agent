@@ -51,14 +51,21 @@ and manifest are bound by the runner.
 Persist only bounded stream diagnostics in the normalized result: exit code,
 byte length, and SHA-256 for stdout and stderr. Do not copy stream content into
 review evidence or derive a verdict from those diagnostics.
+Bound every reviewer subprocess with the configured invocation timeout. On
+expiry, kill and reap the subprocess, return `review_invocation_timeout`, and
+do not launch a technical retry. Include the exact planning branch in the
+pre/post target-state fingerprint so a same-HEAD branch switch is
+`target_changed` rather than CLEAN. Materialize the invocation timeout as 900
+seconds by default and validate `0 < timeout <= 3600` before model invocation.
 
 The runner prints exactly one normalized JSON object for a recognized result
 status and uses this exit mapping: `clean` → `0`, `non_clean` → `10`,
 `terminal_contract_error` → `11`, `target_changed` → `12`,
 `invocation_binding_error` → `13`, `technical_retry_budget_exhausted` → `14`,
 `session_settlement_timeout` → `15`, and the internal settled
-`no_authoritative_terminal_result` state → `16`. Invalid runtime configuration
-stops before model invocation with exit code `64` and stderr diagnostics.
+`no_authoritative_terminal_result` state → `16`, and
+`review_invocation_timeout` → `17`. Invalid runtime configuration stops before
+model invocation with exit code `64` and stderr diagnostics.
 If the post-review target can no longer be snapshotted, normalize that failure
 as `target_changed` with bounded diagnostics; it is not a new pre-invocation
 configuration error.

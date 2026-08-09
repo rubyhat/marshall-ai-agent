@@ -84,7 +84,8 @@ def runner_config():
             '--model "<REVIEWER_MODEL>" --effort "<REVIEWER_EFFORT>" '
             '--minimum-stable-scans "<MINIMUM_STABLE_SCANS>" '
             '--settle-interval-seconds "<SETTLE_INTERVAL_SECONDS>" '
-            '--settlement-timeout-seconds "<SETTLEMENT_TIMEOUT_SECONDS>"'
+            '--settlement-timeout-seconds "<SETTLEMENT_TIMEOUT_SECONDS>" '
+            '--invocation-timeout-seconds "<INVOCATION_TIMEOUT_SECONDS>"'
         ),
         "required_placeholders": [
             "<ACTIVE_SKILL_PATH>",
@@ -97,6 +98,7 @@ def runner_config():
             "<MINIMUM_STABLE_SCANS>",
             "<SETTLE_INTERVAL_SECONDS>",
             "<SETTLEMENT_TIMEOUT_SECONDS>",
+            "<INVOCATION_TIMEOUT_SECONDS>",
         ],
         "direct_codex_review_allowed": False,
     }
@@ -121,6 +123,7 @@ def result_capture_config():
         "minimum_stable_scans": 2,
         "settle_interval_seconds": 2,
         "settlement_timeout_seconds": 30,
+        "invocation_timeout_seconds": 900,
         "final_rescan_before_verdict": True,
         "capture_cumulative_token_usage": True,
     }
@@ -300,6 +303,9 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn(
             '--settlement-timeout-seconds "<SETTLEMENT_TIMEOUT_SECONDS>"', text
         )
+        self.assertIn(
+            '--invocation-timeout-seconds "<INVOCATION_TIMEOUT_SECONDS>"', text
+        )
         self.assertIn("legacy_ready_adoption:\n      enabled: false", text)
         self.assertIn("selection_precedence:\n        - ordinary_reviewed_publication", text)
         self.assertIn("publication_upgrade_required", text)
@@ -329,12 +335,14 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertEqual(capture["properties"]["settle_interval_seconds"]["type"], "integer")
         self.assertEqual(capture["properties"]["settle_interval_seconds"]["maximum"], 10)
         self.assertEqual(capture["properties"]["settlement_timeout_seconds"]["maximum"], 120)
+        self.assertEqual(capture["properties"]["invocation_timeout_seconds"]["maximum"], 3600)
         self.assertEqual(
-            runner_schema["properties"]["required_placeholders"]["const"][-3:],
+            runner_schema["properties"]["required_placeholders"]["const"][-4:],
             [
                 "<MINIMUM_STABLE_SCANS>",
                 "<SETTLE_INTERVAL_SECONDS>",
                 "<SETTLEMENT_TIMEOUT_SECONDS>",
+                "<INVOCATION_TIMEOUT_SECONDS>",
             ],
         )
 
@@ -401,6 +409,12 @@ class PlanningPublicationContractTest(unittest.TestCase):
             "result_capture"
         ]["settlement_timeout_seconds"] = 2
         self.assertTrue(list(validator.iter_errors(invalid_settlement_window)))
+
+        invalid_invocation_timeout = copy.deepcopy(complete)
+        invalid_invocation_timeout["planning_publication"]["independent_review"][
+            "result_capture"
+        ]["invocation_timeout_seconds"] = 3601
+        self.assertTrue(list(validator.iter_errors(invalid_invocation_timeout)))
 
         missing_runtime_placeholder = copy.deepcopy(complete)
         missing_runtime_placeholder["planning_publication"]["independent_review"][
