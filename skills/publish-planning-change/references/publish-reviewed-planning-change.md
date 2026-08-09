@@ -22,18 +22,19 @@ Publish only after the exact current spec head has a clean independent review.
    planning/spec commit using project conventions.
 
 After commit, resolve the exact PR-head revision and tree OID and rebuild the
-complete sorted publication-package path/blob-OID manifest. Bind the candidate
+complete sorted publication-package path/mode/blob-OID manifest. Bind the candidate
 clean-review record by its target kind. For a reviewed local correction
 checkpoint, require the PR-head revision and tree OID to equal
 the reviewed checkpoint exactly and record only
-`direct_committed_base_diff`; path/blob-OID equivalence alone is insufficient.
+`direct_committed_base_diff`; path/mode/blob-OID equivalence alone is insufficient.
 For an uncommitted-review candidate, bind evidence to the eventual commit only
-when the complete manifest has exact path/OID equality, including every blob
-OID and every base-relative `deleted:<base-blob-oid>` marker, and record
+when the complete manifest has exact path/mode/OID equality, including every
+blob OID and every base-relative `deleted:<base-mode>` and
+`deleted:<base-blob-oid>` marker, and record
 `verified_uncommitted_manifest_equivalence`. If the
 required revision, tree,
-identity, path set, or any blob OID differs, invalidate the candidate and run a
-fresh independent review for the new exact head before push or merge.
+identity, path set, mode, or any blob OID differs, invalidate the candidate and
+run a fresh independent review for the new exact head before push or merge.
 
 Do not include generated application output, implementation code, unrelated
 memory, or a release-version mutation.
@@ -42,7 +43,7 @@ A local correction checkpoint is only a way to present a complete, clean,
 already committed planning diff to the reviewer. It must contain only the exact
 manifest including any required content-verdict update, must remain unpushed
 until clean review, and gains publication evidence only through the same
-exact-head and path/OID binding as any other reviewed commit. Once clean, do
+exact-head and path/mode/OID binding as any other reviewed commit. Once clean, do
 not amend, replace, or add a commit before pushing that exact checkpoint.
 
 ## Push and create the pull request

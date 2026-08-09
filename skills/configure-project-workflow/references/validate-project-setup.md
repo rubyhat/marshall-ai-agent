@@ -73,10 +73,10 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
 - Confirm selected modules match configuration and `AGENTS.md` routing.
 - Confirm disabled or removed modules have no active alias or generated routing.
 - Confirm domain handoffs target installed modules.
-- Confirm `write-task-spec` hands file-backed specs to
-  `publish-planning-change` before implementation and that
-  `execute-project-task` has a canonical-publication gate when the module is
-  selected.
+- When `publish-planning-change` is selected, confirm `write-task-spec` hands
+  file-backed specs to it before implementation. When
+  `execute-project-task` is also selected, confirm execution has a
+  canonical-publication gate.
 - Confirm `execute-project-task` establishes its implementation-start status
   after readiness and before workspace creation.
 - When `publish-planning-change` is selected, require the canonical runner
@@ -88,6 +88,11 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   bounded whole-second interval values, settlement timeout strictly greater
   than interval, final rescan, cumulative token capture, and
   the full current provenance tuple in publication evidence.
+- When `execute-project-task` is selected without `publish-planning-change`,
+  require an empty implementation section; reject publication readiness,
+  evidence, ancestry and manifest gates, `publication_upgrade_required`, and
+  the unavailable `--publish-spec` alias or handoff. Confirm the installed
+  execution skill skips those gates when publication is not configured.
 - When `deliver-reviewed-change` is selected, confirm that local and GitHub
   review have separate positive correction-round limits set to five and unable
   to exceed five,
@@ -137,10 +142,11 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   task-owned specification-package correction invalidates the selected
   evidence, requires a new canonical publication record, and reruns readiness
   before task-code edits resume. Require current-authority-base package
-  path/blob-OID equality with the selected record; checking only the record's
+  path/mode/blob-OID equality with the selected record; checking only the record's
   older merged revision is insufficient. Do not route a selective installation
   to an unselected publication module.
-- Confirm publication ancestry is required only in the repository that owns
+- When `publish-planning-change` is selected, confirm publication ancestry is
+  required only in the repository that owns
   the specification revision. For implementation repositories with separate
   Git histories, require the same resolvable exact-task reviewed-publication
   record without impossible shared ancestry. Verify it binds the clean reviewer
@@ -148,14 +154,14 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   hash, complete matched-session set, and package manifest to the reviewed head
   and merged revision, is persisted and reread before cleanup, and does not
   rely on PR prose.
-- Verify legacy-ready adoption is materialized as disabled and ordinary
-  current capture-contract publication is the only accepted implementation
-  evidence path, including workspace creation in a separate repository. Old or
-  incomplete records must return typed `publication_upgrade_required` before
-  workspace mutation, preserve historical evidence for audit, downgrade only
-  exact implementation-ready operational status, keep every other configured
-  status audit-only, and require a post-merge rescan plus zero-old-evidence-
-  ready completion readback.
+- When `publish-planning-change` is selected, verify legacy-ready adoption is
+  materialized as disabled and ordinary current capture-contract publication is
+  the only accepted implementation evidence path, including workspace creation
+  in a separate repository. Old or incomplete records must return typed
+  `publication_upgrade_required` before workspace mutation, preserve historical
+  evidence for audit, downgrade only exact implementation-ready operational
+  status, keep every other configured status audit-only, and require a
+  post-merge rescan plus zero-old-evidence-ready completion readback.
 
 ## Installation
 
@@ -188,20 +194,27 @@ Evaluate representative prompts without performing their mutations:
   before tracker mutations, followed by Issue-first identity establishment only
   after approval;
 - request a full spec -> configured task/spec handoff;
-- finish a file-backed spec -> stop at `Spec ready` and recommend
-  `--publish-spec` rather than implementation;
-- publish a spec in a planning session -> allow only the exact planning
+- when planning publication is selected, finish a file-backed spec -> stop at
+  `Spec ready` and recommend `--publish-spec` rather than implementation;
+- when planning publication is selected, publish a spec in a planning session
+  -> allow only the exact planning
   publication manifest, require independent review, and preserve the
   implementation and delivery locks;
-- request implementation with a local or PR-only unmerged spec -> stop before
-  task lookup or workspace mutation and recommend `--publish-spec`;
-- request implementation with a reviewed merged spec -> require the canonical
+- when planning publication is selected, request implementation with a local or
+  PR-only unmerged spec -> stop before task lookup or workspace mutation and
+  recommend `--publish-spec`;
+- when planning publication is selected, request implementation with a reviewed
+  merged spec -> require the canonical
   revision in the specification-owner authority base and, for a separate
   component repository, require the exact-task publication tuple without
   shared ancestry;
-- request implementation for an old or pre-adoption ready spec -> return typed
-  `publication_upgrade_required` with `workspace_created: false` and recommend
-  exact `--publish-spec <Task ID>` even when a historical baseline matches;
+- when planning publication is selected, request implementation for an old or
+  pre-adoption ready spec -> return typed `publication_upgrade_required` with
+  `workspace_created: false` and recommend exact `--publish-spec <Task ID>` even
+  when a historical baseline matches;
+- when `execute-project-task` is selected without planning publication, request
+  implementation with all remaining configured readiness gates satisfied ->
+  continue without publication evidence or a `--publish-spec` handoff;
 - request the next spec with one active work graph -> verify the previous task
   read-only, select the unique next eligible task by dependencies, and enter
   the configured specification workflow;

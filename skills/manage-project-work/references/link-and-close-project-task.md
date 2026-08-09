@@ -20,7 +20,7 @@ the implementation Issue for a spec-publication pull request.
 For ordinary reviewed publication, accept the handoff only with one complete
 `reviewed_canonical_publication` record: Task ID, owner repository, canonical
 spec entrypoint, pull request URL, merged revision/tree OID, bound reviewed-head
-revision/tree OID, complete sorted reviewed package path/blob-OID manifest,
+revision/tree OID, complete sorted reviewed package path/mode/blob-OID manifest,
 reviewer run/evidence identifier, model, effort, completion time, terminal
 clean verdict, review target kind, canonical base revision, binding method, and
 explicit reviewed-versus-merged package-manifest equality. Also require the

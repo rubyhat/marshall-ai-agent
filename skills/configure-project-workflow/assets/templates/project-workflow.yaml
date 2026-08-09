@@ -188,6 +188,8 @@ planning_publication:
     implementation_issue_remains_open: true
     release_or_deploy_forbidden: true
 
+# Keep `implementation: {}` and omit this readiness block when
+# `execute-project-task` is selected without `publish-planning-change`.
 implementation:
   readiness:
     publication_evidence:

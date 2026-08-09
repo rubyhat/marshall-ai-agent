@@ -10,7 +10,7 @@ After merge, verify:
 - the merged head is the independently reviewed head or a provider-created
   equivalent whose tree contains the exact reviewed artifacts;
 - the bound reviewed-head revision and tree OID resolve, and its complete
-  publication-package path/blob-OID manifest equals both the captured clean-
+  publication-package path/mode/blob-OID manifest equals both the captured clean-
   review manifest and the package manifest at the merged revision;
 - the canonical branch contains the spec entrypoint and required annexes;
 - task identity, links, and content verdict are unchanged;
@@ -38,8 +38,8 @@ Ask `manage-project-work` to record one exact-task
   request URL, merged revision, and merged tree OID;
 - bound reviewed-head revision and tree OID;
 - the complete sorted reviewed package manifest with every project-relative
-  path and blob OID, preserving each reviewed deletion as its base-relative
-  `deleted:<base-blob-oid>` marker;
+  path, mode, and blob OID, preserving each reviewed deletion as its
+  base-relative `deleted:<base-mode>` and `deleted:<base-blob-oid>` markers;
 - reviewer run/evidence identifier, model, effort, completion time, terminal
   clean verdict, review target kind, canonical base revision, and binding
   method (`direct_committed_base_diff` or

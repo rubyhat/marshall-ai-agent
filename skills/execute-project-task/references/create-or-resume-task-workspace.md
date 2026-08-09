@@ -41,23 +41,29 @@ When a workspace does not exist:
 1. resolve the configured remote and default branch;
 2. fetch and prune when network and policy allow;
 3. verify the intended remote-tracking base;
-4. when this repository also owns the canonical task specification, verify that
-   the base contains or descends from the ordinary merged revision in the
-   complete current capture-contract publication record;
-5. when the specification owner is a different repository, verify the recorded
-   matching exact-task ordinary tuple with Task ID, owner repository, canonical
-   spec path, merged revision, capture-contract revision, publication-attempt
-   ID, normalized-result hash, and complete matched reviewer session set instead
-   of requiring impossible shared Git ancestry;
+4. when file-backed planning publication is configured and this repository also
+   owns the canonical task specification, verify that the base contains or
+   descends from the ordinary merged revision in the complete current
+   capture-contract publication record;
+5. when file-backed planning publication is configured and the specification
+   owner is a different repository, verify the recorded matching exact-task
+   ordinary tuple with Task ID, owner repository, canonical spec path, merged
+   revision, capture-contract revision, publication-attempt ID,
+   normalized-result hash, and complete matched reviewer session set instead of
+   requiring impossible shared Git ancestry;
 6. derive the configured task branch and workspace path;
 7. ensure neither collides with another task;
 8. create the feature branch and worktree from that base;
 9. verify branch, `HEAD`, worktree registration, and clean initial state.
 
-Historical legacy derived revisions and cross-repository legacy tuples are
-inventory/audit evidence only. Missing or incomplete current ordinary evidence
-returns typed `publication_upgrade_required` with `workspace_created: false`;
-do not create or resume an implementation worktree before republication.
+Apply the following evidence rules only when file-backed planning publication is
+configured. Historical legacy derived revisions and cross-repository legacy
+tuples are inventory/audit evidence only.
+Missing or incomplete current ordinary evidence returns typed
+`publication_upgrade_required` with `workspace_created: false`; do not create or
+resume an implementation worktree before republication. When publication is not
+configured, skip these evidence and upgrade-stop rules and use the verified
+project base selected by the remaining workspace policy.
 
 A typical command shape is:
 

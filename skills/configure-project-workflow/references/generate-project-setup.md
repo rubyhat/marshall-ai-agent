@@ -161,14 +161,15 @@ When `publish-planning-change` is selected, generate:
   specification-owner ancestry, exact-task publication evidence, sync, and
   cleanup gates; require an ordinary publication record with evidence kind,
   Task ID, owner repository, canonical spec path, PR URL, merged revision/tree,
-  bound reviewed-head revision/tree, full package path/blob-OID manifest,
+  bound reviewed-head revision/tree, full package path/mode/blob-OID manifest,
   reviewer run identity and clean-verdict metadata, review base/target/binding
   method, capture-contract revision, publication-attempt ID, normalized-result
   hash, complete matched reviewer session set, and explicit reviewed-versus-
   merged manifest equality. Reread every field before cleanup, and never
   require a component repository with a separate Git history to contain that
   commit;
-- `legacy_ready_adoption.enabled: false` and ordinary reviewed publication as
+- when `execute-project-task` is also selected,
+  `legacy_ready_adoption.enabled: false` and ordinary reviewed publication as
   the only implementation-readiness path. Keep historical baseline tuples as
   audit input only. Generate the typed `publication_upgrade_required` stop,
   stale-published-ready correction entry, complete ready-spec inventory,
@@ -183,6 +184,12 @@ When `execute-project-task` is selected, generate:
 
 - the implementation-start tracker checkpoint after readiness succeeds and
   before implementation worktree or feature-branch creation.
+- when `publish-planning-change` is not selected, keep the required
+  `implementation` section empty and omit publication evidence, publication
+  ancestry and manifest gates, `publication_upgrade_required`, and every
+  `--publish-spec` alias or handoff. Resolve readiness only from the remaining
+  selected modules and project policy; do not route execution to an unavailable
+  publisher.
 
 When both `execute-project-task` and `publish-planning-change` are selected,
 also generate a hard rule that any task-owned specification or annex correction
@@ -191,7 +198,7 @@ during implementation invalidates the selected publication evidence, stops
   `publish-planning-change`, and reruns the complete readiness gate against the
   new persisted publication record before implementation resumes. Require the
   readiness gate to rebuild the complete task-owned package manifest at the
-  current specification-owner authority base and compare every path/blob OID
+  current specification-owner authority base and compare every path/mode/blob OID
   with the selected record.
 
 When `deliver-reviewed-change` is selected, generate:

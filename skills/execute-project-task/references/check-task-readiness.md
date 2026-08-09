@@ -49,10 +49,11 @@ Check the configured requirements:
 
 Inspect only enough current code to verify that named surfaces and critical assumptions still exist. Do not begin broad implementation during readiness checking.
 
-For the ordinary path, require one persisted and reread record with evidence
-kind `reviewed_canonical_publication`, Task ID, owner repository, canonical spec
+Only when file-backed planning publication is configured, require one persisted
+and reread ordinary record with evidence kind `reviewed_canonical_publication`,
+Task ID, owner repository, canonical spec
 entrypoint, PR URL, merged revision/tree OID, bound reviewed-head revision/tree
-OID, complete sorted reviewed package path/blob-OID manifest, reviewer run or
+OID, complete sorted reviewed package path/mode/blob-OID manifest, reviewer run or
 evidence identifier, model, effort, completion time, terminal clean verdict,
 review target kind, canonical base revision, binding method, and explicit
 reviewed-versus-merged package-manifest equality. Also require current review
@@ -66,7 +67,7 @@ is insufficient.
 
 Also rebuild the same complete sorted package manifest from the current
 specification-owner authority base, not only from the record's older merged
-revision. Require exact path and blob-OID equality with the selected persisted
+revision. Require exact path, mode, and blob-OID equality with the selected persisted
 manifest before returning a ready result. A missing, added, or changed
 task-owned specification or annex invalidates the selected path even when the
 old merged revision remains in ancestry.
@@ -81,6 +82,7 @@ the implementation gate remains closed and a new complete record is pending.
 
 ## Stop for publication evidence upgrade
 
+Apply this section only when file-backed planning publication is configured.
 Historical baseline evidence and an ordinary record without the current
 capture-contract provenance are audit inputs only. They cannot satisfy
 implementation readiness, even when their old manifest still matches the
@@ -108,13 +110,19 @@ authoritative post-cutover rescan and is complete only when no old-evidence item
 still has implementation-ready operational status. It must not synthesize
 session IDs, result hashes, or independent-review claims.
 
+When `publish-planning-change` is not selected, skip this stop entirely. Do not
+require publication evidence, return `publication_upgrade_required`, or emit a
+`--publish-spec` next action. Evaluate only the remaining configured readiness
+gates.
+
 ## Classify gaps
 
 Use these routes:
 
 - missing or inconsistent specification detail: `write-task-spec`;
-- missing, old, or incomplete ordinary publication evidence:
-  `publish-planning-change` with typed `publication_upgrade_required`;
+- missing, old, or incomplete ordinary publication evidence when publication is
+  configured: `publish-planning-change` with typed
+  `publication_upgrade_required`;
 - changed outcome, scope, task decomposition, architecture, or dependency direction: `shape-project-work`;
 - missing or inconsistent task identity or tracker state: `manage-project-work`;
 - missing domain-specific evidence: the configured domain workflow;

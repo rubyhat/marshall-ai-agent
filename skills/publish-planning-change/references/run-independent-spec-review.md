@@ -142,16 +142,16 @@ committed-plus-uncommitted candidate before model invocation because
 `codex review --uncommitted` omits its committed portion. Create an authorized
 clean checkpoint and review the complete candidate with `--base <revision>`.
 Evidence for a purely uncommitted candidate becomes publishable only after the
-eventual committed head has the identical complete path/blob-OID manifest; it
-uses the separately configured `verified_uncommitted_manifest_equivalence`
-binding method.
+eventual committed head has the identical complete path/mode/blob-OID manifest;
+it uses the separately configured
+`verified_uncommitted_manifest_equivalence` binding method.
 
 Represent a tracked path deleted relative to the canonical base as
-`deleted:<base-blob-oid>` in the sorted manifest. Use the same base-relative
-representation when checking the eventual commit and merged revision so a
-deletion is reviewed, cannot disappear from evidence, and remains distinct from
-an empty file. A rename contains both the new path/blob OID and the deleted
-source marker.
+mode `deleted:<base-mode>` plus blob OID `deleted:<base-blob-oid>` in the sorted
+manifest. Use the same base-relative representation when checking the eventual
+commit and merged revision so a deletion is reviewed, cannot disappear from
+evidence, and remains distinct from an empty file. A rename contains both the
+new path/mode/blob OID and the deleted source markers.
 
 One clean review for the current head is terminal. Do not keep requesting review
 for an unchanged clean specification. If the final allowed corrected head still
@@ -229,12 +229,12 @@ Before accepting a clean verdict, capture a bounded durable candidate record:
 - review target kind, canonical base revision, planning worktree, branch, and
   the reviewed commit when the target was already committed;
 - the complete sorted publication-package manifest with every allowed
-  project-relative path and content blob OID.
+  project-relative path, Git mode, and content blob OID.
 
 Do not treat model and effort alone, a PR-description claim, or an unbound
 verdict as review evidence. A full private reasoning transcript is neither
 required nor copied into the specification. When the clean review targeted
 uncommitted content, keep the manifest as candidate evidence; the publication
-workflow must bind it to the eventual committed PR head by exact path/OID
+workflow must bind it to the eventual committed PR head by exact path/mode/OID
 equality before merge. Any manifest change invalidates the clean verdict and
 requires a fresh review.

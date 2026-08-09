@@ -148,7 +148,7 @@ commit relative to the canonical base. Reject a mixed committed-plus-uncommitted
 candidate before model invocation because `codex review --uncommitted` omits its
 committed portion. Create an authorized clean checkpoint and review the complete
 candidate with the committed-base selector. Bind a purely uncommitted candidate
-to the eventual head by path/blob-OID equality.
+to the eventual head by path/mode/blob-OID equality.
 
 Evaluate every finding against the shaped scope and sources of truth. Route a
 real content correction through `write-task-spec`; route a material outcome or
@@ -186,7 +186,7 @@ Read [publish-reviewed-planning-change.md](references/publish-reviewed-planning-
 Publish the exact clean-reviewed candidate without any post-review verdict or
 package-byte mutation. When review targeted a local correction checkpoint,
 reuse that exact checkpoint. For an uncommitted-review candidate, create the
-intentional commit only when its complete path/blob-OID manifest is identical
+intentional commit only when its complete path/mode/blob-OID manifest is identical
 to the reviewed manifest. Push without force, create or reconcile the exact
 pull request, and obey reported checks and branch protection. Merge only when
 the configured endpoint and current user authority allow it.

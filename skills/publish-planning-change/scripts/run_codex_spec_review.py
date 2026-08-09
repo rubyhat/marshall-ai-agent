@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import tempfile
@@ -34,6 +35,7 @@ SESSION_ID_RE = re.compile(
 ALLOWED_EFFORTS = {"low", "medium", "high", "xhigh"}
 ALLOWED_TARGET_KINDS = {"uncommitted", "committed"}
 DELETED_BLOB_PREFIX = "deleted:"
+DELETED_MODE_PREFIX = "deleted:"
 NATIVE_RESULT_FIELDS = {
     "findings",
     "overall_correctness",
@@ -81,7 +83,7 @@ class TargetSnapshot:
     branch: str
     base_revision: str
     head_revision: str | None
-    manifest: tuple[tuple[str, str], ...]
+    manifest: tuple[tuple[str, str, str], ...]
     manifest_fingerprint: str
     state_fingerprint: str
 
@@ -222,7 +224,7 @@ def sha256_json(value: Any) -> str:
 
 def build_review_instructions(target: TargetSnapshot, task_id: str) -> str:
     manifest_paths = json.dumps(
-        [path for path, _ in target.manifest],
+        [path for path, _, _ in target.manifest],
         ensure_ascii=False,
         separators=(",", ":"),
     )
@@ -291,9 +293,9 @@ def changed_paths(
     return committed_paths | parse_porcelain_paths(status), committed_paths, status
 
 
-def base_blob_oid_for_path(
+def base_file_state_for_path(
     worktree: Path, base_revision: str, relative_path: str
-) -> str | None:
+) -> tuple[str, str] | None:
     raw = run_git(
         worktree,
         ["ls-tree", "-z", base_revision, "--", relative_path],
@@ -315,31 +317,133 @@ def base_blob_oid_for_path(
         raise RunnerConfigurationError(
             f"review manifest base path mismatch: {relative_path}"
         )
-    return fields[2].decode("ascii")
+    return fields[0].decode("ascii"), fields[2].decode("ascii")
 
 
-def manifest_blob_state_for_path(
-    worktree: Path, base_revision: str, relative_path: str
-) -> str | None:
-    candidate = (worktree / relative_path).resolve()
-    try:
-        candidate.relative_to(worktree.resolve())
-    except ValueError as error:
+def index_file_state_for_path(
+    worktree: Path, relative_path: str
+) -> tuple[str, str] | None:
+    raw = run_git(
+        worktree,
+        ["ls-files", "--stage", "-z", "--", relative_path],
+    )
+    if not raw:
+        return None
+    entries = [entry for entry in raw.split(b"\0") if entry]
+    if len(entries) != 1 or b"\t" not in entries[0]:
         raise RunnerConfigurationError(
-            f"manifest path escapes the worktree: {relative_path}"
-        ) from error
-    base_blob_oid = base_blob_oid_for_path(worktree, base_revision, relative_path)
+            f"unexpected index entry for manifest path: {relative_path}"
+        )
+    metadata, recorded_path = entries[0].split(b"\t", 1)
+    fields = metadata.split()
+    if len(fields) != 3 or fields[2] != b"0":
+        raise RunnerConfigurationError(
+            f"review manifest index path is unmerged: {relative_path}"
+        )
+    if recorded_path.decode("utf-8", errors="surrogateescape") != relative_path:
+        raise RunnerConfigurationError(
+            f"review manifest index path mismatch: {relative_path}"
+        )
+    return fields[0].decode("ascii"), fields[1].decode("ascii")
+
+
+def worktree_mode_from_git_for_path(
+    worktree: Path, relative_path: str
+) -> str | None:
+    raw = run_git(
+        worktree,
+        ["diff-files", "--raw", "--no-abbrev", "-z", "--", relative_path],
+    )
+    if not raw:
+        return None
+    entries = raw.split(b"\0")
+    if entries[-1] == b"":
+        entries.pop()
+    if len(entries) != 2:
+        raise RunnerConfigurationError(
+            f"unexpected worktree diff entry for manifest path: {relative_path}"
+        )
+    metadata, recorded_path = entries
+    fields = metadata.split()
+    if len(fields) != 5 or not fields[0].startswith(b":"):
+        raise RunnerConfigurationError(
+            f"unexpected worktree diff metadata for manifest path: {relative_path}"
+        )
+    if recorded_path.decode("utf-8", errors="surrogateescape") != relative_path:
+        raise RunnerConfigurationError(
+            f"review manifest worktree path mismatch: {relative_path}"
+        )
+    mode = fields[1].decode("ascii")
+    if mode == "000000":
+        raise RunnerConfigurationError(
+            f"worktree diff reports a deleted existing path: {relative_path}"
+        )
+    return mode
+
+
+def worktree_blob_oid_for_path(worktree: Path, candidate: Path, relative_path: str) -> str:
+    if candidate.is_symlink():
+        return run_git(
+            worktree,
+            ["hash-object", "--stdin"],
+            input_bytes=os.readlink(candidate).encode(
+                sys.getfilesystemencoding(), errors="surrogateescape"
+            ),
+        ).decode().strip()
     if candidate.is_file():
-        current_blob_oid = run_git(
+        return run_git(
             worktree, ["hash-object", "--", relative_path]
         ).decode().strip()
-        return None if current_blob_oid == base_blob_oid else current_blob_oid
     if candidate.exists():
         raise RunnerConfigurationError(
             f"review manifest contains a non-file path: {relative_path}"
         )
-    if base_blob_oid is not None:
-        return f"{DELETED_BLOB_PREFIX}{base_blob_oid}"
+    raise RunnerConfigurationError(
+        f"review manifest path disappeared during capture: {relative_path}"
+    )
+
+
+def manifest_file_state_for_path(
+    worktree: Path, base_revision: str, relative_path: str
+) -> tuple[str, str] | None:
+    candidate = worktree / relative_path
+    try:
+        candidate.parent.resolve().relative_to(worktree.resolve())
+    except ValueError as error:
+        raise RunnerConfigurationError(
+            f"manifest path escapes the worktree: {relative_path}"
+        ) from error
+    base_state = base_file_state_for_path(worktree, base_revision, relative_path)
+    index_state = index_file_state_for_path(worktree, relative_path)
+    if candidate.is_symlink() or candidate.is_file():
+        worktree_mode = worktree_mode_from_git_for_path(worktree, relative_path)
+        if index_state is not None and worktree_mode is None:
+            current_state = index_state
+            return None if current_state == base_state else current_state
+        current_blob_oid = worktree_blob_oid_for_path(
+            worktree, candidate, relative_path
+        )
+        if worktree_mode is not None:
+            current_mode = worktree_mode
+        elif candidate.is_symlink():
+            current_mode = "120000"
+        else:
+            executable_bits = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+            current_mode = (
+                "100755" if candidate.stat().st_mode & executable_bits else "100644"
+            )
+        current_state = (current_mode, current_blob_oid)
+        return None if current_state == base_state else current_state
+    if candidate.exists():
+        raise RunnerConfigurationError(
+            f"review manifest contains a non-file path: {relative_path}"
+        )
+    if base_state is not None:
+        base_mode, base_blob_oid = base_state
+        return (
+            f"{DELETED_MODE_PREFIX}{base_mode}",
+            f"{DELETED_BLOB_PREFIX}{base_blob_oid}",
+        )
     return None
 
 
@@ -378,18 +482,20 @@ def build_target_snapshot(
         )
     if target_kind == "committed" and status:
         raise RunnerConfigurationError("committed review target requires a clean worktree")
-    manifest_items: list[tuple[str, str]] = []
+    manifest_items: list[tuple[str, str, str]] = []
     for path in paths:
-        blob_state = manifest_blob_state_for_path(
+        file_state = manifest_file_state_for_path(
             worktree, base_revision_text, path
         )
-        if blob_state is not None:
-            manifest_items.append((path, blob_state))
+        if file_state is not None:
+            mode, blob_state = file_state
+            manifest_items.append((path, mode, blob_state))
     manifest = tuple(sorted(manifest_items))
     if not manifest:
         raise RunnerConfigurationError("review target has an empty diff manifest")
     manifest_payload = [
-        {"path": path, "blob_oid": blob_oid} for path, blob_oid in manifest
+        {"path": path, "mode": mode, "blob_oid": blob_oid}
+        for path, mode, blob_oid in manifest
     ]
     state_payload = {
         "branch": branch,
@@ -950,7 +1056,7 @@ def consolidate_terminal_results(
     normalized_results: list[dict[str, Any]] = []
     matched_sessions: list[dict[str, Any]] = []
     contract_errors: list[dict[str, Any]] = []
-    manifest_paths = {path for path, _ in target.manifest}
+    manifest_paths = {path for path, _, _ in target.manifest}
     worktree = Path(target.worktree)
 
     for invocation, document in bound.children:

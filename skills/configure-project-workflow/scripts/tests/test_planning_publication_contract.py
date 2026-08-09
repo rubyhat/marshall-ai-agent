@@ -388,6 +388,60 @@ class PlanningPublicationContractTest(unittest.TestCase):
         complete = complete_current_config()
         self.assertEqual(list(validator.iter_errors(complete)), [])
 
+        execution_only = copy.deepcopy(complete)
+        execution_only["workflow_kit"]["selected_modules"] = [
+            "execute-project-task"
+        ]
+        execution_only.pop("planning_publication")
+        execution_only["implementation"] = {}
+        execution_only["skills"]["active"] = {
+            "execute-project-task": "skills/execute"
+        }
+        execution_only["commands"]["aliases"].pop("--publish-spec")
+        self.assertEqual(list(validator.iter_errors(execution_only)), [])
+
+        execution_only_with_publication_section = copy.deepcopy(execution_only)
+        execution_only_with_publication_section["planning_publication"] = copy.deepcopy(
+            complete["planning_publication"]
+        )
+        self.assertTrue(
+            list(validator.iter_errors(execution_only_with_publication_section))
+        )
+
+        execution_only_with_publication_alias = copy.deepcopy(execution_only)
+        execution_only_with_publication_alias["commands"]["aliases"][
+            "--publish-spec"
+        ] = {"capability": "planning_artifact_publication"}
+        self.assertTrue(
+            list(validator.iter_errors(execution_only_with_publication_alias))
+        )
+
+        execution_only_with_publication_readiness = copy.deepcopy(execution_only)
+        execution_only_with_publication_readiness["implementation"] = copy.deepcopy(
+            complete["implementation"]
+        )
+        self.assertTrue(
+            list(validator.iter_errors(execution_only_with_publication_readiness))
+        )
+
+        execution_only_with_arbitrary_implementation_gate = copy.deepcopy(
+            execution_only
+        )
+        execution_only_with_arbitrary_implementation_gate["implementation"] = {
+            "arbitrary_publication_ancestry_gate": True
+        }
+        self.assertTrue(
+            list(
+                validator.iter_errors(
+                    execution_only_with_arbitrary_implementation_gate
+                )
+            )
+        )
+
+        missing_publication_readiness = copy.deepcopy(complete)
+        missing_publication_readiness["implementation"] = {}
+        self.assertTrue(list(validator.iter_errors(missing_publication_readiness)))
+
         old_schema = copy.deepcopy(complete)
         old_schema["schema_version"] = 3
         self.assertTrue(list(validator.iter_errors(old_schema)))
@@ -476,6 +530,8 @@ class PlanningPublicationContractTest(unittest.TestCase):
             "normalized-result SHA-256",
             "`clean` → `0`",
             "exit code `64`",
+            "review_invocation_timeout",
+            "path/mode/blob-OID",
         ):
             self.assertIn(required, review)
         self.assertTrue(RUNNER.is_file())
@@ -483,6 +539,7 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("CAPTURE_CONTRACT_REVISION = 1", runner)
         self.assertIn("build_review_instructions", runner)
         self.assertIn('"developer_instructions="', runner)
+        self.assertIn('"mode": mode', runner)
         self.assertIn("specification-contract rubric", review)
 
     def test_execution_and_workspace_reject_legacy_authority(self):
@@ -522,11 +579,28 @@ class PlanningPublicationContractTest(unittest.TestCase):
         generated = GENERATE.read_text(encoding="utf-8")
         validation = VALIDATE.read_text(encoding="utf-8")
         publication = PUBLISH_SKILL.read_text(encoding="utf-8")
+        execution = EXECUTE_SKILL.read_text(encoding="utf-8")
         self.assertIn("configuration schema v4", generated)
         self.assertIn("project configuration schema v4", validation)
         self.assertIn("require schema v4", publication)
         self.assertIn("Reject a direct `codex review`", generated)
         self.assertIn("ordinary reviewed publication as\n  the only implementation-readiness path", generated)
+        self.assertIn(
+            "selected without `publish-planning-change`",
+            validation,
+        )
+        self.assertIn(
+            "When `publish-planning-change` is selected, confirm `write-task-spec`",
+            validation,
+        )
+        self.assertNotIn(
+            "Confirm `write-task-spec` hands file-backed specs",
+            validation,
+        )
+        self.assertIn(
+            "When `publish-planning-change` is not selected",
+            execution,
+        )
 
 
 if __name__ == "__main__":

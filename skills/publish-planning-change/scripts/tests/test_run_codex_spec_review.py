@@ -59,7 +59,7 @@ def make_target(worktree: Path):
         branch="codex/test",
         base_revision="a" * 40,
         head_revision=None,
-        manifest=(("spec.md", "b" * 40),),
+        manifest=(("spec.md", "100644", "b" * 40),),
         manifest_fingerprint="c" * 64,
         state_fingerprint="d" * 64,
     )
@@ -724,10 +724,72 @@ class EndToEndNoModelTest(unittest.TestCase):
 
         self.assertEqual(
             target.manifest,
-            (("spec.md", f"{runner.DELETED_BLOB_PREFIX}{base_blob_oid}"),),
+            (
+                (
+                    "spec.md",
+                    f"{runner.DELETED_MODE_PREFIX}100644",
+                    f"{runner.DELETED_BLOB_PREFIX}{base_blob_oid}",
+                ),
+            ),
         )
         self.assertEqual(target.manifest_fingerprint, repeated.manifest_fingerprint)
         self.assertEqual(target.state_fingerprint, repeated.state_fingerprint)
+
+    def test_chmod_only_target_records_mode_with_unchanged_blob(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            worktree = Path(temporary)
+            base = initialize_git_fixture(worktree)
+            git(worktree, "restore", "spec.md")
+            base_blob_oid = git(worktree, "rev-parse", f"{base}:spec.md")
+            (worktree / "spec.md").chmod(0o755)
+
+            target = runner.build_target_snapshot(
+                str(worktree), "uncommitted", base
+            )
+
+        self.assertEqual(
+            target.manifest,
+            (("spec.md", "100755", base_blob_oid),),
+        )
+
+    def test_staged_chmod_uses_index_mode_when_filemode_is_ignored(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            worktree = Path(temporary)
+            base = initialize_git_fixture(worktree)
+            git(worktree, "restore", "spec.md")
+            git(worktree, "config", "core.filemode", "false")
+            base_blob_oid = git(worktree, "rev-parse", f"{base}:spec.md")
+            git(worktree, "update-index", "--chmod=+x", "spec.md")
+
+            target = runner.build_target_snapshot(
+                str(worktree), "uncommitted", base
+            )
+
+        self.assertEqual(
+            target.manifest,
+            (("spec.md", "100755", base_blob_oid),),
+        )
+
+    def test_symlink_target_records_symlink_mode_and_target_blob(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            worktree = Path(temporary)
+            base = initialize_git_fixture(worktree)
+            git(worktree, "restore", "spec.md")
+            (worktree / "linked.md").symlink_to("spec.md")
+            link_blob_oid = runner.run_git(
+                worktree,
+                ["hash-object", "--stdin"],
+                input_bytes=b"spec.md",
+            ).decode().strip()
+
+            target = runner.build_target_snapshot(
+                str(worktree), "uncommitted", base
+            )
+
+        self.assertEqual(
+            target.manifest,
+            (("linked.md", "120000", link_blob_oid),),
+        )
 
     def test_rename_manifest_includes_new_blob_and_deleted_source(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -744,8 +806,12 @@ class EndToEndNoModelTest(unittest.TestCase):
         self.assertEqual(
             target.manifest,
             (
-                ("renamed.md", base_blob_oid),
-                ("spec.md", f"{runner.DELETED_BLOB_PREFIX}{base_blob_oid}"),
+                ("renamed.md", "100644", base_blob_oid),
+                (
+                    "spec.md",
+                    f"{runner.DELETED_MODE_PREFIX}100644",
+                    f"{runner.DELETED_BLOB_PREFIX}{base_blob_oid}",
+                ),
             ),
         )
 
@@ -978,6 +1044,51 @@ class EndToEndNoModelTest(unittest.TestCase):
 
         self.assertEqual(result["status"], "target_changed")
         self.assertEqual(result["review_target"]["branch"], "codex/test")
+        self.assertEqual(len(result["invocations"]), 1)
+
+    def test_mode_change_after_review_is_fail_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            worktree = root / "repository"
+            sessions = root / "sessions"
+            worktree.mkdir()
+            sessions.mkdir()
+            base = initialize_git_fixture(worktree)
+
+            def launcher(**kwargs):
+                invocation = runner.Invocation(
+                    invocation_id="invocation-0",
+                    kind=kwargs["invocation_kind"],
+                    correlation_id=kwargs["correlation_id"],
+                    started_at=runner.utc_now(),
+                    completed_at=runner.utc_now(),
+                    review_parent_session_id=OUTER_ID,
+                    process_exit_code=0,
+                )
+                write_session(
+                    sessions,
+                    session_id=OUTER_ID,
+                    parent_id=None,
+                    worktree=worktree,
+                    source="exec",
+                    terminal_message="launcher complete",
+                )
+                write_session(
+                    sessions,
+                    session_id="22222222-2222-7222-8222-222222222222",
+                    parent_id=OUTER_ID,
+                    worktree=worktree,
+                    source={"subagent": "review"},
+                    terminal_message=clean_message(),
+                )
+                (worktree / "spec.md").chmod(0o755)
+                return invocation
+
+            result = runner.execute(
+                self.make_args(worktree, sessions, base), launcher=launcher
+            )
+
+        self.assertEqual(result["status"], "target_changed")
         self.assertEqual(len(result["invocations"]), 1)
 
     def test_invalid_post_review_snapshot_returns_normalized_target_changed(self):

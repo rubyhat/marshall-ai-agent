@@ -86,18 +86,24 @@ authority base contains or descends from that revision. Require the complete
 persisted and reread `reviewed_canonical_publication` record defined in
 [check-task-readiness.md](references/check-task-readiness.md), rebuild the
 complete package manifest at the current specification-owner authority base,
-and require exact path/blob-OID equality with that record. Historical legacy
+and require exact path/mode/blob-OID equality with that record. Historical legacy
 baseline evidence remains audit input only and is never a readiness fallback.
 
-For an implementation repository with a separate Git history, require the
-matching exact-task ordinary record with reviewed-head, package-manifest,
-capture-contract revision, publication-attempt ID, normalized-result hash,
-complete matched-session set, clean-review, and merged-revision evidence. Do
-not require cross-repository ancestry. An open PR, local file, dirty main
-checkout, content verdict alone, old or incomplete record, or historical
-legacy tuple is insufficient. Return typed `publication_upgrade_required`
-with `workspace_created: false`, then route to `publish-planning-change` and
-recommend `--publish-spec <Task ID>`.
+Within that configured publication path, an implementation repository with a
+separate Git history requires the matching exact-task ordinary record with
+reviewed-head, package-manifest, capture-contract revision, publication-attempt
+ID, normalized-result hash, complete matched-session set, clean-review, and
+merged-revision evidence. Do not require cross-repository ancestry. An open PR,
+local file, dirty main checkout, content verdict alone, old or incomplete
+record, or historical legacy tuple is insufficient. Return typed
+`publication_upgrade_required` with `workspace_created: false`, then route to
+`publish-planning-change` and recommend `--publish-spec <Task ID>`.
+
+When `publish-planning-change` is not selected, skip every publication-record,
+publication-ancestry, package-manifest, legacy-evidence, and
+`publication_upgrade_required` rule in this step. Resolve readiness from the
+remaining configured project and tracker gates, and never recommend or route to
+the unavailable `--publish-spec` workflow.
 
 Route material outcome or decomposition gaps to `shape-project-work`. Route specification content gaps to `write-task-spec`. Apply a user override only when project policy permits it and after stating the exact missing gate and risk.
 

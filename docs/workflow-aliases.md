@@ -280,7 +280,7 @@ task lookup, status transition, Git, dependency и file mutations и реком�
 сразу перестаёт подтверждать readiness. Агент останавливает task-code edits,
 проводит correction через `write-task-spec` и `publish-planning-change`, затем
 повторяет полный readiness preflight по новому persisted record. Проверка
-сравнивает полный path/blob-OID manifest record не только со старым merged
+сравнивает полный path/mode/blob-OID manifest record не только со старым merged
 revision, но и с текущим specification-owner authority base. Локального
 изменения spec, verdict `Spec ready` или непривязанного merged PR недостаточно
 для продолжения.
@@ -565,7 +565,7 @@ correction package после non-clean review для publication manifest, уж
 создаёт exact-manifest локальный checkpoint commit, проверяет его полным diff от
 canonical base и не пушит до clean review. До первого independent review полный
 uncommitted candidate разрешён и при наличии раннего in-scope commit; для него,
-как и для ещё не закоммиченного manifest, обязательна path/blob-OID equivalence.
+как и для ещё не закоммиченного manifest, обязательна path/mode/blob-OID equivalence.
 Объект materialized при setup как dormant policy, чтобы не менять конфигурацию
 посреди publication; наличие объекта само по себе не активирует checkpoint path.
 В том contract content-changing correction сначала понижала verdict старого
