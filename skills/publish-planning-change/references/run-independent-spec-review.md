@@ -58,8 +58,11 @@ pre/post target-state fingerprint so a same-HEAD branch switch is
 `target_changed` rather than CLEAN. Materialize the invocation timeout as 900
 seconds by default and validate `0 < timeout <= 3600` before model invocation.
 
-The runner prints exactly one normalized JSON object for a recognized result
-status and uses this exit mapping: `clean` → `0`, `non_clean` → `10`,
+The runner prints exactly one normalized JSON object for a recognized result.
+Its `review_target` serializes the complete sorted path/mode/blob-OID manifest
+alongside the manifest fingerprint so publication evidence never has to
+recapture mutable worktree state. The runner uses this exit mapping:
+`clean` → `0`, `non_clean` → `10`,
 `terminal_contract_error` → `11`, `target_changed` → `12`,
 `invocation_binding_error` → `13`, `technical_retry_budget_exhausted` → `14`,
 `session_settlement_timeout` → `15`, and the internal settled

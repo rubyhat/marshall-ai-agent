@@ -169,6 +169,20 @@ def finding_message(worktree: Path, title="[P1] Preserve finding", priority=1):
 
 
 class TerminalContractTest(unittest.TestCase):
+    def test_target_result_serializes_complete_manifest(self):
+        target = make_target(Path("/tmp/review"))
+
+        self.assertEqual(
+            target.as_result()["manifest"],
+            [
+                {
+                    "path": "spec.md",
+                    "mode": "100644",
+                    "blob_oid": "b" * 40,
+                }
+            ],
+        )
+
     def test_clean_native_message_is_valid(self):
         with tempfile.TemporaryDirectory() as temporary:
             worktree = Path(temporary)
@@ -177,6 +191,25 @@ class TerminalContractTest(unittest.TestCase):
             )
         self.assertEqual(errors, [])
         self.assertEqual(normalized["overall_correctness"], "patch is correct")
+
+    def test_finding_location_preserves_final_symlink_path(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            worktree = Path(temporary)
+            (worktree / "spec.md").write_text("target\n", encoding="utf-8")
+            (worktree / "linked.md").symlink_to("spec.md")
+            message = finding_message(worktree)
+            message["findings"][0]["code_location"]["absolute_file_path"] = str(
+                worktree / "linked.md"
+            )
+
+            normalized, errors = runner.validate_terminal_message(
+                json.dumps(message), worktree, {"linked.md"}
+            )
+
+        self.assertEqual(errors, [])
+        self.assertEqual(
+            normalized["findings"][0]["code_location"]["path"], "linked.md"
+        )
 
     def test_missing_and_null_priority_are_valid_and_stable(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -94,6 +94,10 @@ class TargetSnapshot:
             "branch": self.branch,
             "base_revision": self.base_revision,
             "head_revision": self.head_revision,
+            "manifest": [
+                {"path": path, "mode": mode, "blob_oid": blob_oid}
+                for path, mode, blob_oid in self.manifest
+            ],
             "manifest_fingerprint": self.manifest_fingerprint,
         }
 
@@ -872,7 +876,8 @@ def normalize_location(location: Any, worktree: Path, manifest_paths: set[str]) 
     line_range = location.get("line_range")
     if not isinstance(absolute_value, str) or not isinstance(line_range, dict):
         return None, "invalid_code_location"
-    absolute_path = Path(absolute_value).resolve()
+    lexical_path = Path(os.path.abspath(absolute_value))
+    absolute_path = lexical_path.parent.resolve() / lexical_path.name
     try:
         relative = absolute_path.relative_to(worktree.resolve()).as_posix()
     except ValueError:
