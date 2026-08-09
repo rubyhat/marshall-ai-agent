@@ -143,11 +143,12 @@ and make one authorized local-only correction checkpoint commit before review.
 Do not push that checkpoint until its exact head receives a clean
 committed-base-diff review. The checkpoint belongs to the current correction
 round; it is not publication evidence by itself.
-Retain the exact uncommitted-review path when the manifest has no in-scope
-commit and for a complete mixed committed-plus-uncommitted candidate before its
-first independent review. Bind the complete candidate to the eventual head by
-path/blob-OID equality; the correction checkpoint is not a replacement for that
-separately bound path.
+Retain the exact uncommitted-review path only when the manifest has no in-scope
+commit relative to the canonical base. Reject a mixed committed-plus-uncommitted
+candidate before model invocation because `codex review --uncommitted` omits its
+committed portion. Create an authorized clean checkpoint and review the complete
+candidate with the committed-base selector. Bind a purely uncommitted candidate
+to the eventual head by path/blob-OID equality.
 
 Evaluate every finding against the shaped scope and sources of truth. Route a
 real content correction through `write-task-spec`; route a material outcome or

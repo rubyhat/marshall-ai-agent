@@ -129,13 +129,15 @@ does not count as a second correction round or as clean-review evidence.
 Missing or incomplete strategy fields stop direct publication before the first
 checkpoint instead of authorizing a partial review.
 
-Keep the exact uncommitted-review path when the manifest has no in-scope commit
-and for a complete mixed committed-plus-uncommitted candidate before its first
-independent review. Its candidate evidence becomes publishable only after the
-eventual committed head has the identical complete path/blob-OID manifest. This
-path does not use or bypass a committed-correction checkpoint; it uses the
-separately configured
-`verified_uncommitted_manifest_equivalence` binding method.
+Keep the exact uncommitted-review path only when the manifest has no in-scope
+commit relative to the canonical base. Reject a mixed
+committed-plus-uncommitted candidate before model invocation because
+`codex review --uncommitted` omits its committed portion. Create an authorized
+clean checkpoint and review the complete candidate with `--base <revision>`.
+Evidence for a purely uncommitted candidate becomes publishable only after the
+eventual committed head has the identical complete path/blob-OID manifest; it
+uses the separately configured `verified_uncommitted_manifest_equivalence`
+binding method.
 
 Represent a tracked path deleted relative to the canonical base as
 `deleted:<base-blob-oid>` in the sorted manifest. Use the same base-relative

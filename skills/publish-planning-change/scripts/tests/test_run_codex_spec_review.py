@@ -98,18 +98,23 @@ def write_session(
     source,
     terminal_message: dict | str | None,
     terminal=True,
+    metadata_session_id="from_path",
 ):
     path = sessions_root / f"{session_id}.jsonl"
+    session_meta = {
+        "parent_thread_id": parent_id,
+        "cwd": str(worktree),
+        "source": source,
+    }
+    if metadata_session_id == "from_path":
+        session_meta["id"] = session_id
+    elif metadata_session_id is not None:
+        session_meta["id"] = metadata_session_id
     records = [
         {
             "timestamp": runner.format_time(runner.utc_now()),
             "type": "session_meta",
-            "payload": {
-                "id": session_id,
-                "parent_thread_id": parent_id,
-                "cwd": str(worktree),
-                "source": source,
-            },
+            "payload": session_meta,
         }
     ]
     if terminal:
@@ -440,6 +445,40 @@ class SessionBindingTest(unittest.TestCase):
         self.assertEqual(bound.children, [])
         self.assertEqual(bound.binding_errors, [])
 
+    def test_review_child_requires_a_string_session_id(self):
+        for label, metadata_session_id in (
+            ("missing", None),
+            ("empty", ""),
+            ("non_string", 42),
+        ):
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                sessions = root / "sessions"
+                sessions.mkdir()
+                worktree = root / "review"
+                worktree.mkdir()
+                write_fixture("outer_terminal.jsonl", sessions / "outer.jsonl", worktree)
+                write_session(
+                    sessions,
+                    session_id="99999999-9999-7999-8999-999999999999",
+                    parent_id=OUTER_ID,
+                    worktree=worktree,
+                    source={"subagent": "review"},
+                    terminal_message=clean_message(),
+                    metadata_session_id=metadata_session_id,
+                )
+
+                documents = runner.scan_session_documents(sessions, FIXED_TIME)
+                bound = runner.bind_sessions(
+                    documents, [make_invocation()], str(worktree)
+                )
+
+            self.assertEqual(bound.children, [])
+            self.assertEqual(
+                bound.binding_errors[0]["code"],
+                "review_child_missing_or_invalid_session_id",
+            )
+
     def test_duplicate_outer_session_id_is_binding_error(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -615,6 +654,24 @@ class EndToEndNoModelTest(unittest.TestCase):
         self.assertIn("--base", arguments)
         self.assertIn(base, arguments)
         self.assertNotIn("--uncommitted", arguments)
+
+    def test_uncommitted_target_rejects_committed_plus_dirty_candidate(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            worktree = Path(temporary)
+            base = initialize_git_fixture(worktree)
+            git(worktree, "add", "spec.md")
+            git(worktree, "commit", "-qm", "committed candidate")
+            (worktree / "spec.md").write_text(
+                "base\ncommitted\ndirty\n", encoding="utf-8"
+            )
+
+            with self.assertRaisesRegex(
+                runner.RunnerConfigurationError,
+                "cannot include committed changes",
+            ):
+                runner.build_target_snapshot(
+                    str(worktree), "uncommitted", base
+                )
 
     def test_deleted_tracked_artifact_has_stable_manifest_marker(self):
         with tempfile.TemporaryDirectory() as temporary:

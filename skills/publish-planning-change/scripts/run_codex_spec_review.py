@@ -270,7 +270,9 @@ def parse_porcelain_paths(raw: bytes) -> set[str]:
     return paths
 
 
-def changed_paths(worktree: Path, base_revision: str) -> tuple[set[str], bytes]:
+def changed_paths(
+    worktree: Path, base_revision: str
+) -> tuple[set[str], set[str], bytes]:
     committed = run_git(
         worktree,
         ["diff", "--name-only", "-z", f"{base_revision}..HEAD", "--"],
@@ -281,7 +283,7 @@ def changed_paths(worktree: Path, base_revision: str) -> tuple[set[str], bytes]:
         for item in committed.split(b"\0")
         if item
     }
-    return committed_paths | parse_porcelain_paths(status), status
+    return committed_paths | parse_porcelain_paths(status), committed_paths, status
 
 
 def base_blob_oid_for_path(
@@ -362,7 +364,13 @@ def build_target_snapshot(
                 f"configured head {expected_head} does not match worktree HEAD {current_head}"
             )
     branch = run_git(worktree, ["symbolic-ref", "--quiet", "--short", "HEAD"]).decode().strip()
-    paths, status = changed_paths(worktree, base_revision_text)
+    paths, committed_paths, status = changed_paths(worktree, base_revision_text)
+    if target_kind == "uncommitted" and committed_paths:
+        raise RunnerConfigurationError(
+            "uncommitted review target cannot include committed changes relative "
+            "to the canonical base; create a clean checkpoint and use a committed "
+            "review target"
+        )
     if target_kind == "committed" and status:
         raise RunnerConfigurationError("committed review target requires a clean worktree")
     manifest_items: list[tuple[str, str]] = []
@@ -571,6 +579,15 @@ def bind_sessions(
                     "code": "review_child_worktree_mismatch",
                     "invocation_id": invocation.invocation_id,
                     "session_id": document.session_id,
+                    "path": str(document.path),
+                }
+            )
+            continue
+        if not document.session_id:
+            errors.append(
+                {
+                    "code": "review_child_missing_or_invalid_session_id",
+                    "invocation_id": invocation.invocation_id,
                     "path": str(document.path),
                 }
             )
