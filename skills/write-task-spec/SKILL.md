@@ -145,11 +145,15 @@ Return exactly one content verdict:
 
 The verdict describes specification content. When independent planning
 publication is configured, an author's create or update self-check may return
-at most `Spec ready`. Promote the exact reviewed head to `Ready for
-implementation` only from a clean independent-review handoff during
-`publish-planning-change`. Let `manage-project-work` apply the configured
-operational implementation-ready status only after canonical publication is
-verified.
+at most `Spec ready`. On an authorized `publish-planning-change` handoff, apply
+the final target verdict `Ready for implementation` in the isolated candidate
+before its review manifest is computed. Treat the provisional `Ready for implementation`
+verdict as part of the reviewed bytes: the publisher
+must review and publish those exact bytes, and `manage-project-work` may apply
+the operational implementation-ready status only after canonical publication
+and full evidence readback. Preserve that provisional target verdict across
+bounded in-scope review corrections; do not create a downgrade/re-promotion
+cycle.
 
 ### 10. Record, link, and read back
 

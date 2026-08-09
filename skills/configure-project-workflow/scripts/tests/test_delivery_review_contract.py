@@ -241,8 +241,13 @@ class DeliveryReviewContractTest(unittest.TestCase):
         delivery_condition = next(
             item
             for item in schema["allOf"]
-            if item["if"]["properties"]["workflow_kit"]["properties"]
-            ["selected_modules"]["contains"]["const"]
+            if item.get("if", {})
+            .get("properties", {})
+            .get("workflow_kit", {})
+            .get("properties", {})
+            .get("selected_modules", {})
+            .get("contains", {})
+            .get("const")
             == "deliver-reviewed-change"
         )
         self.assertEqual(delivery_condition["then"]["required"], ["review"])

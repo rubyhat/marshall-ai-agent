@@ -1,4 +1,4 @@
-schema_version: 3
+schema_version: 4
 
 workflow_kit:
   source: "{{WORKFLOW_KIT_SOURCE}}"
@@ -49,6 +49,193 @@ artifacts:
     incident_default: file
     file_response: concise_link_or_path
 
+planning_publication:
+  quick_alias:
+    command: "--publish-spec"
+    capability: planning_artifact_publication
+    exact_task_scope_only: true
+  artifact_policy:
+    default_spec_root: "docs_ai/tasks"
+    ask_for_spec_root_when_default_is_available: false
+    explicit_override_allowed: true
+    implementation_changes_forbidden: true
+    unrelated_changes_forbidden: true
+  workspace:
+    isolated: true
+    main_checkout_must_remain_clean: true
+  independent_review:
+    required: true
+    fresh_context: true
+    author_self_check_is_not_independent: true
+    working_directory: exact_planning_worktree
+    working_directory_placeholder: "<PLANNING_WORKTREE>"
+    verify_reported_workdir_and_branch: true
+    model: "{{PLANNING_REVIEW_MODEL}}"
+    effort: "{{PLANNING_REVIEW_EFFORT}}"
+    max_correction_rounds: 5
+    committed_correction_review:
+      strategy: local_checkpoint_committed_base_diff
+      checkpoint_commit_allowed: true
+      deterministic_checks_before_checkpoint: true
+      checkpoint_exact_manifest_only: true
+      push_before_clean_review: false
+    runner:
+      kind: codex_review_authoritative_session_runner
+      active_skill_relative_path: scripts/run_codex_spec_review.py
+      command_template: >-
+        python3 "<ACTIVE_SKILL_PATH>/scripts/run_codex_spec_review.py"
+        --worktree "<PLANNING_WORKTREE>" --task-id "<TASK_ID>"
+        --target-kind "<REVIEW_TARGET_KIND>" --base "<CANONICAL_BASE_REF>"
+        --model "<REVIEWER_MODEL>" --effort "<REVIEWER_EFFORT>"
+        --minimum-stable-scans "<MINIMUM_STABLE_SCANS>"
+        --settle-interval-seconds "<SETTLE_INTERVAL_SECONDS>"
+        --settlement-timeout-seconds "<SETTLEMENT_TIMEOUT_SECONDS>"
+        --invocation-timeout-seconds "<INVOCATION_TIMEOUT_SECONDS>"
+      required_placeholders:
+        - "<ACTIVE_SKILL_PATH>"
+        - "<PLANNING_WORKTREE>"
+        - "<TASK_ID>"
+        - "<REVIEW_TARGET_KIND>"
+        - "<CANONICAL_BASE_REF>"
+        - "<REVIEWER_MODEL>"
+        - "<REVIEWER_EFFORT>"
+        - "<MINIMUM_STABLE_SCANS>"
+        - "<SETTLE_INTERVAL_SECONDS>"
+        - "<SETTLEMENT_TIMEOUT_SECONDS>"
+        - "<INVOCATION_TIMEOUT_SECONDS>"
+      direct_codex_review_allowed: false
+    result_capture:
+      authoritative_source: child_session_task_complete_last_agent_message
+      outer_session_id_source: captured_subprocess_startup_header
+      require_invocation_parent_session_match: true
+      require_outer_session_meta_id_source_cwd_and_boundary_match: true
+      require_review_subagent_source: true
+      require_exact_worktree_and_target: true
+      outer_process_output_is_diagnostic_only: true
+      terminal_schema: native_codex_review_v1
+      multiple_terminal_policy: union_deduplicate_fail_closed
+      technical_retry_only_without_authoritative_terminal: true
+      max_technical_retries_per_publication_attempt: 1
+      preserve_attempt_boundary_across_retries: true
+      require_terminal_session_settlement: true
+      require_matched_child_terminal_state: true
+      minimum_stable_scans: 2
+      settle_interval_seconds: 2
+      settlement_timeout_seconds: 30
+      invocation_timeout_seconds: 900
+      final_rescan_before_verdict: true
+      capture_cumulative_token_usage: true
+  readiness:
+    input_content_verdict: spec_ready
+    canonical_merge_required_before_implementation: true
+    implementation_base_must_contain_publication_revision: true
+    ordinary_publication_evidence:
+      record_kind: reviewed_canonical_publication
+      required_fields:
+        - evidence_kind
+        - task_id
+        - specification_owner_repository
+        - canonical_spec_path
+        - pull_request_url
+        - merged_revision
+        - merged_tree_oid
+        - reviewed_head_revision
+        - reviewed_head_tree_oid
+        - complete_reviewed_package_manifest
+        - reviewer_evidence_identifier
+        - reviewer_model
+        - reviewer_effort
+        - review_completed_at
+        - terminal_clean_verdict
+        - review_target_kind
+        - canonical_base_revision
+        - review_binding_method
+        - reviewed_package_manifest_equals_merged
+        - review_capture_contract_revision
+        - review_publication_attempt_id
+        - review_result_sha256
+        - matched_reviewer_session_ids
+        - matched_reviewer_terminal_event_ids
+      allowed_review_binding_methods:
+        - direct_committed_base_diff
+        - verified_uncommitted_manifest_equivalence
+      complete_package_manifest_required: true
+      reviewed_package_manifest_equals_merged: true
+      persist_and_reread_before_cleanup: true
+    legacy_ready_adoption:
+      enabled: false
+    correction_entry:
+      kind: stale_published_ready_spec
+      accepted_content_verdict: ready_for_implementation
+      required_readiness_status: publication_upgrade_required
+      require_existing_canonical_publication: true
+      close_implementation_authority_before_review: true
+      provisional_target_verdict: ready_for_implementation
+    evidence_migration:
+      classification: publication_upgrade_required
+      inventory_all_ready_specs: true
+      preserve_historical_evidence_for_audit: true
+      downgrade_only_exact_ready_status: ready_for_implementation
+      other_configured_status_action: audit_only
+      post_merge_authoritative_rescan: true
+      completion_predicate: zero_old_evidence_items_still_ready_for_implementation
+      next_action_template: "--publish-spec <TASK_ID>"
+  completion_gate:
+    require_clean_independent_review: true
+    require_clean_review_bound_to_published_package: true
+    require_canonical_merge: true
+    require_persisted_publication_record_readback: true
+    implementation_issue_remains_open: true
+    release_or_deploy_forbidden: true
+
+# Keep `implementation: {}` and omit this readiness block when
+# `execute-project-task` is selected without `publish-planning-change`.
+implementation:
+  readiness:
+    publication_evidence:
+      required: true
+      selection_precedence:
+        - ordinary_reviewed_publication
+      accepted_paths:
+        ordinary_reviewed_publication:
+          tuple:
+            - evidence_kind
+            - task_id
+            - specification_owner_repository
+            - canonical_spec_path
+            - pull_request_url
+            - merged_revision
+            - merged_tree_oid
+            - reviewed_head_revision
+            - reviewed_head_tree_oid
+            - complete_reviewed_package_manifest
+            - reviewer_evidence_identifier
+            - reviewer_model
+            - reviewer_effort
+            - review_completed_at
+            - terminal_clean_verdict
+            - review_target_kind
+            - canonical_base_revision
+            - review_binding_method
+            - reviewed_package_manifest_equals_merged
+            - review_capture_contract_revision
+            - review_publication_attempt_id
+            - review_result_sha256
+            - matched_reviewer_session_ids
+            - matched_reviewer_terminal_event_ids
+          required_evidence_kind: reviewed_canonical_publication
+          review_capture_contract_revision: 1
+          persisted_record_readback_required: true
+          independent_review_required: true
+          specification_owner_authority_base_must_contain_revision: true
+          current_authority_base_package_manifest_must_equal_selected_record: true
+      ordinary_only_before_workspace_mutation: true
+    publication_upgrade_stop:
+      status: publication_upgrade_required
+      required_capture_contract_revision: 1
+      workspace_created: false
+      next_action_template: "--publish-spec <TASK_ID>"
+
 skills:
   active: {}
 
@@ -74,4 +261,4 @@ commands:
     recommend_exact_next_alias_or_action: true
   aliases: {}
 
-# Add only sections required by selected modules.
+# Keep only sections required by the selected modules.

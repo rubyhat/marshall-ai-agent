@@ -43,7 +43,7 @@ Keep detailed procedures in skills and project runbooks.
 
 Use `assets/project-workflow.schema.json` as the generic contract and
 `assets/templates/project-workflow.yaml` as a starting shape. Generate project
-configuration schema v3. Treat every other project-configuration version as
+configuration schema v4. Treat every other project-configuration version as
 unsupported and regenerate it only through an approved reconfiguration manifest
 that materializes every current required field. Do not apply compatibility
 defaults from an older project schema. The setup-state tracker has its own
@@ -133,37 +133,48 @@ When `publish-planning-change` is selected, generate:
   materialize this dormant policy for every configured project so a later
   correction does not require a mid-publication configuration mutation;
   activate it only when a correction package after a non-clean review changes a
-  manifest that already has an in-scope planning-branch commit. Preserve the
-  separately bound uncommitted-review path when the manifest has no in-scope
-  commit and for a complete mixed committed-plus-uncommitted candidate before
-  its first independent review. Require a content-changing correction to
-  downgrade a stale implementation-ready verdict before its checkpoint, and
+  manifest that already has an in-scope planning-branch commit or when a mixed
+  committed-plus-uncommitted candidate must be checkpointed before its first
+  review. Preserve the
+  separately bound uncommitted-review path only when the manifest has no
+  in-scope commit relative to the canonical base. Reject a mixed
+  committed-plus-uncommitted candidate before model invocation; create an
+  explicitly authorized clean checkpoint and review the complete candidate with
+  the committed-base selector. Materialize the provisional implementation-ready
+  target verdict before the first review manifest and preserve it across bounded
+  content corrections. Require every changed semantic manifest to receive one
+  review, and
   stop before checkpoint creation when an excluded dirty path would prevent a
   clean worktree; do not absorb, stash, or delete that path. Do not generate
   persistent state, locks, archives, migrations, or crash-recovery machinery
   for this counter;
+- the canonical authoritative-session review runner, required command-template
+  placeholders including every configured settlement value and the bounded
+  reviewer invocation timeout, strict native
+  terminal-result schema, exact parent/child/cwd/
+  target binding, two stable settlement scans, final rescan, cumulative usage,
+  and one technical retry only after settled absence of any authoritative
+  terminal result. Materialize settlement intervals as whole seconds and
+  require settlement timeout strictly greater than interval. Reject a direct `codex review`
+  command template;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
   specification-owner ancestry, exact-task publication evidence, sync, and
   cleanup gates; require an ordinary publication record with evidence kind,
   Task ID, owner repository, canonical spec path, PR URL, merged revision/tree,
-  bound reviewed-head revision/tree, full package path/blob-OID manifest,
+  bound reviewed-head revision/tree, full package path/mode/blob-OID manifest,
   reviewer run identity and clean-verdict metadata, review base/target/binding
-  method, and explicit reviewed-versus-merged manifest equality. Reread every
-  field before cleanup, and never require a component repository with a
-  separate Git history to contain that commit;
-- for an existing project with specifications already marked implementation-ready
-  on the canonical target, capture its exact full Git object ID before workflow
-  mutations as an adoption baseline without asking the user to choose one.
-  Accept full 40-hex SHA-1 and 64-hex SHA-256 object IDs. Require that baseline
-  to be an ancestor of the current specification-
-  owner authority base. Enable legacy-ready adoption only when the deterministic
-  current package manifest of every task-owned spec path and Git blob OID must
-  equal its baseline manifest, the ready verdict existed at that baseline, the
-  evidence revision is derived from the last package change at or before the
-  baseline, the complete sorted baseline manifest is persisted and compared on
-  every readback, and the record is explicitly classified as
-  `legacy_ready_baseline` rather than an independent review. Disable this path
-  for a new project or when no pre-adoption ready specifications exist;
+  method, capture-contract revision, publication-attempt ID, normalized-result
+  hash, complete matched reviewer session set, and explicit reviewed-versus-
+  merged manifest equality. Reread every field before cleanup, and never
+  require a component repository with a separate Git history to contain that
+  commit;
+- when `execute-project-task` is also selected,
+  `legacy_ready_adoption.enabled: false` and ordinary reviewed publication as
+  the only implementation-readiness path. Keep historical baseline tuples as
+  audit input only. Generate the typed `publication_upgrade_required` stop,
+  stale-published-ready correction entry, complete ready-spec inventory,
+  status-preserving reconciliation, mandatory post-merge rescan, and zero-old-
+  evidence-ready completion predicate;
 - `planning_artifact_publication` as a separately allowed planning-session
   capability that does not release implementation or delivery locks;
 - a `--publish-spec` handoff after `Spec ready` and a hard implementation gate
@@ -173,6 +184,12 @@ When `execute-project-task` is selected, generate:
 
 - the implementation-start tracker checkpoint after readiness succeeds and
   before implementation worktree or feature-branch creation.
+- when `publish-planning-change` is not selected, keep the required
+  `implementation` section empty and omit publication evidence, publication
+  ancestry and manifest gates, `publication_upgrade_required`, and every
+  `--publish-spec` alias or handoff. Resolve readiness only from the remaining
+  selected modules and project policy; do not route execution to an unavailable
+  publisher.
 
 When both `execute-project-task` and `publish-planning-change` are selected,
 also generate a hard rule that any task-owned specification or annex correction
@@ -181,7 +198,7 @@ during implementation invalidates the selected publication evidence, stops
   `publish-planning-change`, and reruns the complete readiness gate against the
   new persisted publication record before implementation resumes. Require the
   readiness gate to rebuild the complete task-owned package manifest at the
-  current specification-owner authority base and compare every path/blob OID
+  current specification-owner authority base and compare every path/mode/blob OID
   with the selected record.
 
 When `deliver-reviewed-change` is selected, generate:

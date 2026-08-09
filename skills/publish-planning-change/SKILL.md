@@ -17,8 +17,10 @@ mixing it with implementation delivery.
 - Treat the task specification as the primary artifact. Include supporting
   tracked memory or project documentation only when it is directly required by
   the same task handoff and explicitly allowed by project policy.
-- Let `write-task-spec` own substantive specification content and its content
-  verdict. Let `manage-project-work` own Issue links and operational status.
+- Let `write-task-spec` own substantive specification content and materialize
+  the provisional target content verdict before review. Let
+  `manage-project-work` own Issue links, publication evidence, operational
+  status, and typed evidence-migration state.
 - Do not publish source code, migrations, generated application artifacts,
   implementation reports, unrelated dirty files, releases, deployments, or
   production changes.
@@ -53,8 +55,9 @@ delivery, release, or deploy.
 Read project instructions and workflow configuration. Resolve:
 
 - the project configuration schema version. Before any publication workspace,
-  file, Git, tracker, or pull-request mutation, require schema v3 and the full
-  configured bound-review evidence contract when this workflow is selected.
+  file, Git, tracker, or pull-request mutation, require schema v4, the canonical
+  authoritative-session runner command template, and the full bound-review
+  evidence contract when this workflow is selected.
   Treat every other project schema or incomplete contract as invalid and stop
   direct `--publish-spec` before mutations, routing configuration repair to
   `configure-project-workflow`. Do not infer publication readiness from partial
@@ -64,8 +67,8 @@ Read project instructions and workflow configuration. Resolve:
 - planning worktree root, branch format, base freshness, and cleanup policy;
 - allowed planning artifact classes and forbidden path classes;
 - required content verdict and publication-state transitions;
-- independent reviewer command, model, effort, rubric, isolation, and retry
-  budget;
+- independent reviewer runner, model, effort, rubric, isolation, correction
+  budget, one-retry technical budget, and terminal-session settlement policy;
 - deterministic validators, commit convention, PR policy, required checks,
   merge authority, and allowed endpoint;
 - Issue/spec linkage, operational status, canonical revision recording,
@@ -84,8 +87,19 @@ Read [verify-planning-publication-readiness.md](references/verify-planning-publi
 
 Confirm one exact task, Issue when configured, specification package, content
 verdict, owner repository, planning workspace, branch, base, and complete diff.
+Accept either the normal `Spec ready` handoff or the configured
+`stale_published_ready_spec` correction entry: the latter requires an existing
+canonical publication, exact `Ready for implementation`, and typed
+`publication_upgrade_required`. Close implementation authority before review.
 Stop on an unrelated change, implementation file, missing task identity,
 unpublished dependency, or ambiguous artifact owner.
+
+Before computing the review manifest, ask `write-task-spec` to materialize the
+final target verdict `Ready for implementation` in the isolated candidate.
+Treat it as provisional until canonical merge and complete evidence readback.
+For the stale-published correction entry, preserve the existing target verdict
+instead of downgrading and re-promoting it. Reread the complete package before
+continuing.
 
 ### 2. Establish the exact manifest
 
@@ -102,10 +116,13 @@ files into an isolated planning workspace and require the applicable authority.
 
 Read [run-independent-spec-review.md](references/run-independent-spec-review.md).
 
-Use a fresh configured reviewer without the planning discussion history. Give
-it the exact task anchor, shaped contract, spec diff, and only the architecture,
-code, and policy context required to verify the specification. Treat the
-author's self-check as useful evidence, never as independent review.
+Use the configured deterministic runner to launch a fresh reviewer without the
+planning discussion history. Give it the exact task anchor, shaped contract,
+spec diff, and only the architecture, code, and policy context required to
+verify the specification. Treat the author's self-check as useful evidence,
+never as independent review. Treat outer process output and exit status as
+diagnostics only; the normalized authoritative result comes from matched child
+`task_complete.last_agent_message` records.
 
 For one publication attempt, read the configured positive
 `max_correction_rounds` and start `correction_rounds_used` at zero. Count one
@@ -118,26 +135,40 @@ review.
 When a correction package after a non-clean review changes a publication
 manifest that already has an in-scope commit on the planning branch, require the
 configured `committed_correction_review` contract. For the supported
-`local_checkpoint_committed_base_diff` strategy, run deterministic checks,
-first downgrade a stale `Ready for implementation` verdict to `Spec ready`
-when correction content differs from its last clean-reviewed head. Require the
-planning worktree to contain no excluded dirty paths; otherwise stop before the
-checkpoint with an exact preservation/recovery handoff. Stage only the exact
-publication manifest and make one authorized local-only correction checkpoint
-commit before review. Do not push that checkpoint until its exact head receives
-a clean committed-base-diff review. The checkpoint belongs to the current
-correction round; it is not publication evidence by itself.
-Retain the exact uncommitted-review path when the manifest has no in-scope
-commit and for a complete mixed committed-plus-uncommitted candidate before its
-first independent review. Bind the complete candidate to the eventual head by
-path/blob-OID equality; the correction checkpoint is not a replacement for that
-separately bound path.
+`local_checkpoint_committed_base_diff` strategy, run deterministic checks and
+preserve the provisional target verdict. Require the planning worktree to
+contain no excluded dirty paths; otherwise stop before the checkpoint with an
+exact preservation/recovery handoff. Stage only the exact publication manifest
+and make one authorized local-only correction checkpoint commit before review.
+Do not push that checkpoint until its exact head receives a clean
+committed-base-diff review. The checkpoint belongs to the current correction
+round; it is not publication evidence by itself.
+Retain the exact uncommitted-review path only when the manifest has no in-scope
+commit relative to the canonical base. Reject a mixed committed-plus-uncommitted
+candidate before model invocation because `codex review --uncommitted` omits its
+committed portion. Create an authorized clean checkpoint and review the complete
+candidate with the committed-base selector. Bind a purely uncommitted candidate
+to the eventual head by path/mode/blob-OID equality.
 
 Evaluate every finding against the shaped scope and sources of truth. Route a
 real content correction through `write-task-spec`; route a material outcome or
 scope change back to `shape-project-work`. Rerun affected validation and obtain
 a clean review for the current spec head. Do not expand the task for speculative
 edge cases or general improvements.
+
+Wait for every registered review process, matched outer session, and matched
+review child to reach terminal state. Require two stable bounded scans and a
+final rescan before accepting a result. Union and deduplicate findings from all
+terminal results of the stable publication attempt, including a late result
+from the initial invocation after a technical retry began. One or more
+findings make the consolidated result non-clean. Invalid terminal JSON,
+binding ambiguity, target drift, or settlement timeout is fail-closed and does
+not consume a correction round.
+
+Permit one automatic technical retry only after settled
+`no_authoritative_terminal_result`. Preserve the same publication-attempt
+boundary and rescan every invocation session. A second missing result becomes
+`technical_retry_budget_exhausted`; no third model invocation is allowed.
 
 If the corrected head is still not clean after the maximum round, stop before
 another correction, review request, commit, push, or publication. Report a
@@ -152,15 +183,13 @@ counter implicitly.
 
 Read [publish-reviewed-planning-change.md](references/publish-reviewed-planning-change.md).
 
-When clean review targeted a local correction checkpoint, reuse it unchanged if
-the highest supported verdict is already stored. If that clean handoff first
-authorizes a higher verdict, let `write-task-spec` apply only that mutation,
-create a replacement local checkpoint, and obtain clean review for the
-replacement without consuming another correction round. For an
-uncommitted-review candidate, assign the authorized verdict, rerun review if
-that changes content, then create the intentional commit. Push without force, create or reconcile the
-exact pull request, and obey reported checks and branch protection. Merge only
-when the configured endpoint and current user authority allow it.
+Publish the exact clean-reviewed candidate without any post-review verdict or
+package-byte mutation. When review targeted a local correction checkpoint,
+reuse that exact checkpoint. For an uncommitted-review candidate, create the
+intentional commit only when its complete path/mode/blob-OID manifest is identical
+to the reviewed manifest. Push without force, create or reconcile the exact
+pull request, and obey reported checks and branch protection. Merge only when
+the configured endpoint and current user authority allow it.
 
 ### 5. Finalize the handoff
 
@@ -168,8 +197,10 @@ Read [finalize-planning-publication.md](references/finalize-planning-publication
 
 Verify the merged canonical branch contains the exact specification and that
 the recorded revision belongs to the reviewed pull-request head. Ask
-`manage-project-work` to link the canonical spec and apply the configured
-implementation-ready operational status only after this evidence exists.
+`manage-project-work` to persist the capture-contract revision, publication
+attempt ID, normalized-result hash, complete matched reviewer session set,
+canonical spec linkage, and configured implementation-ready status only after
+this evidence exists and has been reread.
 Synchronize and remove the planning workspace only after merge and safety
 checks.
 

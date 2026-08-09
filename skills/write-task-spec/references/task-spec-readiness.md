@@ -43,12 +43,14 @@ Use when all `Spec ready` conditions pass and:
 - no blocking open question remains.
 
 When project policy requires independent planning publication, do not assign
-this verdict from the author's self-check. Require a clean independent review
-for the exact current spec head. The publication workflow may then hand the
-review evidence back to `write-task-spec` for the verdict update before Git
-publication. Operational implementation readiness still requires the merged
-canonical revision and belongs to the configured publication and task-management
-gates.
+this verdict from the author's self-check. An authorized publication workflow
+may ask `write-task-spec` to materialize it as the provisional target in the
+isolated candidate before the first review manifest is computed. The exact
+bytes containing that verdict must then receive clean independent review and
+canonical publication; bounded in-scope corrections preserve the target
+verdict and invalidate only the prior review evidence. Operational
+implementation readiness still requires the merged canonical revision and
+complete evidence readback through the publication and task-management gates.
 
 ## Downgrade conditions
 
