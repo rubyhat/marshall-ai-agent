@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.3](https://github.com/rubyhat/marshall-ai-agent/compare/v0.8.2...v0.8.3) (2026-08-09)
+
+
+### Исправления
+
+* **workflow:** сохранять авторитетный результат ревью спецификаций ([628b2ec](https://github.com/rubyhat/marshall-ai-agent/commit/628b2ec87808b184264ad33691d63b7142adfb72))
+
 ## [0.8.2](https://github.com/rubyhat/marshall-ai-agent/compare/v0.8.1...v0.8.2) (2026-08-08)
 
 
