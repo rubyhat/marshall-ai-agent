@@ -69,6 +69,7 @@ EVIDENCE_FIELDS = [
     "review_publication_attempt_id",
     "review_result_sha256",
     "matched_reviewer_session_ids",
+    "matched_reviewer_terminal_event_ids",
 ]
 
 
@@ -354,6 +355,7 @@ class PlanningPublicationContractTest(unittest.TestCase):
             "review_publication_attempt_id",
             "review_result_sha256",
             "matched_reviewer_session_ids",
+            "matched_reviewer_terminal_event_ids",
         ):
             self.assertIn(required, fields)
         implementation = schema["properties"]["implementation"]["properties"][

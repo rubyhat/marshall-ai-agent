@@ -152,6 +152,7 @@ planning_publication:
         - review_publication_attempt_id
         - review_result_sha256
         - matched_reviewer_session_ids
+        - matched_reviewer_terminal_event_ids
       allowed_review_binding_methods:
         - direct_committed_base_diff
         - verified_uncommitted_manifest_equivalence
@@ -216,6 +217,7 @@ implementation:
             - review_publication_attempt_id
             - review_result_sha256
             - matched_reviewer_session_ids
+            - matched_reviewer_terminal_event_ids
           required_evidence_kind: reviewed_canonical_publication
           review_capture_contract_revision: 1
           persisted_record_readback_required: true

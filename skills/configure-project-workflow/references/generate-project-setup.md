@@ -133,13 +133,17 @@ When `publish-planning-change` is selected, generate:
   materialize this dormant policy for every configured project so a later
   correction does not require a mid-publication configuration mutation;
   activate it only when a correction package after a non-clean review changes a
-  manifest that already has an in-scope planning-branch commit. Preserve the
-  separately bound uncommitted-review path when the manifest has no in-scope
-  commit and for a complete mixed committed-plus-uncommitted candidate before
-  its first independent review. Materialize the provisional implementation-
-  ready target verdict before the first review manifest and preserve it across
-  bounded content corrections. Require every changed semantic manifest to
-  receive one review, and
+  manifest that already has an in-scope planning-branch commit or when a mixed
+  committed-plus-uncommitted candidate must be checkpointed before its first
+  review. Preserve the
+  separately bound uncommitted-review path only when the manifest has no
+  in-scope commit relative to the canonical base. Reject a mixed
+  committed-plus-uncommitted candidate before model invocation; create an
+  explicitly authorized clean checkpoint and review the complete candidate with
+  the committed-base selector. Materialize the provisional implementation-ready
+  target verdict before the first review manifest and preserve it across bounded
+  content corrections. Require every changed semantic manifest to receive one
+  review, and
   stop before checkpoint creation when an excluded dirty path would prevent a
   clean worktree; do not absorb, stash, or delete that path. Do not generate
   persistent state, locks, archives, migrations, or crash-recovery machinery

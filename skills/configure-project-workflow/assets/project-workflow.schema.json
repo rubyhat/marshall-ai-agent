@@ -451,7 +451,8 @@
                     "review_capture_contract_revision",
                     "review_publication_attempt_id",
                     "review_result_sha256",
-                    "matched_reviewer_session_ids"
+                    "matched_reviewer_session_ids",
+                    "matched_reviewer_terminal_event_ids"
                   ]
                 },
                 "allowed_review_binding_methods": {
@@ -652,7 +653,8 @@
                             "review_capture_contract_revision",
                             "review_publication_attempt_id",
                             "review_result_sha256",
-                            "matched_reviewer_session_ids"
+                            "matched_reviewer_session_ids",
+                            "matched_reviewer_terminal_event_ids"
                           ]
                         },
                         "required_evidence_kind": {
