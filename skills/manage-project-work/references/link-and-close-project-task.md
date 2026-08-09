@@ -23,24 +23,28 @@ spec entrypoint, pull request URL, merged revision/tree OID, bound reviewed-head
 revision/tree OID, complete sorted reviewed package path/blob-OID manifest,
 reviewer run/evidence identifier, model, effort, completion time, terminal
 clean verdict, review target kind, canonical base revision, binding method, and
-explicit reviewed-versus-merged package-manifest equality. Persist the record
-on the exact task, reread it, and require exact equality of every field. Do not
+explicit reviewed-versus-merged package-manifest equality. Also require the
+current capture-contract revision, publication-attempt ID, normalized-result SHA-256,
+and complete matched reviewer session/event set. Persist the record on
+the exact task, reread it, and require exact equality of every field. Do not
 infer clean review from PR prose, status, model selection, or merge alone.
 
-For a task that was already implementation-ready before planning publication
-was adopted, accept a separate recording handoff from `execute-project-task`
-only after that workflow verifies every configured legacy-ready adoption gate.
-Require the adoption baseline itself to be an ancestor of the current
-specification-owner authority base.
-Record Task ID, specification-owner repository, canonical spec entrypoint, the
-complete sorted baseline package manifest with every task-owned path and Git
-blob OID, derived last-package-change revision, adoption baseline revision, and
-evidence kind `legacy_ready_baseline` as one exact-task record. Preserve the
-existing ready status, state explicitly that independent review is not claimed,
-and do not use this path when the sorted current package manifest differs from
-its baseline manifest. Reread the persisted tuple and require exact equality of
-the complete path/OID set before returning it to `execute-project-task`; a
-missing criterion or readback mismatch routes to `publish-planning-change`.
+For old or incomplete ordinary evidence, record the deterministic audit
+classification `publication_upgrade_required`, observed evidence revision,
+canonical Task ID/spec path, required capture-contract revision, observed
+operational status, and exact next action `--publish-spec <Task ID>`. Historical
+legacy baseline records may remain linked as audit history but never become
+implementation authority and never receive synthetic review sessions or result
+hashes.
+
+During the configured schema cutover, inventory every current task selected by
+implementation-ready content or operational status before mutation, then run a
+full authoritative post-merge rescan. Change status only when the observed
+operational value is exact implementation-ready; map it to spec-ready. Preserve
+every other configured lifecycle or exceptional status as `audit_only`,
+including earlier states, active work, review/merge readiness, done, blocked,
+paused, and not-planned. Reconciliation must be idempotent, and completion
+requires zero old-evidence items still in implementation-ready status.
 
 If either side points to another Task ID, stop and resolve the identity conflict before writing.
 

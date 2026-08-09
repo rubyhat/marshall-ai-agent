@@ -16,7 +16,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": 3
+      "const": 4
     },
     "workflow_kit": {
       "type": "object",
@@ -179,7 +179,9 @@
             "model",
             "effort",
             "max_correction_rounds",
-            "committed_correction_review"
+            "committed_correction_review",
+            "runner",
+            "result_capture"
           ],
           "properties": {
             "required": {"const": true},
@@ -226,6 +228,169 @@
                 "push_before_clean_review": {"const": false}
               },
               "additionalProperties": true
+            },
+            "runner": {
+              "type": "object",
+              "required": [
+                "kind",
+                "active_skill_relative_path",
+                "command_template",
+                "required_placeholders",
+                "direct_codex_review_allowed"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "codex_review_authoritative_session_runner"
+                },
+                "active_skill_relative_path": {
+                  "const": "scripts/run_codex_spec_review.py"
+                },
+                "command_template": {
+                  "type": "string",
+                  "minLength": 1,
+                  "allOf": [
+                    {
+                      "pattern": "<ACTIVE_SKILL_PATH>/scripts/run_codex_spec_review\\.py"
+                    },
+                    {"pattern": "<PLANNING_WORKTREE>"},
+                    {"pattern": "<TASK_ID>"},
+                    {"pattern": "<REVIEW_TARGET_KIND>"},
+                    {"pattern": "<CANONICAL_BASE_REF>"},
+                    {"pattern": "<REVIEWER_MODEL>"},
+                    {"pattern": "<REVIEWER_EFFORT>"},
+                    {"pattern": "<MINIMUM_STABLE_SCANS>"},
+                    {"pattern": "<SETTLE_INTERVAL_SECONDS>"},
+                    {"pattern": "<SETTLEMENT_TIMEOUT_SECONDS>"}
+                  ],
+                  "not": {
+                    "pattern": "(?:^|\\s)codex\\s+review(?:\\s|$)"
+                  }
+                },
+                "required_placeholders": {
+                  "const": [
+                    "<ACTIVE_SKILL_PATH>",
+                    "<PLANNING_WORKTREE>",
+                    "<TASK_ID>",
+                    "<REVIEW_TARGET_KIND>",
+                    "<CANONICAL_BASE_REF>",
+                    "<REVIEWER_MODEL>",
+                    "<REVIEWER_EFFORT>",
+                    "<MINIMUM_STABLE_SCANS>",
+                    "<SETTLE_INTERVAL_SECONDS>",
+                    "<SETTLEMENT_TIMEOUT_SECONDS>"
+                  ]
+                },
+                "direct_codex_review_allowed": {"const": false}
+              },
+              "additionalProperties": false
+            },
+            "result_capture": {
+              "type": "object",
+              "required": [
+                "authoritative_source",
+                "outer_session_id_source",
+                "require_invocation_parent_session_match",
+                "require_outer_session_meta_id_source_cwd_and_boundary_match",
+                "require_review_subagent_source",
+                "require_exact_worktree_and_target",
+                "outer_process_output_is_diagnostic_only",
+                "terminal_schema",
+                "multiple_terminal_policy",
+                "technical_retry_only_without_authoritative_terminal",
+                "max_technical_retries_per_publication_attempt",
+                "preserve_attempt_boundary_across_retries",
+                "require_terminal_session_settlement",
+                "require_matched_child_terminal_state",
+                "minimum_stable_scans",
+                "settle_interval_seconds",
+                "settlement_timeout_seconds",
+                "final_rescan_before_verdict",
+                "capture_cumulative_token_usage"
+              ],
+              "properties": {
+                "authoritative_source": {
+                  "const": "child_session_task_complete_last_agent_message"
+                },
+                "outer_session_id_source": {
+                  "const": "captured_subprocess_startup_header"
+                },
+                "require_invocation_parent_session_match": {"const": true},
+                "require_outer_session_meta_id_source_cwd_and_boundary_match": {"const": true},
+                "require_review_subagent_source": {"const": true},
+                "require_exact_worktree_and_target": {"const": true},
+                "outer_process_output_is_diagnostic_only": {"const": true},
+                "terminal_schema": {"const": "native_codex_review_v1"},
+                "multiple_terminal_policy": {
+                  "const": "union_deduplicate_fail_closed"
+                },
+                "technical_retry_only_without_authoritative_terminal": {"const": true},
+                "max_technical_retries_per_publication_attempt": {"const": 1},
+                "preserve_attempt_boundary_across_retries": {"const": true},
+                "require_terminal_session_settlement": {"const": true},
+                "require_matched_child_terminal_state": {"const": true},
+                "minimum_stable_scans": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "default": 2
+                },
+                "settle_interval_seconds": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10,
+                  "default": 2
+                },
+                "settlement_timeout_seconds": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 120,
+                  "default": 30
+                },
+                "final_rescan_before_verdict": {"const": true},
+                "capture_cumulative_token_usage": {"const": true}
+              },
+              "allOf": [
+                {
+                  "if": {"properties": {"settle_interval_seconds": {"const": 1}}},
+                  "then": {"properties": {"settlement_timeout_seconds": {"exclusiveMinimum": 1}}}
+                },
+                {
+                  "if": {"properties": {"settle_interval_seconds": {"const": 2}}},
+                  "then": {"properties": {"settlement_timeout_seconds": {"exclusiveMinimum": 2}}}
+                },
+                {
+                  "if": {"properties": {"settle_interval_seconds": {"const": 3}}},
+                  "then": {"properties": {"settlement_timeout_seconds": {"exclusiveMinimum": 3}}}
+                },
+                {
+                  "if": {"properties": {"settle_interval_seconds": {"const": 4}}},
+                  "then": {"properties": {"settlement_timeout_seconds": {"exclusiveMinimum": 4}}}
+                },
+                {
+                  "if": {"properties": {"settle_interval_seconds": {"const": 5}}},
+                  "then": {"properties": {"settlement_timeout_seconds": {"exclusiveMinimum": 5}}}
+                },
+                {
+                  "if": {"properties": {"settle_interval_seconds": {"const": 6}}},
+                  "then": {"properties": {"settlement_timeout_seconds": {"exclusiveMinimum": 6}}}
+                },
+                {
+                  "if": {"properties": {"settle_interval_seconds": {"const": 7}}},
+                  "then": {"properties": {"settlement_timeout_seconds": {"exclusiveMinimum": 7}}}
+                },
+                {
+                  "if": {"properties": {"settle_interval_seconds": {"const": 8}}},
+                  "then": {"properties": {"settlement_timeout_seconds": {"exclusiveMinimum": 8}}}
+                },
+                {
+                  "if": {"properties": {"settle_interval_seconds": {"const": 9}}},
+                  "then": {"properties": {"settlement_timeout_seconds": {"exclusiveMinimum": 9}}}
+                },
+                {
+                  "if": {"properties": {"settle_interval_seconds": {"const": 10}}},
+                  "then": {"properties": {"settlement_timeout_seconds": {"exclusiveMinimum": 10}}}
+                }
+              ],
+              "additionalProperties": false
             }
           },
           "additionalProperties": true
@@ -236,7 +401,10 @@
             "input_content_verdict",
             "canonical_merge_required_before_implementation",
             "implementation_base_must_contain_publication_revision",
-            "ordinary_publication_evidence"
+            "ordinary_publication_evidence",
+            "legacy_ready_adoption",
+            "correction_entry",
+            "evidence_migration"
           ],
           "properties": {
             "input_content_verdict": {"const": "spec_ready"},
@@ -279,7 +447,11 @@
                     "review_target_kind",
                     "canonical_base_revision",
                     "review_binding_method",
-                    "reviewed_package_manifest_equals_merged"
+                    "reviewed_package_manifest_equals_merged",
+                    "review_capture_contract_revision",
+                    "review_publication_attempt_id",
+                    "review_result_sha256",
+                    "matched_reviewer_session_ids"
                   ]
                 },
                 "allowed_review_binding_methods": {
@@ -299,7 +471,7 @@
               "default": {"enabled": false},
               "required": ["enabled"],
               "properties": {
-                "enabled": {"type": "boolean", "default": false},
+                "enabled": {"const": false, "default": false},
                 "baseline_revision": {
                   "type": "string",
                   "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
@@ -342,29 +514,53 @@
                   "default": "publish_planning_change"
                 }
               },
-              "allOf": [
-                {
-                  "if": {
-                    "properties": {"enabled": {"const": true}},
-                    "required": ["enabled"]
-                  },
-                  "then": {
-                    "required": [
-                      "baseline_revision",
-                      "baseline_must_be_ancestor_of_current_authority_base",
-                      "evidence_mode",
-                      "current_package_manifest_must_match_baseline",
-                      "persist_complete_baseline_package_manifest",
-                      "ready_verdict_must_exist_at_baseline",
-                      "derive_revision_from_last_spec_change_at_or_before_baseline",
-                      "record_evidence_kind",
-                      "claim_independent_review",
-                      "on_mismatch"
-                    ]
-                  }
-                }
-              ],
               "additionalProperties": true
+            },
+            "correction_entry": {
+              "type": "object",
+              "required": [
+                "kind",
+                "accepted_content_verdict",
+                "required_readiness_status",
+                "require_existing_canonical_publication",
+                "close_implementation_authority_before_review",
+                "provisional_target_verdict"
+              ],
+              "properties": {
+                "kind": {"const": "stale_published_ready_spec"},
+                "accepted_content_verdict": {"const": "ready_for_implementation"},
+                "required_readiness_status": {"const": "publication_upgrade_required"},
+                "require_existing_canonical_publication": {"const": true},
+                "close_implementation_authority_before_review": {"const": true},
+                "provisional_target_verdict": {"const": "ready_for_implementation"}
+              },
+              "additionalProperties": false
+            },
+            "evidence_migration": {
+              "type": "object",
+              "required": [
+                "classification",
+                "inventory_all_ready_specs",
+                "preserve_historical_evidence_for_audit",
+                "downgrade_only_exact_ready_status",
+                "other_configured_status_action",
+                "post_merge_authoritative_rescan",
+                "completion_predicate",
+                "next_action_template"
+              ],
+              "properties": {
+                "classification": {"const": "publication_upgrade_required"},
+                "inventory_all_ready_specs": {"const": true},
+                "preserve_historical_evidence_for_audit": {"const": true},
+                "downgrade_only_exact_ready_status": {"const": "ready_for_implementation"},
+                "other_configured_status_action": {"const": "audit_only"},
+                "post_merge_authoritative_rescan": {"const": true},
+                "completion_predicate": {
+                  "const": "zero_old_evidence_items_still_ready_for_implementation"
+                },
+                "next_action_template": {"const": "--publish-spec <TASK_ID>"}
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": true
@@ -386,6 +582,113 @@
             "require_persisted_publication_record_readback": {"const": true},
             "implementation_issue_remains_open": {"const": true},
             "release_or_deploy_forbidden": {"const": true}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "implementation": {
+      "type": "object",
+      "required": ["readiness"],
+      "properties": {
+        "readiness": {
+          "type": "object",
+          "required": [
+            "publication_evidence",
+            "publication_upgrade_stop"
+          ],
+          "properties": {
+            "publication_evidence": {
+              "type": "object",
+              "required": [
+                "required",
+                "selection_precedence",
+                "accepted_paths",
+                "ordinary_only_before_workspace_mutation"
+              ],
+              "properties": {
+                "required": {"const": true},
+                "selection_precedence": {
+                  "const": ["ordinary_reviewed_publication"]
+                },
+                "accepted_paths": {
+                  "type": "object",
+                  "required": ["ordinary_reviewed_publication"],
+                  "properties": {
+                    "ordinary_reviewed_publication": {
+                      "type": "object",
+                      "required": [
+                        "tuple",
+                        "required_evidence_kind",
+                        "review_capture_contract_revision",
+                        "persisted_record_readback_required",
+                        "independent_review_required",
+                        "specification_owner_authority_base_must_contain_revision",
+                        "current_authority_base_package_manifest_must_equal_selected_record"
+                      ],
+                      "properties": {
+                        "tuple": {
+                          "const": [
+                            "evidence_kind",
+                            "task_id",
+                            "specification_owner_repository",
+                            "canonical_spec_path",
+                            "pull_request_url",
+                            "merged_revision",
+                            "merged_tree_oid",
+                            "reviewed_head_revision",
+                            "reviewed_head_tree_oid",
+                            "complete_reviewed_package_manifest",
+                            "reviewer_evidence_identifier",
+                            "reviewer_model",
+                            "reviewer_effort",
+                            "review_completed_at",
+                            "terminal_clean_verdict",
+                            "review_target_kind",
+                            "canonical_base_revision",
+                            "review_binding_method",
+                            "reviewed_package_manifest_equals_merged",
+                            "review_capture_contract_revision",
+                            "review_publication_attempt_id",
+                            "review_result_sha256",
+                            "matched_reviewer_session_ids"
+                          ]
+                        },
+                        "required_evidence_kind": {
+                          "const": "reviewed_canonical_publication"
+                        },
+                        "review_capture_contract_revision": {"const": 1},
+                        "persisted_record_readback_required": {"const": true},
+                        "independent_review_required": {"const": true},
+                        "specification_owner_authority_base_must_contain_revision": {"const": true},
+                        "current_authority_base_package_manifest_must_equal_selected_record": {"const": true}
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "ordinary_only_before_workspace_mutation": {"const": true}
+              },
+              "additionalProperties": true
+            },
+            "publication_upgrade_stop": {
+              "type": "object",
+              "required": [
+                "status",
+                "required_capture_contract_revision",
+                "workspace_created",
+                "next_action_template"
+              ],
+              "properties": {
+                "status": {"const": "publication_upgrade_required"},
+                "required_capture_contract_revision": {"const": 1},
+                "workspace_created": {"const": false},
+                "next_action_template": {"const": "--publish-spec <TASK_ID>"}
+              },
+              "additionalProperties": false
+            }
           },
           "additionalProperties": true
         }
@@ -740,6 +1043,22 @@
       },
       "then": {
         "required": ["planning_publication"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "workflow_kit": {
+            "properties": {
+              "selected_modules": {
+                "contains": {"const": "execute-project-task"}
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": ["implementation"]
       }
     },
     {

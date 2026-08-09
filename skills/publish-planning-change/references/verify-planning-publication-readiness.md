@@ -56,7 +56,10 @@ file contains mixed ownership.
 
 Require:
 
-- at least `Spec ready` content;
+- either normal `Spec ready` author content or the configured
+  `stale_published_ready_spec` entry with existing canonical publication,
+  exact `Ready for implementation`, typed `publication_upgrade_required`, and
+  implementation authority closed before review;
 - no unresolved product decision hidden in prose;
 - stable shaped scope and dependency direction;
 - resolvable links and verified technical references;
@@ -64,3 +67,7 @@ Require:
 - no implementation work started from this unpublished spec.
 
 Do not promote operational readiness merely because the local file exists.
+Before computing the review manifest, let `write-task-spec` materialize or
+preserve provisional `Ready for implementation` in the isolated candidate.
+That provisional verdict does not unlock implementation before merge and full
+publication-evidence readback.

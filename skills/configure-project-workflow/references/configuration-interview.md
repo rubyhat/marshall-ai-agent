@@ -130,12 +130,14 @@ Resolve the following; ask only unresolved decision-changing items:
    default to the project root repository and `docs_ai/tasks` without asking;
 8. isolated planning/spec workspace and required publication before
    implementation for Git-tracked specifications;
-9. independent spec-review policy, model/effort configuration, allowed
-   supporting artifact classes, deterministic gates, PR target, merge authority,
-   and canonical-revision evidence;
+9. independent spec-review policy, model/effort configuration, authoritative
+   session runner and settlement contract, allowed supporting artifact classes,
+   deterministic gates, PR target, merge authority, and canonical-revision
+   evidence;
 10. specification readiness verdicts and the separate implementation authority
-    gate, including deterministic adoption evidence for specifications already
-    ready on the canonical target before planning publication was enabled.
+    gate, including `publication_upgrade_required` inventory/status
+    reconciliation for specifications whose evidence predates the current
+    capture contract.
 
 ## Stage 6 — task management
 

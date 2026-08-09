@@ -225,8 +225,12 @@ Alias не отвечает на factual questions, не распростран�
 Запускает `publish-planning-change` для одной exact specification:
 
 - проверяет isolated planning workspace и полный diff;
+- материализует provisional `Ready for implementation` до review manifest;
 - формирует точный allowlisted publication manifest;
-- запускает fresh independent bounded spec review;
+- запускает fresh independent bounded spec review только через canonical
+  authoritative-session runner;
+- объединяет все terminal findings stable attempt и разрешает один technical
+  retry только после settled отсутствия authoritative result;
 - возвращает реальные content findings в `write-task-spec` и повторяет review
   только после изменений;
 - выполняет deterministic documentation gates;
@@ -256,10 +260,12 @@ task lookup, status transition, Git, dependency и file mutations и реком�
 
 - проверяет `Ready for implementation`;
 - при configured planning publication проверяет independent spec review,
-  merged canonical revision и ancestry specification-owner authority base;
+  current capture-contract provenance, merged canonical revision и ancestry
+  specification-owner authority base;
 - для component repository с отдельной Git history проверяет recorded tuple из
-  Task ID, spec-owner repository, canonical spec path и merged revision без
-  требования невозможной общей ancestry;
+  Task ID, spec-owner repository, canonical spec path, merged revision,
+  publication attempt, result hash и matched reviewer sessions без требования
+  невозможной общей ancestry;
 - после успешного readiness переводит exact task в configured implementation
   status и только затем создаёт или возобновляет worktree и feature branch;
 - выбирает только затронутые repositories;
@@ -522,9 +528,11 @@ Alias, owning skill или dependency, не включённые в project conf
 ## Текущий workflow schema contract
 
 Workflow kit поддерживает один актуальный формат project configuration:
-`schema_version: 3`. Он требует guarded aliases и sequence rules, а для
-`publish-planning-change` — полный bound-review evidence contract и completion
-gates. Другие project schema versions не считаются частично настроенными и не
+`schema_version: 4`. Он требует guarded aliases и sequence rules, а для
+`publish-planning-change` — authoritative-session runner, полный bound-review
+provenance contract и completion gates. Legacy baseline остаётся audit input и
+не разрешает implementation workspace. Другие project schema versions не
+считаются частично настроенными и не
 получают compatibility defaults: `--workflow-check` возвращает setup drift, а
 `--publish-spec` останавливается до mutations. Исправление выполняется только
 через подтверждённый `--workflow-setup` reconfiguration manifest.
@@ -533,24 +541,23 @@ gates. Другие project schema versions не считаются частич
 версией отдельного setup-state формата и не обозначает поддерживаемую версию
 project configuration.
 
-### Переход на workflow kit v0.7.0
+### Историческая заметка: workflow kit v0.7.0
 
-В v0.7.0 текущий schema-v3 contract для `publish-planning-change` требует
+В v0.7.0 тогдашний schema-v3 contract для `publish-planning-change` требовал
 положительный `planning_publication.independent_review.max_correction_rounds`;
 значение по умолчанию для новой конфигурации — `5`. После пятого пакета
 исправлений corrected head всё ещё проходит обязательное ревью, но новый пакет
 изменений уже не начинается: workflow останавливается с анализом цикла.
 
-Проект с выбранным `publish-planning-change`, в конфигурации которого поля нет,
-считается невалидным и должен быть прямо перенастроен: синхронизировать все
-выбранные skills на один exact tag v0.7.0, сохранить `schema_version: 3`, добавить
-`max_correction_rounds: 5` и выполнить validation. Compatibility layer и
-автоматическая миграция не предусмотрены. Откат безопасен только совместно для
-конфигурации и всего набора skills на один прежний exact release tag.
+В соответствующем release-переходе проект с выбранным
+`publish-planning-change` синхронизировал все skills на exact tag v0.7.0,
+использовал тогдашний `schema_version: 3` и материализовал
+`max_correction_rounds: 5`. Это описание сохраняется только как release
+history и не является инструкцией для current schema 4.
 
-### Переход на workflow kit v0.7.2
+### Историческая заметка: workflow kit v0.7.2
 
-В v0.7.2 schema-v3 contract дополнительно требует
+В v0.7.2 тогдашний schema-v3 contract дополнительно требовал
 `planning_publication.independent_review.committed_correction_review`. Текущая
 поддерживаемая стратегия — `local_checkpoint_committed_base_diff`: после
 correction package после non-clean review для publication manifest, уже имеющего
@@ -561,8 +568,9 @@ uncommitted candidate разрешён и при наличии раннего i
 как и для ещё не закоммиченного manifest, обязательна path/blob-OID equivalence.
 Объект materialized при setup как dormant policy, чтобы не менять конфигурацию
 посреди publication; наличие объекта само по себе не активирует checkpoint path.
-Content-changing correction сначала понижает verdict старого clean-reviewed
-head с `Ready for implementation` до `Spec ready`. Если в planning worktree
+В том contract content-changing correction сначала понижала verdict старого
+clean-reviewed head с `Ready for implementation` до `Spec ready`. Schema 4
+отменила этот downgrade/re-promotion lifecycle. Если в planning worktree
 остаётся excluded dirty path, workflow останавливается до checkpoint и выдаёт
 точный preservation/recovery handoff, не включая и не удаляя чужое изменение.
 
@@ -570,6 +578,22 @@ head с `Ready for implementation` до `Spec ready`. Если в planning workt
 добавить разрешение checkpoint commit, обязательность deterministic checks и
 exact manifest, а `push_before_clean_review` установить в `false`. Отсутствующий
 или неполный объект делает `--publish-spec` невалидным до mutations.
+
+### Переход на schema 4
+
+Schema 4 материализует provisional target verdict до первого review и удаляет
+verdict-only review. Canonical runner связывает каждую invocation с exact outer
+session UUID, читает terminal JSON только из matched review child, ждёт
+terminal settlement и stable rescans, объединяет findings всех invocations и
+сохраняет normalized result hash, publication attempt и matched session set.
+
+`legacy_ready_adoption.enabled` обязан быть `false`; implementation evidence и
+workspace creation принимают только complete ordinary schema-4 publication.
+Old evidence получает typed `publication_upgrade_required` и exact
+`--publish-spec <Task ID>`. Cutover понижает только exact operational
+`Готово к реализации`; остальные configured statuses остаются audit-only и не
+откатываются. Direct `--publish-spec` не принимает schema 3; existing project
+переходит one-way через отдельно проверенный workflow-sync implementation PR.
 
 ### Переход на workflow kit v0.8.2
 
@@ -684,15 +708,13 @@ terminal finalization.
 exact tag v0.8.2 установку по этой инструкции не выполнять; unreleased testing
 разрешён только по полному commit SHA.
 
-Ранее валидный schema-v3 проект с выбранным `deliver-reviewed-change`, но без
-этой полной секции, после обновления считается невалидным. До следующего
-`--deliver-task` нужно запустить подтверждённый `--workflow-setup`
-reconfiguration: синхронизировать все выбранные skills на один exact tag
-v0.8.2, установить `workflow_kit.revision: v0.8.2`, сохранить
-`schema_version: 3`, материализовать указанный `review` contract с
-project-specific reviewer settings и выполнить validation записанной revision,
-активных skill copies и project configuration. Нельзя добавлять только counters
-поверх неполной секции или рассчитывать на compatibility defaults.
+Для тогдашнего schema-v3 проекта release-переход требовал подтверждённый
+`--workflow-setup`: exact tag v0.8.2, `workflow_kit.revision: v0.8.2`,
+материализовать указанный `review` contract
+и выполнить validation записанной revision, активных skill copies и
+project configuration. Это описание сохраняется как release history; current
+reconfiguration обязана создать полный schema-4 candidate и не может сохранять
+schema 3 либо рассчитывать на compatibility defaults.
 
 Если reconfiguration нельзя завершить, `--deliver-task` остаётся fail-closed до
 устранения drift. Безопасный откат требует вернуть и project configuration, и

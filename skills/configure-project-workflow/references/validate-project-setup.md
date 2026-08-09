@@ -5,10 +5,10 @@ Validate the configured workflow without executing ordinary project work.
 ## Structure
 
 - Parse the setup tracker and generated configuration with an available safe parser.
-- Require project configuration schema v3. Treat every other project schema as
+- Require project configuration schema v4. Treat every other project schema as
   unsupported and report setup drift; do not apply compatibility defaults or
   treat any selected workflow as configured until an approved reconfiguration
-  produces one complete schema-v3 configuration.
+  produces one complete schema-v4 configuration.
 - Verify required generic fields and selected module sections.
 - Verify unique module names, aliases, paths, and managed markers.
 - Verify every alias has a resolvable owning workflow, authority boundary,
@@ -79,6 +79,14 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   selected.
 - Confirm `execute-project-task` establishes its implementation-start status
   after readiness and before workspace creation.
+- When `publish-planning-change` is selected, require the canonical runner
+  command template rather than direct `codex review`, all runtime placeholders,
+  including every configured settlement value,
+  exact parent/child/cwd/target binding, strict native terminal JSON, one
+  technical retry only after settled absence, at least two stable scans,
+  bounded whole-second interval values, timeout strictly greater than interval,
+  final rescan, cumulative token capture, and
+  the full current provenance tuple in publication evidence.
 - When `deliver-reviewed-change` is selected, confirm that local and GitHub
   review have separate positive correction-round limits set to five and unable
   to exceed five,
@@ -135,21 +143,18 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   the specification revision. For implementation repositories with separate
   Git histories, require the same resolvable exact-task reviewed-publication
   record without impossible shared ancestry. Verify it binds the clean reviewer
-  run and complete package manifest to the reviewed head and merged revision,
-  is persisted and reread before cleanup, and does not rely on PR prose.
-- For an existing project with pre-adoption implementation-ready specs, verify
-  legacy-ready adoption uses one immutable full baseline Git object ID captured
-  from the canonical target before workflow mutations, accepts the repository's
-  40-hex SHA-1 or 64-hex SHA-256 format, and verifies that revision is an
-  ancestor of the current specification-owner authority base. Require exact
-  equality of sorted current-versus-baseline package manifests containing every
-  task-owned path and Git blob OID, a ready verdict in the baseline entrypoint,
-  a derived last-package-change revision that is an ancestor of the baseline
-  and current authority base, persistence and readback comparison of the
-  complete sorted baseline manifest, explicit `legacy_ready_baseline` evidence,
-  and no independent review claim. A missing or mismatched criterion must route to ordinary
-  `publish-planning-change`; it is not a user override. When this optional
-  policy is omitted, resolve it as disabled in memory.
+  run, capture-contract revision, publication-attempt ID, normalized-result
+  hash, complete matched-session set, and package manifest to the reviewed head
+  and merged revision, is persisted and reread before cleanup, and does not
+  rely on PR prose.
+- Verify legacy-ready adoption is materialized as disabled and ordinary
+  current capture-contract publication is the only accepted implementation
+  evidence path, including workspace creation in a separate repository. Old or
+  incomplete records must return typed `publication_upgrade_required` before
+  workspace mutation, preserve historical evidence for audit, downgrade only
+  exact implementation-ready operational status, keep every other configured
+  status audit-only, and require a post-merge rescan plus zero-old-evidence-
+  ready completion readback.
 
 ## Installation
 
@@ -193,10 +198,9 @@ Evaluate representative prompts without performing their mutations:
   revision in the specification-owner authority base and, for a separate
   component repository, require the exact-task publication tuple without
   shared ancestry;
-- request implementation for a pre-adoption ready spec -> accept only a
-  configured, recorded `legacy_ready_baseline` tuple whose canonical package-
-  manifest and ancestry checks still pass; otherwise stop and recommend
-  `--publish-spec`;
+- request implementation for an old or pre-adoption ready spec -> return typed
+  `publication_upgrade_required` with `workspace_created: false` and recommend
+  exact `--publish-spec <Task ID>` even when a historical baseline matches;
 - request the next spec with one active work graph -> verify the previous task
   read-only, select the unique next eligible task by dependencies, and enter
   the configured specification workflow;

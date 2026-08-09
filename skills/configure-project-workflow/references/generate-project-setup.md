@@ -43,7 +43,7 @@ Keep detailed procedures in skills and project runbooks.
 
 Use `assets/project-workflow.schema.json` as the generic contract and
 `assets/templates/project-workflow.yaml` as a starting shape. Generate project
-configuration schema v3. Treat every other project-configuration version as
+configuration schema v4. Treat every other project-configuration version as
 unsupported and regenerate it only through an approved reconfiguration manifest
 that materializes every current required field. Do not apply compatibility
 defaults from an older project schema. The setup-state tracker has its own
@@ -136,34 +136,39 @@ When `publish-planning-change` is selected, generate:
   manifest that already has an in-scope planning-branch commit. Preserve the
   separately bound uncommitted-review path when the manifest has no in-scope
   commit and for a complete mixed committed-plus-uncommitted candidate before
-  its first independent review. Require a content-changing correction to
-  downgrade a stale implementation-ready verdict before its checkpoint, and
+  its first independent review. Materialize the provisional implementation-
+  ready target verdict before the first review manifest and preserve it across
+  bounded content corrections. Require every changed semantic manifest to
+  receive one review, and
   stop before checkpoint creation when an excluded dirty path would prevent a
   clean worktree; do not absorb, stash, or delete that path. Do not generate
   persistent state, locks, archives, migrations, or crash-recovery machinery
   for this counter;
+- the canonical authoritative-session review runner, required command-template
+  placeholders including every configured settlement value, strict native
+  terminal-result schema, exact parent/child/cwd/
+  target binding, two stable settlement scans, final rescan, cumulative usage,
+  and one technical retry only after settled absence of any authoritative
+  terminal result. Materialize settlement intervals as whole seconds and
+  require timeout strictly greater than interval. Reject a direct `codex review`
+  command template;
 - deterministic validation, commit, push, PR, checks, merge, canonical-revision,
   specification-owner ancestry, exact-task publication evidence, sync, and
   cleanup gates; require an ordinary publication record with evidence kind,
   Task ID, owner repository, canonical spec path, PR URL, merged revision/tree,
   bound reviewed-head revision/tree, full package path/blob-OID manifest,
   reviewer run identity and clean-verdict metadata, review base/target/binding
-  method, and explicit reviewed-versus-merged manifest equality. Reread every
-  field before cleanup, and never require a component repository with a
-  separate Git history to contain that commit;
-- for an existing project with specifications already marked implementation-ready
-  on the canonical target, capture its exact full Git object ID before workflow
-  mutations as an adoption baseline without asking the user to choose one.
-  Accept full 40-hex SHA-1 and 64-hex SHA-256 object IDs. Require that baseline
-  to be an ancestor of the current specification-
-  owner authority base. Enable legacy-ready adoption only when the deterministic
-  current package manifest of every task-owned spec path and Git blob OID must
-  equal its baseline manifest, the ready verdict existed at that baseline, the
-  evidence revision is derived from the last package change at or before the
-  baseline, the complete sorted baseline manifest is persisted and compared on
-  every readback, and the record is explicitly classified as
-  `legacy_ready_baseline` rather than an independent review. Disable this path
-  for a new project or when no pre-adoption ready specifications exist;
+  method, capture-contract revision, publication-attempt ID, normalized-result
+  hash, complete matched reviewer session set, and explicit reviewed-versus-
+  merged manifest equality. Reread every field before cleanup, and never
+  require a component repository with a separate Git history to contain that
+  commit;
+- `legacy_ready_adoption.enabled: false` and ordinary reviewed publication as
+  the only implementation-readiness path. Keep historical baseline tuples as
+  audit input only. Generate the typed `publication_upgrade_required` stop,
+  stale-published-ready correction entry, complete ready-spec inventory,
+  status-preserving reconciliation, mandatory post-merge rescan, and zero-old-
+  evidence-ready completion predicate;
 - `planning_artifact_publication` as a separately allowed planning-session
   capability that does not release implementation or delivery locks;
 - a `--publish-spec` handoff after `Spec ready` and a hard implementation gate

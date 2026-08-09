@@ -25,6 +25,44 @@ the publication alias was invoked, a path added only for read access, or prompt
 text to select the reviewed diff. Verify the reviewer reports the expected
 planning worktree and branch before accepting its verdict.
 
+Invoke only the configured canonical runner at
+`scripts/run_codex_spec_review.py` through the materialized command template.
+The runner owns the `codex review` subprocess, direct startup-stream capture,
+outer parent-session binding, child-session discovery, terminal settlement,
+strict native-result validation, consolidation, metrics, and normalized result
+hash. A stored command that directly launches `codex review`, a missing
+placeholder, or a partial result-capture contract is invalid configuration and
+must stop before model invocation.
+
+The runner must inject the exact task anchor, selected target identity and
+manifest paths, and the specification-contract rubric as model-visible
+developer instructions while retaining the CLI's explicit Git target selector.
+Select `--uncommitted` for an uncommitted target and `--base <revision>` for a
+committed target; never substitute one selector for the other.
+`--title` is diagnostic display text and is never sufficient review context.
+Do not replace the target selector with a positional custom prompt: current
+Codex CLI treats those modes as mutually exclusive.
+
+Outer stdout, stderr, and process exit status are diagnostic only. Accept
+review correctness solely from strict JSON in
+`event_msg.task_complete.payload.last_agent_message` of a child whose exact
+parent session, `source.subagent == review`, cwd, invocation boundary, target,
+and manifest are bound by the runner.
+Persist only bounded stream diagnostics in the normalized result: exit code,
+byte length, and SHA-256 for stdout and stderr. Do not copy stream content into
+review evidence or derive a verdict from those diagnostics.
+
+The runner prints exactly one normalized JSON object for a recognized result
+status and uses this exit mapping: `clean` → `0`, `non_clean` → `10`,
+`terminal_contract_error` → `11`, `target_changed` → `12`,
+`invocation_binding_error` → `13`, `technical_retry_budget_exhausted` → `14`,
+`session_settlement_timeout` → `15`, and the internal settled
+`no_authoritative_terminal_result` state → `16`. Invalid runtime configuration
+stops before model invocation with exit code `64` and stderr diagnostics.
+If the post-review target can no longer be snapshotted, normalize that failure
+as `target_changed` with bounded diagnostics; it is not a new pre-invocation
+configuration error.
+
 ## Review the specification contract
 
 Check for concrete defects in:
@@ -73,10 +111,8 @@ When a correction package after a non-clean review changes a publication
 manifest that already has an in-scope commit on the planning branch, require the
 materialized `committed_correction_review` configuration. Under the supported
 `local_checkpoint_committed_base_diff` strategy, require explicit permission
-for the checkpoint. Apply every in-scope correction. When content now differs
-from the last clean-reviewed head and the stored verdict is
-`Ready for implementation`, let `write-task-spec` downgrade that stale verdict
-to `Spec ready` as part of the same correction package. Reread the exact package
+for the checkpoint. Apply every in-scope correction while preserving the
+provisional `Ready for implementation` target verdict. Reread the exact package
 and rerun deterministic checks.
 
 Before staging, require that the planning worktree contains no dirty path
@@ -90,15 +126,6 @@ worktree is then clean and the reviewer sees that exact checkpoint head against
 the canonical base.
 The configured push policy must remain false until clean review. The checkpoint
 does not count as a second correction round or as clean-review evidence.
-
-When that clean review authorizes `Ready for implementation` and it is not yet
-stored, let `write-task-spec` apply only that verdict mutation from the clean
-handoff. Reread the package, rerun deterministic checks, and create a
-replacement local-only checkpoint containing the promoted verdict. Obtain a
-clean committed-base-diff review for the replacement. This mechanical
-promotion and replacement review do not consume another correction round. The
-final clean-reviewed checkpoint must be pushed and published unchanged; do not
-apply another verdict mutation, amend it, or add another commit after review.
 Missing or incomplete strategy fields stop direct publication before the first
 checkpoint instead of authorizing a partial review.
 
@@ -110,11 +137,62 @@ path does not use or bypass a committed-correction checkpoint; it uses the
 separately configured
 `verified_uncommitted_manifest_equivalence` binding method.
 
+Represent a tracked path deleted relative to the canonical base as
+`deleted:<base-blob-oid>` in the sorted manifest. Use the same base-relative
+representation when checking the eventual commit and merged revision so a
+deletion is reviewed, cannot disappear from evidence, and remains distinct from
+an empty file. A rename contains both the new path/blob OID and the deleted
+source marker.
+
 One clean review for the current head is terminal. Do not keep requesting review
 for an unchanged clean specification. If the final allowed corrected head still
 has a blocking or actionable finding, stop before any further correction,
 review request, commit, push, or publication. Do not start a sixth correction
 when `max_correction_rounds` is five.
+
+## Settle and consolidate authoritative results
+
+Before any CLEAN, NON_CLEAN, or missing-result decision:
+
+1. require every registered review subprocess to exit;
+2. resolve exactly one outer JSONL session from the directly captured startup
+   session UUID and verify its `session_meta` ID, `source == exec`, exact cwd,
+   and invocation boundary;
+3. match only review children with that parent UUID, exact cwd and target;
+4. require every matched child to reach terminal `task_complete`;
+5. obtain at least two consecutive stable scans with the configured bounded
+   interval and no new or changed matched JSONL artifact;
+6. perform one final rescan immediately before returning a status.
+
+A new or changed artifact resets the stable-scan count. A matched child without
+terminal `task_complete`, a non-terminal outer session, or a deadline reached
+before quiescence returns `session_settlement_timeout`; it is not equivalent to
+an absent result.
+
+Strict-parse every matched terminal message as native Codex review JSON.
+Require `findings`, supported `overall_correctness`, non-empty
+`overall_explanation`, and numeric `overall_confidence_score` in `0..1`.
+Require every finding's title, body, confidence, and bounded location; accept
+missing or null native priority but reject an out-of-range priority. An
+incorrect verdict with no findings (`incorrect_without_findings`), fenced JSON,
+missing required fields, or
+another invalid terminal shape returns `terminal_contract_error` with stable
+error code and exact session/event identity. It does not consume a correction
+round and does not permit retry.
+
+Union every valid finding across all invocations of the same stable manifest,
+normalize its worktree-relative location, and deduplicate it by a deterministic
+SHA-256 fingerprint. A finding from an earlier or late initial invocation makes
+the consolidated result NON_CLEAN even when another terminal result is clean.
+Only a settled result set with no findings and correct terminal results is
+CLEAN.
+
+Permit one technical retry only when settlement and final rescan return
+`no_authoritative_terminal_result`. Keep the original publication attempt and
+its invocation/session set. After the retry, rescan both invocations so a late
+initial result is consolidated. A second miss returns
+`technical_retry_budget_exhausted`; binding errors, terminal-contract errors,
+target changes, and settlement timeouts never start another model invocation.
 
 Report a bounded cycle analysis containing the reviewed heads, finding
 fingerprints and classifications, correction packages, still-open findings,
@@ -135,8 +213,10 @@ into the specification.
 
 Before accepting a clean verdict, capture a bounded durable candidate record:
 
-- exact reviewer run or session identifier, model, effort, completion time, and
-  terminal clean verdict;
+- review capture-contract revision, publication-attempt ID, normalized-result SHA-256,
+  complete matched reviewer session/event set, model, effort,
+  completion time, cumulative token usage, technical-retry usage, settlement
+  evidence, and terminal clean verdict;
 - review target kind, canonical base revision, planning worktree, branch, and
   the reviewed commit when the target was already committed;
 - the complete sorted publication-package manifest with every allowed
