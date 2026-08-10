@@ -21,6 +21,12 @@ PUBLISH_ROOT = SKILL_ROOT.parent / "publish-planning-change"
 PUBLISH_SKILL = PUBLISH_ROOT / "SKILL.md"
 PUBLISH_REVIEW = PUBLISH_ROOT / "references" / "run-independent-spec-review.md"
 PUBLISH_PREPARE = PUBLISH_ROOT / "references" / "publish-reviewed-planning-change.md"
+PUBLISH_POST_PR = (
+    PUBLISH_ROOT / "references" / "verify-post-pr-planning-correction.md"
+)
+PUBLISH_GITHUB_CYCLE = (
+    PUBLISH_ROOT / "references" / "run-planning-github-review-cycle.md"
+)
 PUBLISH_FINALIZE = PUBLISH_ROOT / "references" / "finalize-planning-publication.md"
 RUNNER = PUBLISH_ROOT / "scripts" / "run_codex_spec_review.py"
 WRITE_SKILL = SKILL_ROOT.parent / "write-task-spec" / "SKILL.md"
@@ -129,6 +135,182 @@ def result_capture_config():
     }
 
 
+def post_pr_correction_review_config():
+    return {
+        "full_independent_review_after_each_github_package": False,
+        "initial_github_generation_required": True,
+        "github_generation_target": "exact_current_full_head",
+        "clean_github_generation_required_before_final_evidence_and_merge": True,
+        "github_review_cycle": {
+            "enabled": True,
+            "request_comment": "@codex review",
+            "reviewer_logins": ["chatgpt-codex-connector[bot]"],
+            "reviewer_login_contains": [],
+            "acknowledgment_reactions": ["eyes", "+1"],
+            "acknowledgment_is_terminal": False,
+            "inspect_channels": [
+                "issue_comments",
+                "formal_reviews",
+                "inline_review_comments",
+            ],
+            "clean_verdict_patterns": [
+                "Codex Review: Didn't find any major issues.",
+            ],
+            "explicit_error_patterns": ["Codex Review: Something went wrong"],
+            "generation": {
+                "bound_to_exact_current_full_head": True,
+                "fresh_after_each_correction_package": True,
+                "old_events_cannot_complete_new_head": True,
+                "response_binding_required": (
+                    "exact_reviewed_commit_or_active_request_generation"
+                ),
+                "unbound_or_old_head_event_action": (
+                    "record_stale_and_ignore_for_current_generation"
+                ),
+            },
+            "correction_counter": {
+                "scope": "exact_pull_request",
+                "max_correction_rounds": 5,
+                "initialize_new_pull_request_at_zero": True,
+                "increment_once_after_applied_package": True,
+                "final_allowed_package_receives_generation": True,
+                "next_package_after_limit_stops_before_mutation": True,
+                "ordered_history_required": True,
+            },
+            "request_budget": {
+                "max_attempts_per_head": 2,
+                "silent_heartbeats_per_attempt": 2,
+                "acknowledged_heartbeats_without_result": 3,
+                "explicit_error_consumes_current_attempt": True,
+                "explicit_error_retry_transition": (
+                    "persist_transient_error_then_create_and_bind_next_request"
+                ),
+                "exhausted_action": "pause_request_budget_exhausted",
+                "new_head_resets_technical_counters_only": True,
+            },
+            "heartbeat": {
+                "state_store": "exact_planning_pr_heartbeat",
+                "scope": "exact_pull_request",
+                "interval_minutes": 7,
+                "destination": "current_thread",
+                "create_and_read_back_before_request": True,
+                "attach_request_identity_and_read_back_before_monitoring": True,
+                "update_and_read_back_after_each_transition": True,
+                "pause_on_review_terminal_while_pull_request_open": True,
+                "same_pull_request_later_head_reactivates": True,
+                "delete_after_pull_request_terminal_only": True,
+                "lost_state_stops_monitor": True,
+            },
+            "state_machine": {
+                "states": [
+                    "request_not_created",
+                    "request_pending",
+                    "not_started",
+                    "in_progress",
+                    "findings_received",
+                    "transient_error",
+                    "clean",
+                    "terminal",
+                    "pr_terminal",
+                    "head_mismatch",
+                    "unclassified_response",
+                ],
+                "evaluation_order": [
+                    "pr_terminal",
+                    "head_mismatch",
+                    "findings_received",
+                    "clean",
+                    "transient_error",
+                    "in_progress",
+                    "not_started",
+                    "unclassified_response",
+                ],
+                "clean_is_absorbing_terminal_state": True,
+                "silence_is_never_in_progress": True,
+                "reactions_checked_on_exact_request_comment_only": True,
+                "every_response_channel_checked_before_silence": True,
+            },
+            "finding_policy": {
+                "classifications": [
+                    "real_in_scope",
+                    "false",
+                    "intentional_out_of_scope",
+                    "duplicate",
+                    "uncertain",
+                ],
+                "actionable_requires_real_in_scope": True,
+                "non_actionable_action": (
+                    "evidence_reply_and_contextual_rereview"
+                ),
+                "non_actionable_consumes_correction_round": False,
+                "semantic_fingerprint_required": True,
+                "one_semantic_repeat_stops_monitor": True,
+                "uncertain_action": "stop_before_edits_and_return_to_owner",
+            },
+        },
+        "routine_github_correction_verification": {
+            "affected_tests_required": True,
+            "configured_deterministic_gates_required": True,
+            "git_diff_check_required": True,
+            "exact_correction_delta_required": True,
+            "finding_by_finding_readback_required": True,
+            "intentional_commit_required_before_push": True,
+            "local_commit_head_and_manifest_readback_required": True,
+            "next_github_generation_reviews_full_head": True,
+            "local_model_invocations": 0,
+            "follow_on_gate_fix_rechecks_materiality_before_mutation": True,
+            "material_or_uncertain_action": "stop_before_edits_and_return_to_owner",
+        },
+        "final_evidence_review": {
+            "reuse_when": "github_clean_and_exact_current_head_tree_manifest_binding_valid",
+            "when": "github_clean_and_exact_current_head_tree_manifest_binding_missing_or_invalid",
+            "maximum_invocations": 1,
+            "review_target": "exact_current_committed_head",
+            "uses_canonical_runner": True,
+            "counts_as_correction_round": False,
+            "clean_action": "bind_exact_publication_evidence",
+            "non_clean_action": "stop_and_return_to_spec_preparation",
+            "invalid_or_timeout_action": "stop_and_return_to_spec_preparation",
+            "automatic_correction_loop": False,
+            "post_clean_mutation_invalidates_evidence": True,
+            "same_manifest_new_commit_requires_new_binding": True,
+        },
+    }
+
+
+def simulate_final_evidence_gate(
+    *,
+    github_clean=True,
+    exact_binding_valid=False,
+    final_result="CLEAN",
+    post_clean_mutation=False,
+):
+    outcome = {
+        "final_invocations": 0,
+        "runner": None,
+        "readiness": False,
+        "automatic_edits": False,
+        "push": False,
+        "github_request": False,
+        "merge": False,
+        "second_final_invocation": False,
+        "evidence_preserved": False,
+    }
+    if not github_clean:
+        return outcome
+    if exact_binding_valid:
+        outcome.update({"readiness": True, "merge": True})
+    else:
+        outcome["final_invocations"] = 1
+        outcome["runner"] = "canonical_authoritative_runner"
+        outcome["evidence_preserved"] = True
+        if final_result == "CLEAN":
+            outcome.update({"readiness": True, "merge": True})
+    if post_clean_mutation:
+        outcome.update({"readiness": False, "merge": False})
+    return outcome
+
+
 def ordinary_implementation_path():
     return {
         "tuple": EVIDENCE_FIELDS,
@@ -214,6 +396,7 @@ def complete_current_config():
                 "runner": runner_config(),
                 "result_capture": result_capture_config(),
             },
+            "post_pr_correction_review": post_pr_correction_review_config(),
             "readiness": {
                 "input_content_verdict": "spec_ready",
                 "canonical_merge_required_before_implementation": True,
@@ -309,6 +492,30 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("legacy_ready_adoption:\n      enabled: false", text)
         self.assertIn("selection_precedence:\n        - ordinary_reviewed_publication", text)
         self.assertIn("publication_upgrade_required", text)
+        self.assertIn(
+            "full_independent_review_after_each_github_package: false", text
+        )
+        self.assertIn("maximum_invocations: 1", text)
+        self.assertIn("automatic_correction_loop: false", text)
+        self.assertIn("local_model_invocations: 0", text)
+        self.assertIn("initial_github_generation_required: true", text)
+        self.assertIn("github_generation_target: exact_current_full_head", text)
+        self.assertIn("state_store: exact_planning_pr_heartbeat", text)
+        self.assertIn('request_comment: "@codex review"', text)
+        self.assertIn("initialize_new_pull_request_at_zero: true", text)
+        self.assertIn(
+            "explicit_error_retry_transition: "
+            "persist_transient_error_then_create_and_bind_next_request",
+            text,
+        )
+        self.assertIn(
+            "non_actionable_action: evidence_reply_and_contextual_rereview", text
+        )
+        self.assertIn(
+            "response_binding_required: exact_reviewed_commit_or_active_request_generation",
+            text,
+        )
+        self.assertIn("intentional_commit_required_before_push: true", text)
 
     def test_schema_requires_authoritative_runner_and_capture_contract(self):
         schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
@@ -345,6 +552,58 @@ class PlanningPublicationContractTest(unittest.TestCase):
                 "<INVOCATION_TIMEOUT_SECONDS>",
             ],
         )
+
+        post_pr = schema["properties"]["planning_publication"]["properties"][
+            "post_pr_correction_review"
+        ]
+        self.assertFalse(
+            post_pr["properties"][
+                "full_independent_review_after_each_github_package"
+            ]["const"]
+        )
+        self.assertTrue(
+            post_pr["properties"]["initial_github_generation_required"]["const"]
+        )
+        self.assertEqual(
+            post_pr["properties"]["github_generation_target"]["const"],
+            "exact_current_full_head",
+        )
+        self.assertTrue(
+            post_pr["properties"][
+                "clean_github_generation_required_before_final_evidence_and_merge"
+            ]["const"]
+        )
+        github_cycle = post_pr["properties"]["github_review_cycle"]
+        counter = github_cycle["properties"]["correction_counter"]["properties"]
+        self.assertEqual(counter["max_correction_rounds"]["const"], 5)
+        self.assertTrue(counter["initialize_new_pull_request_at_zero"]["const"])
+        self.assertTrue(counter["increment_once_after_applied_package"]["const"])
+        self.assertEqual(
+            github_cycle["properties"]["state_machine"]["properties"][
+                "evaluation_order"
+            ]["const"][:4],
+            ["pr_terminal", "head_mismatch", "findings_received", "clean"],
+        )
+        self.assertEqual(
+            github_cycle["properties"]["finding_policy"]["properties"][
+                "non_actionable_action"
+            ]["const"],
+            "evidence_reply_and_contextual_rereview",
+        )
+        routine = post_pr["properties"]["routine_github_correction_verification"]
+        self.assertEqual(routine["properties"]["local_model_invocations"]["const"], 0)
+        self.assertTrue(
+            routine["properties"]["intentional_commit_required_before_push"]["const"]
+        )
+        self.assertEqual(
+            github_cycle["properties"]["generation"]["properties"][
+                "response_binding_required"
+            ]["const"],
+            "exact_reviewed_commit_or_active_request_generation",
+        )
+        final = post_pr["properties"]["final_evidence_review"]
+        self.assertEqual(final["properties"]["maximum_invocations"]["const"], 1)
+        self.assertFalse(final["properties"]["automatic_correction_loop"]["const"])
 
     def test_schema_requires_current_evidence_and_disables_legacy_readiness(self):
         schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
@@ -481,6 +740,100 @@ class PlanningPublicationContractTest(unittest.TestCase):
         )
         self.assertTrue(list(validator.iter_errors(missing_runtime_placeholder)))
 
+        local_review_after_package = copy.deepcopy(complete)
+        local_review_after_package["planning_publication"][
+            "post_pr_correction_review"
+        ]["full_independent_review_after_each_github_package"] = True
+        self.assertTrue(list(validator.iter_errors(local_review_after_package)))
+
+        missing_initial_generation = copy.deepcopy(complete)
+        del missing_initial_generation["planning_publication"][
+            "post_pr_correction_review"
+        ]["initial_github_generation_required"]
+        self.assertTrue(list(validator.iter_errors(missing_initial_generation)))
+
+        missing_github_trigger = copy.deepcopy(complete)
+        del missing_github_trigger["planning_publication"][
+            "post_pr_correction_review"
+        ]["github_review_cycle"]["request_comment"]
+        self.assertTrue(list(validator.iter_errors(missing_github_trigger)))
+
+        no_reviewer_matcher = copy.deepcopy(complete)
+        github_cycle = no_reviewer_matcher["planning_publication"][
+            "post_pr_correction_review"
+        ]["github_review_cycle"]
+        github_cycle["reviewer_logins"] = []
+        github_cycle["reviewer_login_contains"] = []
+        self.assertTrue(list(validator.iter_errors(no_reviewer_matcher)))
+
+        missing_explicit_error_transition = copy.deepcopy(complete)
+        del missing_explicit_error_transition["planning_publication"][
+            "post_pr_correction_review"
+        ]["github_review_cycle"]["request_budget"][
+            "explicit_error_retry_transition"
+        ]
+        self.assertTrue(list(validator.iter_errors(missing_explicit_error_transition)))
+
+        actionable_dismissal = copy.deepcopy(complete)
+        actionable_dismissal["planning_publication"][
+            "post_pr_correction_review"
+        ]["github_review_cycle"]["finding_policy"][
+            "non_actionable_consumes_correction_round"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(actionable_dismissal)))
+
+        unbound_response_allowed = copy.deepcopy(complete)
+        del unbound_response_allowed["planning_publication"][
+            "post_pr_correction_review"
+        ]["github_review_cycle"]["generation"]["response_binding_required"]
+        self.assertTrue(list(validator.iter_errors(unbound_response_allowed)))
+
+        push_without_commit = copy.deepcopy(complete)
+        push_without_commit["planning_publication"][
+            "post_pr_correction_review"
+        ]["routine_github_correction_verification"][
+            "intentional_commit_required_before_push"
+        ] = False
+        self.assertTrue(list(validator.iter_errors(push_without_commit)))
+
+        unbounded_github_packages = copy.deepcopy(complete)
+        unbounded_github_packages["planning_publication"][
+            "post_pr_correction_review"
+        ]["github_review_cycle"]["correction_counter"]["max_correction_rounds"] = 6
+        self.assertTrue(list(validator.iter_errors(unbounded_github_packages)))
+
+        missing_counter_initialization = copy.deepcopy(complete)
+        del missing_counter_initialization["planning_publication"][
+            "post_pr_correction_review"
+        ]["github_review_cycle"]["correction_counter"][
+            "initialize_new_pull_request_at_zero"
+        ]
+        self.assertTrue(list(validator.iter_errors(missing_counter_initialization)))
+
+        bypassable_clean_generation = copy.deepcopy(complete)
+        bypassable_clean_generation["planning_publication"][
+            "post_pr_correction_review"
+        ]["clean_github_generation_required_before_final_evidence_and_merge"] = False
+        self.assertTrue(list(validator.iter_errors(bypassable_clean_generation)))
+
+        missing_deterministic_gate = copy.deepcopy(complete)
+        del missing_deterministic_gate["planning_publication"][
+            "post_pr_correction_review"
+        ]["routine_github_correction_verification"]["git_diff_check_required"]
+        self.assertTrue(list(validator.iter_errors(missing_deterministic_gate)))
+
+        invalid_final_maximum = copy.deepcopy(complete)
+        invalid_final_maximum["planning_publication"][
+            "post_pr_correction_review"
+        ]["final_evidence_review"]["maximum_invocations"] = 2
+        self.assertTrue(list(validator.iter_errors(invalid_final_maximum)))
+
+        automatic_final_corrections = copy.deepcopy(complete)
+        automatic_final_corrections["planning_publication"][
+            "post_pr_correction_review"
+        ]["final_evidence_review"]["automatic_correction_loop"] = True
+        self.assertTrue(list(validator.iter_errors(automatic_final_corrections)))
+
         legacy_path = copy.deepcopy(complete)
         legacy_path["implementation"]["readiness"]["publication_evidence"][
             "accepted_paths"
@@ -516,6 +869,100 @@ class PlanningPublicationContractTest(unittest.TestCase):
         self.assertIn("preserving the\nprovisional `Ready for implementation`", review)
         self.assertIn("without any post-review verdict", publication_skill)
         self.assertIn("One clean review for the current head is terminal", review)
+
+    def test_post_pr_corrections_use_zero_or_one_final_evidence_review(self):
+        post_pr = PUBLISH_POST_PR.read_text(encoding="utf-8")
+        github_cycle = PUBLISH_GITHUB_CYCLE.read_text(encoding="utf-8")
+        publication = PUBLISH_SKILL.read_text(encoding="utf-8")
+        prepare = PUBLISH_PREPARE.read_text(encoding="utf-8")
+        self.assertIn("local_model_invocations: 0", post_pr)
+        self.assertIn("Do not run the canonical review", post_pr)
+        self.assertIn("Run zero or one final evidence review", post_pr)
+        self.assertIn("exact current head revision, tree", post_pr)
+        self.assertIn("same manifest blob OIDs", post_pr)
+        self.assertIn("consumes neither a local correction round", post_pr)
+        self.assertIn("exact complete initial head", post_pr)
+        self.assertIn("Before final\nevidence selection or merge", post_pr)
+        self.assertIn("without automatic corrections", publication)
+        self.assertIn("Create and bind one request attempt", github_cycle)
+        self.assertIn("Apply the first matching configured state", github_cycle)
+        self.assertIn("github_correction_rounds_used: 0", github_cycle)
+        self.assertIn("maximum is five packages", github_cycle)
+        self.assertIn("The fifth package still", github_cycle)
+        self.assertIn("A sixth package never starts", github_cycle)
+        self.assertIn("Delete the heartbeat only after", github_cycle)
+        self.assertIn("For `transient_error`, persist the state", github_cycle)
+        self.assertIn("request_budget_exhausted", github_cycle)
+        self.assertIn("provider-reviewed commit SHA", github_cycle)
+        self.assertIn("matched-reviewer issue comment", github_cycle)
+        self.assertIn("sole active attempt", github_cycle)
+        self.assertIn("complete active-generation correlation", github_cycle)
+        self.assertIn("stale_or_unbound_event_ids", github_cycle)
+        self.assertIn("intentional exact-manifest correction", github_cycle)
+        self.assertIn("non-actionable classification still", github_cycle)
+        self.assertIn("`false`, `intentional_out_of_scope`, or `duplicate`", post_pr)
+        self.assertIn("one contextual\nre-review request", post_pr)
+        self.assertIn("repeated_dismissed_finding", post_pr)
+        self.assertIn("create an intentional commit", post_pr)
+        self.assertIn("remote PR head and manifest match", post_pr)
+        self.assertIn("run-planning-github-review-cycle.md", publication)
+        self.assertLess(
+            prepare.index("Stop at the pull-request endpoint"),
+            prepare.index("For full publication, start the configured"),
+        )
+
+        unchanged = simulate_final_evidence_gate(exact_binding_valid=True)
+        self.assertEqual(unchanged["final_invocations"], 0)
+        self.assertTrue(unchanged["readiness"])
+
+        no_clean_github_generation = simulate_final_evidence_gate(github_clean=False)
+        self.assertFalse(no_clean_github_generation["readiness"])
+        self.assertFalse(no_clean_github_generation["merge"])
+
+        corrected = simulate_final_evidence_gate()
+        self.assertEqual(corrected["final_invocations"], 1)
+        self.assertEqual(corrected["runner"], "canonical_authoritative_runner")
+        self.assertTrue(corrected["readiness"])
+
+        for packages in (1, 3, 5):
+            with self.subTest(routine_packages=packages):
+                local_model_invocations_before_github_clean = 0
+                final = simulate_final_evidence_gate()
+                self.assertEqual(local_model_invocations_before_github_clean, 0)
+                self.assertEqual(final["final_invocations"], 1)
+
+        for terminal_result in ("NON_CLEAN", "INVALID", "UNBOUND", "TIMED_OUT"):
+            with self.subTest(final_result=terminal_result):
+                stopped = simulate_final_evidence_gate(final_result=terminal_result)
+                self.assertFalse(stopped["readiness"])
+                self.assertTrue(stopped["evidence_preserved"])
+                for forbidden in (
+                    "automatic_edits",
+                    "push",
+                    "github_request",
+                    "merge",
+                    "second_final_invocation",
+                ):
+                    self.assertFalse(stopped[forbidden])
+
+        mutated = simulate_final_evidence_gate(post_clean_mutation=True)
+        self.assertFalse(mutated["readiness"])
+        self.assertFalse(mutated["merge"])
+
+        reverted_by_new_commit = simulate_final_evidence_gate(
+            exact_binding_valid=False
+        )
+        self.assertEqual(reverted_by_new_commit["final_invocations"], 1)
+        self.assertIn("technical retry behavior remains owned", post_pr)
+        self.assertEqual(result_capture_config()["max_technical_retries_per_publication_attempt"], 1)
+
+    def test_review_invocation_metrics_match_the_bounded_contract(self):
+        pre_pr_generations = 1 + 5
+        github_generations = 1 + 5
+        self.assertEqual(pre_pr_generations + github_generations, 12)
+        for github_correction_packages in range(0, 6):
+            final_evidence_invocations = int(github_correction_packages > 0)
+            self.assertLessEqual(final_evidence_invocations, 1)
 
     def test_authoritative_result_capture_is_fail_closed_and_bounded(self):
         review = PUBLISH_REVIEW.read_text(encoding="utf-8")

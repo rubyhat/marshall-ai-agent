@@ -30,6 +30,10 @@ Use the exact disposition for the selected reason:
     "on_provable": "pause_cycle_analysis",
     "on_unprovable": "pause_report"
   },
+  "pre_pr_local_gate_missing": {
+    "on_provable": "pause_report",
+    "on_unprovable": "pause_report"
+  },
   "request_budget_exhausted": {
     "on_provable": "pause_report",
     "on_unprovable": "pause_report"

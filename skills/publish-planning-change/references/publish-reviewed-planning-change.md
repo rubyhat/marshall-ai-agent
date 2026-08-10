@@ -32,9 +32,14 @@ when the complete manifest has exact path/mode/OID equality, including every
 blob OID and every base-relative `deleted:<base-mode>` and
 `deleted:<base-blob-oid>` marker, and record
 `verified_uncommitted_manifest_equivalence`. If the
-required revision, tree,
-identity, path set, mode, or any blob OID differs, invalidate the candidate and
-run a fresh independent review for the new exact head before push or merge.
+required revision, tree, identity, path set, mode, or any blob OID differs
+before the pull request is created, invalidate the candidate and run a fresh
+independent review for the new exact head before the initial push. After the
+pull request exists, never use this pre-PR rebinding rule for a routine GitHub
+correction; follow
+[verify-post-pr-planning-correction.md](verify-post-pr-planning-correction.md)
+and defer independent evidence selection until its final zero-or-one gate after
+the clean GitHub generation.
 
 Do not include generated application output, implementation code, unrelated
 memory, or a release-version mutation.
@@ -62,15 +67,28 @@ publication.
 
 ## Respect checks and merge authority
 
+- For full publication, start the configured head-bound GitHub review
+  generation for the exact complete initial pull-request head. Do not enter
+  merge gates until that head, or a later corrected exact head, has a clean
+  generation and passes the conditional final-evidence gate.
 - Never bypass branch protection or a reported required check.
 - Treat missing, pending, or failed checks according to configured project
   policy; do not invent success.
-- Re-review the exact current head after a content-changing PR update.
+- After a content-changing PR update, invalidate prior current evidence and use
+  the deterministic routine-package gate plus the next full-head GitHub
+  generation. Do not run independent review between GitHub packages.
+- After a clean GitHub generation, apply the conditional zero-or-one final
+  evidence gate in
+  [verify-post-pr-planning-correction.md](verify-post-pr-planning-correction.md).
+- Reuse prior independent evidence only when exact current head, tree, and
+  complete manifest binding remain valid; otherwise run the canonical runner
+  once against the current committed head.
 - Preserve the bound reviewed-head revision, tree OID, package manifest, clean
   verdict, capture-contract revision, publication-attempt ID, normalized-result
   hash, complete matched-session set, and reviewer-run identity for the final
   exact-task record.
-- Merge only the exact reviewed head when user and project authority allow it.
+- Merge only the exact evidence-bound head after its clean full-head GitHub
+  generation when user and project authority allow it.
 - Never force-push, merge an unrelated PR, publish a release, deploy, or mutate
   production as part of this workflow.
 

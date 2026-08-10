@@ -50,6 +50,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--head-sha",
+        required=True,
         help="Persisted head SHA for the current generation.",
     )
     parser.add_argument(
@@ -284,6 +285,23 @@ def bounded(
     return events[-max_events:], omitted
 
 
+def event_binding(
+    event: dict[str, Any],
+    *,
+    expected_head: str,
+    head_matches: bool,
+) -> str:
+    """Classify provider evidence without promoting inferred issue comments."""
+    commit_id = str(event.get("commit_id") or "")
+    if commit_id:
+        if commit_id == expected_head:
+            return "exact_reviewed_commit"
+        return "old_or_other_reviewed_commit"
+    if event.get("channel") == "issue_comment" and head_matches:
+        return "active_request_generation_candidate"
+    return "unbound"
+
+
 def inspect(args: argparse.Namespace) -> dict[str, Any]:
     if args.body_limit < 1:
         raise InspectionError("--body-limit must be positive")
@@ -335,6 +353,16 @@ def inspect(args: argparse.Namespace) -> dict[str, Any]:
         )
     all_events.sort(key=lambda event: (event["created_at"] or "", event["id"] or 0))
 
+    current_head = str((pull_request.get("head") or {}).get("sha") or "")
+    expected_head = str(args.head_sha)
+    head_matches = current_head == expected_head
+    for event in all_events:
+        event["binding"] = event_binding(
+            event,
+            expected_head=expected_head,
+            head_matches=head_matches,
+        )
+
     reviewer_events = [
         event
         for event in all_events
@@ -346,14 +374,31 @@ def inspect(args: argparse.Namespace) -> dict[str, Any]:
     ]
     other_actor_events = [event for event in all_events if event not in reviewer_events]
 
-    clean_candidates = [
+    bound_reviewer_events = [
         event
         for event in reviewer_events
+        if event["binding"] == "exact_reviewed_commit"
+    ]
+    active_generation_candidates = [
+        event
+        for event in reviewer_events
+        if event["binding"] == "active_request_generation_candidate"
+    ]
+    stale_or_unbound_events = [
+        event
+        for event in reviewer_events
+        if event["binding"]
+        in {"old_or_other_reviewed_commit", "unbound"}
+    ]
+
+    clean_candidates = [
+        event
+        for event in bound_reviewer_events
         if contains_pattern(event["body"], clean_patterns)
     ]
     error_candidates = [
         event
-        for event in reviewer_events
+        for event in bound_reviewer_events
         if contains_pattern(event["body"], error_patterns)
     ]
     classified_ids = {
@@ -362,7 +407,7 @@ def inspect(args: argparse.Namespace) -> dict[str, Any]:
     }
     response_candidates = [
         event
-        for event in reviewer_events
+        for event in bound_reviewer_events
         if (event["channel"], event["id"]) not in classified_ids
         and (
             event["body"].strip()
@@ -373,6 +418,31 @@ def inspect(args: argparse.Namespace) -> dict[str, Any]:
                 in {"changes_requested", "commented"}
             )
         )
+    ]
+
+    active_generation_clean_candidates = [
+        event
+        for event in active_generation_candidates
+        if contains_pattern(event["body"], clean_patterns)
+    ]
+    active_generation_error_candidates = [
+        event
+        for event in active_generation_candidates
+        if contains_pattern(event["body"], error_patterns)
+    ]
+    active_generation_classified_ids = {
+        (event["channel"], event["id"])
+        for event in (
+            active_generation_clean_candidates
+            + active_generation_error_candidates
+        )
+    }
+    active_generation_response_candidates = [
+        event
+        for event in active_generation_candidates
+        if (event["channel"], event["id"])
+        not in active_generation_classified_ids
+        and event["body"].strip()
     ]
 
     acknowledgments = []
@@ -395,9 +465,6 @@ def inspect(args: argparse.Namespace) -> dict[str, Any]:
             }
         )
 
-    current_head = str((pull_request.get("head") or {}).get("sha") or "")
-    expected_head = args.head_sha
-    head_matches = expected_head is None or current_head == expected_head
     merged = bool(pull_request.get("merged_at"))
     pr_state = str(pull_request.get("state") or "").casefold()
     terminal = merged or pr_state == "closed"
@@ -410,14 +477,16 @@ def inspect(args: argparse.Namespace) -> dict[str, Any]:
         mechanical_state = "mixed_reviewer_response"
     elif response_candidates:
         mechanical_state = "reviewer_response"
+    elif active_generation_candidates:
+        mechanical_state = "active_generation_binding_required"
     elif clean_candidates:
         mechanical_state = "clean_candidate"
     elif error_candidates:
         mechanical_state = "explicit_error"
     elif acknowledgments:
         mechanical_state = "acknowledged"
-    elif reviewer_events:
-        mechanical_state = "unclassified_reviewer_response"
+    elif stale_or_unbound_events:
+        mechanical_state = "stale_or_unbound_response"
     else:
         mechanical_state = "silent"
 
@@ -427,6 +496,21 @@ def inspect(args: argparse.Namespace) -> dict[str, Any]:
     bounded_errors, omitted_errors = bounded(error_candidates, args.max_events)
     bounded_responses, omitted_responses = bounded(
         response_candidates, args.max_events
+    )
+    bounded_active_generation, omitted_active_generation = bounded(
+        active_generation_candidates, args.max_events
+    )
+    bounded_active_generation_clean, omitted_active_generation_clean = bounded(
+        active_generation_clean_candidates, args.max_events
+    )
+    bounded_active_generation_errors, omitted_active_generation_errors = bounded(
+        active_generation_error_candidates, args.max_events
+    )
+    bounded_active_generation_responses, omitted_active_generation_responses = bounded(
+        active_generation_response_candidates, args.max_events
+    )
+    bounded_stale_or_unbound, omitted_stale_or_unbound = bounded(
+        stale_or_unbound_events, args.max_events
     )
 
     return {
@@ -461,6 +545,17 @@ def inspect(args: argparse.Namespace) -> dict[str, Any]:
             "clean_candidate_count": len(clean_candidates),
             "error_candidate_count": len(error_candidates),
             "response_candidate_count": len(response_candidates),
+            "active_generation_candidate_count": len(active_generation_candidates),
+            "active_generation_clean_candidate_count": len(
+                active_generation_clean_candidates
+            ),
+            "active_generation_error_candidate_count": len(
+                active_generation_error_candidates
+            ),
+            "active_generation_response_candidate_count": len(
+                active_generation_response_candidates
+            ),
+            "stale_or_unbound_event_count": len(stale_or_unbound_events),
         },
         "events": {
             "reviewer": bounded_reviewer,
@@ -468,6 +563,13 @@ def inspect(args: argparse.Namespace) -> dict[str, Any]:
             "clean_candidates": bounded_clean,
             "error_candidates": bounded_errors,
             "response_candidates": bounded_responses,
+            "active_generation_candidates": bounded_active_generation,
+            "active_generation_clean_candidates": bounded_active_generation_clean,
+            "active_generation_error_candidates": bounded_active_generation_errors,
+            "active_generation_response_candidates": (
+                bounded_active_generation_responses
+            ),
+            "stale_or_unbound": bounded_stale_or_unbound,
         },
         "omitted_event_counts": {
             "reviewer": omitted_reviewer,
@@ -475,6 +577,13 @@ def inspect(args: argparse.Namespace) -> dict[str, Any]:
             "clean_candidates": omitted_clean,
             "error_candidates": omitted_errors,
             "response_candidates": omitted_responses,
+            "active_generation_candidates": omitted_active_generation,
+            "active_generation_clean_candidates": omitted_active_generation_clean,
+            "active_generation_error_candidates": omitted_active_generation_errors,
+            "active_generation_response_candidates": (
+                omitted_active_generation_responses
+            ),
+            "stale_or_unbound": omitted_stale_or_unbound,
         },
     }
 

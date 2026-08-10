@@ -17,9 +17,22 @@ For the persisted PR and request:
 2. read reactions on the exact request comment;
 3. read configured top-level comments, formal reviews, and inline comments after the request timestamp;
 4. identify reviewer-owned events separately from human or other-bot events;
-5. compare event IDs with the persisted last-seen set.
+5. compare event IDs with the persisted last-seen set;
+6. bind provider commit metadata to the persisted generation head and separate
+   active-request-generation candidates from old or unbound events.
 
 Prefer the bundled inspector for mechanical collection. Do not let its pattern matches replace semantic finding assessment.
+
+The inspector promotes only events whose provider commit metadata equals the
+generation head. It returns a matched-reviewer issue comment without commit
+metadata as `active_request_generation_candidate`. Promote that candidate only
+after one atomic snapshot proves the exact PR, a new event after the persisted
+request, the same sole unsuperseded request attempt, no later generation, and a
+current PR head equal to the persisted generation head. Persist the binding
+method and evidence. Otherwise record the event as stale or unbound and ignore
+it; it cannot produce findings, CLEAN, progress, or an error. A timestamp,
+reviewer identity, reaction, or current head without the complete request
+correlation is insufficient.
 
 ## Evaluate in strict order
 
@@ -31,7 +44,7 @@ Apply the first matching state:
 2. `head_mismatch`: current head differs from persisted head; continue only
    when a known local push already initialized a new generation. Otherwise apply
    the terminal procedure with `head_mismatch`.
-3. `findings_received`: current-generation reviewer events contain possible findings.
+3. `findings_received`: bound current-generation reviewer events contain possible findings.
 4. `clean`: a current-generation clean verdict exists and there are no new actionable findings.
 5. `transient_error`: a current-generation explicit start or access error exists.
 6. `in_progress`: an allowed reviewer acknowledgment is present on the exact current request.

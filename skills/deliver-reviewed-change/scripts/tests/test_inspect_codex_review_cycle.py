@@ -51,29 +51,87 @@ class InspectCodexReviewCycleTest(unittest.TestCase):
             {"eyes", "+1"},
         )
 
-    def test_clean_verdict_is_identified_as_candidate(self) -> None:
+    def test_issue_comment_clean_requires_active_generation_binding(self) -> None:
         result = self.inspect("clean.json")
+        self.assertEqual(
+            result["signals"]["mechanical_state"],
+            "active_generation_binding_required",
+        )
+        self.assertEqual(result["signals"]["clean_candidate_count"], 0)
+        self.assertEqual(
+            result["signals"]["active_generation_clean_candidate_count"], 1
+        )
+        self.assertEqual(result["signals"]["response_candidate_count"], 0)
+        self.assertEqual(
+            result["events"]["active_generation_clean_candidates"][0]["binding"],
+            "active_request_generation_candidate",
+        )
+
+    def test_exact_commit_clean_verdict_is_terminal_candidate(self) -> None:
+        result = self.inspect("direct-clean.json")
         self.assertEqual(result["signals"]["mechanical_state"], "clean_candidate")
         self.assertEqual(result["signals"]["clean_candidate_count"], 1)
-        self.assertEqual(result["signals"]["response_candidate_count"], 0)
+        self.assertEqual(
+            result["events"]["clean_candidates"][0]["binding"],
+            "exact_reviewed_commit",
+        )
+
+    def test_unresolved_generation_candidate_blocks_exact_commit_clean(self) -> None:
+        result = self.inspect("clean-plus-unbound.json")
+        self.assertEqual(
+            result["signals"]["mechanical_state"],
+            "active_generation_binding_required",
+        )
+        self.assertEqual(result["signals"]["clean_candidate_count"], 1)
+        self.assertEqual(
+            result["signals"]["active_generation_response_candidate_count"], 1
+        )
+        self.assertEqual(
+            result["events"]["active_generation_response_candidates"][0][
+                "binding"
+            ],
+            "active_request_generation_candidate",
+        )
 
     def test_possible_finding_takes_precedence_over_clean(self) -> None:
         result = self.inspect("mixed.json")
+        self.assertEqual(result["signals"]["mechanical_state"], "reviewer_response")
+        self.assertEqual(result["signals"]["clean_candidate_count"], 0)
         self.assertEqual(
-            result["signals"]["mechanical_state"], "mixed_reviewer_response"
+            result["signals"]["active_generation_clean_candidate_count"], 1
         )
-        self.assertEqual(result["signals"]["clean_candidate_count"], 1)
         self.assertEqual(result["signals"]["response_candidate_count"], 1)
 
-    def test_explicit_error_is_identified(self) -> None:
+    def test_issue_comment_error_requires_active_generation_binding(self) -> None:
         result = self.inspect("error.json")
-        self.assertEqual(result["signals"]["mechanical_state"], "explicit_error")
-        self.assertEqual(result["signals"]["error_candidate_count"], 1)
+        self.assertEqual(
+            result["signals"]["mechanical_state"],
+            "active_generation_binding_required",
+        )
+        self.assertEqual(result["signals"]["error_candidate_count"], 0)
+        self.assertEqual(
+            result["signals"]["active_generation_error_candidate_count"], 1
+        )
+
+    def test_old_commit_response_is_stale_and_not_terminal(self) -> None:
+        result = self.inspect("stale-review.json")
+        self.assertEqual(
+            result["signals"]["mechanical_state"], "stale_or_unbound_response"
+        )
+        self.assertEqual(result["signals"]["clean_candidate_count"], 0)
+        self.assertEqual(result["signals"]["stale_or_unbound_event_count"], 1)
+        self.assertEqual(
+            result["events"]["stale_or_unbound"][0]["binding"],
+            "old_or_other_reviewed_commit",
+        )
 
     def test_empty_changes_requested_review_is_not_treated_as_silence(self) -> None:
         result = self.inspect("formal-state-only.json")
-        self.assertEqual(result["signals"]["mechanical_state"], "reviewer_response")
-        self.assertEqual(result["signals"]["response_candidate_count"], 1)
+        self.assertEqual(
+            result["signals"]["mechanical_state"], "stale_or_unbound_response"
+        )
+        self.assertEqual(result["signals"]["response_candidate_count"], 0)
+        self.assertEqual(result["signals"]["stale_or_unbound_event_count"], 1)
 
     def test_head_mismatch_precedes_review_signals(self) -> None:
         result = self.inspect("clean.json", head_sha="old-head")

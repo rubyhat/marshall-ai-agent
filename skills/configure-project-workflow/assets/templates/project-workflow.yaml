@@ -125,6 +125,130 @@ planning_publication:
       invocation_timeout_seconds: 900
       final_rescan_before_verdict: true
       capture_cumulative_token_usage: true
+  post_pr_correction_review:
+    full_independent_review_after_each_github_package: false
+    initial_github_generation_required: true
+    github_generation_target: exact_current_full_head
+    clean_github_generation_required_before_final_evidence_and_merge: true
+    github_review_cycle:
+      enabled: true
+      request_comment: "@codex review"
+      reviewer_logins:
+        - "chatgpt-codex-connector[bot]"
+      reviewer_login_contains: []
+      acknowledgment_reactions:
+        - eyes
+        - "+1"
+      acknowledgment_is_terminal: false
+      inspect_channels:
+        - issue_comments
+        - formal_reviews
+        - inline_review_comments
+      clean_verdict_patterns:
+        - "Codex Review: Didn't find any major issues."
+        - "Codex Review: Did not find any major issues."
+      explicit_error_patterns:
+        - "Codex Review: Something went wrong"
+        - "Try again later by commenting"
+        - "You don't have the ability to clone this repository"
+      generation:
+        bound_to_exact_current_full_head: true
+        fresh_after_each_correction_package: true
+        old_events_cannot_complete_new_head: true
+        response_binding_required: exact_reviewed_commit_or_active_request_generation
+        unbound_or_old_head_event_action: record_stale_and_ignore_for_current_generation
+      correction_counter:
+        scope: exact_pull_request
+        max_correction_rounds: 5
+        initialize_new_pull_request_at_zero: true
+        increment_once_after_applied_package: true
+        final_allowed_package_receives_generation: true
+        next_package_after_limit_stops_before_mutation: true
+        ordered_history_required: true
+      request_budget:
+        max_attempts_per_head: 2
+        silent_heartbeats_per_attempt: 2
+        acknowledged_heartbeats_without_result: 3
+        explicit_error_consumes_current_attempt: true
+        explicit_error_retry_transition: persist_transient_error_then_create_and_bind_next_request
+        exhausted_action: pause_request_budget_exhausted
+        new_head_resets_technical_counters_only: true
+      heartbeat:
+        state_store: exact_planning_pr_heartbeat
+        scope: exact_pull_request
+        interval_minutes: 7
+        destination: current_thread
+        create_and_read_back_before_request: true
+        attach_request_identity_and_read_back_before_monitoring: true
+        update_and_read_back_after_each_transition: true
+        pause_on_review_terminal_while_pull_request_open: true
+        same_pull_request_later_head_reactivates: true
+        delete_after_pull_request_terminal_only: true
+        lost_state_stops_monitor: true
+      state_machine:
+        states:
+          - request_not_created
+          - request_pending
+          - not_started
+          - in_progress
+          - findings_received
+          - transient_error
+          - clean
+          - terminal
+          - pr_terminal
+          - head_mismatch
+          - unclassified_response
+        evaluation_order:
+          - pr_terminal
+          - head_mismatch
+          - findings_received
+          - clean
+          - transient_error
+          - in_progress
+          - not_started
+          - unclassified_response
+        clean_is_absorbing_terminal_state: true
+        silence_is_never_in_progress: true
+        reactions_checked_on_exact_request_comment_only: true
+        every_response_channel_checked_before_silence: true
+      finding_policy:
+        classifications:
+          - real_in_scope
+          - false
+          - intentional_out_of_scope
+          - duplicate
+          - uncertain
+        actionable_requires_real_in_scope: true
+        non_actionable_action: evidence_reply_and_contextual_rereview
+        non_actionable_consumes_correction_round: false
+        semantic_fingerprint_required: true
+        one_semantic_repeat_stops_monitor: true
+        uncertain_action: stop_before_edits_and_return_to_owner
+    routine_github_correction_verification:
+      affected_tests_required: true
+      configured_deterministic_gates_required: true
+      git_diff_check_required: true
+      exact_correction_delta_required: true
+      finding_by_finding_readback_required: true
+      intentional_commit_required_before_push: true
+      local_commit_head_and_manifest_readback_required: true
+      next_github_generation_reviews_full_head: true
+      local_model_invocations: 0
+      follow_on_gate_fix_rechecks_materiality_before_mutation: true
+      material_or_uncertain_action: stop_before_edits_and_return_to_owner
+    final_evidence_review:
+      reuse_when: github_clean_and_exact_current_head_tree_manifest_binding_valid
+      when: github_clean_and_exact_current_head_tree_manifest_binding_missing_or_invalid
+      maximum_invocations: 1
+      review_target: exact_current_committed_head
+      uses_canonical_runner: true
+      counts_as_correction_round: false
+      clean_action: bind_exact_publication_evidence
+      non_clean_action: stop_and_return_to_spec_preparation
+      invalid_or_timeout_action: stop_and_return_to_spec_preparation
+      automatic_correction_loop: false
+      post_clean_mutation_invalidates_evidence: true
+      same_manifest_new_commit_requires_new_binding: true
   readiness:
     input_content_verdict: spec_ready
     canonical_merge_required_before_implementation: true
@@ -235,6 +359,118 @@ implementation:
       required_capture_contract_revision: 1
       workspace_created: false
       next_action_template: "--publish-spec <TASK_ID>"
+
+# Keep this section only when `deliver-reviewed-change` is selected.
+review:
+  scope_binding:
+    exact_task_contract_required: true
+    required_context:
+      - task_id
+      - issue
+      - specification_or_equivalent_contract
+      - specification_revision_or_not_applicable
+      - acceptance_criteria
+      - non_goals
+      - repositories
+      - worktrees
+      - branches
+      - target_branches
+      - initial_diff_manifest
+      - initial_diff_stats
+    initial_diff_baseline_required: true
+    baseline_immutable_for_delivery_attempt: true
+    actionable_finding_requires_concrete_current_task_failure: true
+    speculative_or_general_hardening_is_non_actionable: true
+    material_scope_or_contract_change_returns_to_owner: true
+    material_cumulative_diff_growth_stops_for_analysis: true
+  correction_policy:
+    round_unit: review_driven_correction_package
+    separate_local_and_github_counters: true
+    multiple_findings_in_one_result_consume_one_round: true
+    technical_retry_consumes_no_round: true
+    unchanged_head_contextual_rereview_consumes_no_round: true
+    final_allowed_round_receives_review: true
+    next_required_round_stops_before_mutation: true
+    new_head_resets_request_attempts_only: true
+    ordered_history_required: true
+    pre_pr_state_store: current_codex_task
+    persist_and_read_back_after_each_local_transition: true
+    refresh_local_state_before_each_github_generation: true
+    github_correction_budget_scope: pull_request
+    github_counter_owner: exact_pr_state
+    github_state_store: exact_pr_heartbeat
+    open_pull_request_terminal_state_pauses_heartbeat: true
+    same_pull_request_resume_reactivates_heartbeat: true
+    owned_head_changing_push_requires_paused_heartbeat: true
+    heartbeat_deletion_requires_pull_request_terminal: true
+    terminal_head_records_observed_pr_head: true
+    terminal_finalization_procedure: finalize_codex_review_state
+    terminal_state_matrix_required: true
+    terminal_rules_must_not_be_duplicated: true
+    new_pull_request_starts_github_counter_at_zero: true
+    different_pull_requests_do_not_share_counters_or_histories: true
+    different_pull_requests_do_not_share_terminal_state: true
+    github_dismissed_finding_fingerprints_scope: pull_request
+    github_heartbeat_state_scope: pull_request
+    github_heartbeat_exists_before_review_request: true
+    same_terminal_head_forbids_new_request: true
+    different_conversation_requires_proven_state: true
+    resume_requires_provable_counters_and_history: true
+    lost_history_stops_delivery: true
+    bounded_cycle_analysis_required: true
+    pre_pr_local_phase_closes_on_pull_request: true
+    pre_pr_local_gate_evidence_required_before_github_phase: true
+    pre_pr_local_gate_missing_action: pre_pr_local_gate_missing
+    accepted_blocker_or_owner_override_cannot_bypass_pre_pr_local_gate: true
+    full_local_model_review_after_routine_github_correction: false
+    routine_github_correction_verification:
+      affected_tests_required: true
+      configured_deterministic_gates_required: true
+      git_diff_check_required: true
+      exact_correction_delta_required: true
+      finding_by_finding_readback_required: true
+      next_github_generation_reviews_full_head: true
+      local_model_invocations: 0
+      follow_on_gate_fix_rechecks_materiality_before_mutation: true
+    material_github_correction:
+      action: stop_before_edits_and_return_to_owner
+      uncertain_uses_same_stop: true
+      terminal_reason: scope_or_contract_stop
+      stop_before_counter_increment_commit_push_or_request: true
+  local:
+    max_correction_rounds: 5
+    fresh_review_after_each_correction_package: true
+  github_codex:
+    max_correction_rounds: 5
+    fresh_generation_after_each_correction_package: true
+    new_head_resets_request_budget_only: true
+    generation:
+      bound_to_head_sha: true
+      old_events_cannot_complete_new_head: true
+      response_binding_required: exact_reviewed_commit_or_active_request_generation
+      issue_comment_binding_requires_unsuperseded_request: true
+      issue_comment_binding_requires_current_head_match: true
+      stale_or_unbound_event_action: record_and_ignore_until_binding_proven
+    heartbeat:
+      delete_on_review_terminal_state: false
+      delete_after_pr_terminal: true
+    state_machine:
+      states:
+        - request_not_created
+        - request_pending
+        - not_started
+        - in_progress
+        - findings_received
+        - scope_disagreement
+        - transient_error
+        - clean
+        - stopped
+        - terminal
+        - pr_terminal
+        - head_mismatch
+        - unclassified_response
+    post_clean:
+      delete_review_heartbeat_immediately: false
 
 skills:
   active: {}

@@ -168,6 +168,42 @@ When `publish-planning-change` is selected, generate:
   merged manifest equality. Reread every field before cleanup, and never
   require a component repository with a separate Git history to contain that
   commit;
+- a required post-PR planning-correction contract that forbids independent
+  review after each routine GitHub package, requires affected tests,
+  deterministic gates, `git diff --check`, exact correction delta/scope and
+  finding readback with zero local model invocations, and sends material or
+  uncertain changes back to the owning workflow before edits. Materialize the
+  complete planning-owned GitHub cycle: exact request comment, non-empty
+  reviewer matching, acknowledgment reactions, all three response channels,
+  clean and explicit-error patterns, exact-current-full-head generation,
+  bounded technical request attempts, a current-thread exact-PR heartbeat,
+  strict state evaluation order, terminal pause/readback, and deletion only
+  after provider-proven PR terminal state. Require an explicit-error transition
+  that persists `transient_error`, creates and binds the next request only when
+  budget remains, and pauses with `request_budget_exhausted` otherwise. Support
+  all five finding classifications; false, intentional-out-of-scope, and
+  duplicate findings receive one fingerprinted evidence reply plus contextual
+  unchanged-head re-review without edits or a correction round, while one
+  repeated semantic dismissal stops the monitor. Require every response event
+  to bind to the exact generation head through provider commit metadata or a
+  complete active-request-generation correlation. An issue comment without
+  commit metadata remains a non-terminal candidate until the exact PR,
+  unsuperseded request attempt, new event, and unchanged current head are all
+  proven; record and ignore old-head or unbound events.
+  For an applied correction, require an intentional exact-manifest commit plus
+  local head/tree/manifest readback before non-force push, and remote head
+  readback before the next generation. Configure the exact-PR GitHub
+  correction counter with maximum `5`, zero initialization for a new PR, one
+  increment per applied package, ordered history, review of the fifth package,
+  and a stop before any sixth-package mutation. Require an initial GitHub
+  generation for the exact complete pull-request head and a clean
+  exact-current-head generation before final evidence selection or merge. Then
+  materialize a zero-or-one final evidence gate:
+  reuse only an already valid exact current head/tree/manifest binding,
+  otherwise invoke the canonical runner once against the current committed
+  head. A non-clean, invalid, unbound, or timed-out final result must stop
+  without an automatic correction loop, and any later mutation invalidates the
+  evidence;
 - when `execute-project-task` is also selected,
   `legacy_ready_adoption.enabled: false` and ordinary reviewed publication as
   the only implementation-readiness path. Keep historical baseline tuples as
@@ -214,6 +250,21 @@ When `deliver-reviewed-change` is selected, generate:
   unchanged-head contextual re-reviews consuming no round;
 - a fresh review of the candidate produced by the final allowed round, followed
   by fail-closed stop before mutations when another package would be required;
+- a hard phase boundary that closes active local review when the exact pull
+  request is created with bound passed pre-PR evidence. Missing evidence returns
+  `pre_pr_local_gate_missing` without accepted-blocker or owner-override bypass;
+  routine GitHub packages never reopen the local phase, even when its counter is
+  exhausted;
+- deterministic routine GitHub correction verification requiring classification
+  before every edit and follow-on gate fix, affected tests, configured gates,
+  `git diff --check`, exact correction delta/scope, finding readback, and zero
+  local model invocations. Material or uncertain changes stop before edits,
+  counter increment, commit, push, or another request, while the next GitHub
+  generation reviews the complete new head;
+- exact-commit or active-request-generation binding before any delivery review
+  response can produce findings, CLEAN, progress, or an error. Require the
+  inspector to keep issue comments without commit metadata non-terminal until
+  the exact-PR heartbeat proves the unsuperseded request and unchanged head;
 - ordered local and GitHub correction histories retained across resume, with a
   new PR head resetting only technical request attempts and lost history
   stopping delivery instead of resetting either counter;

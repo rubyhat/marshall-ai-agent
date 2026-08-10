@@ -236,6 +236,15 @@ Alias не отвечает на factual questions, не распростран�
 - выполняет deterministic documentation gates;
 - делает intentional commit и push без force;
 - создаёт или сверяет Pull Request в canonical target branch;
+- после routine GitHub correction запускает только affected tests и
+  deterministic gates, `git diff --check`, exact correction delta/scope и
+  finding readback — без independent review между packages;
+- требует initial и каждую следующую GitHub generation для exact complete
+  current PR head; без clean generation final evidence и merge запрещены;
+- после clean GitHub generation переиспользует evidence только при valid exact
+  current head/tree/manifest binding, иначе запускает ровно один final review;
+- NON_CLEAN, invalid или timed-out final review завершает attempt без
+  automatic correction loop;
 - ждёт обязательные checks и merge только при configured authority;
 - проверяет merged canonical revision, обновляет exact task linkage/status,
   синхронизирует и очищает planning workspace.
@@ -308,6 +317,20 @@ Local independent review и GitHub Pull Request review имеют отдельн
 retry, clean review, ответ без изменения кода и contextual re-review
 неизменённого head раунд не расходуют. Новый PR head обнуляет только technical
 request budget, но не GitHub correction counter и не историю.
+
+Создание exact PR закрывает active local-review phase только после readback
+bound evidence пройденного pre-PR gate. Без evidence workflow возвращает
+`pre_pr_local_gate_missing`; accepted blocker и owner override этот gate не
+обходят. Exhausted local counter после доказанного gate остаётся audit history
+и не блокирует routine GitHub correction.
+
+Routine GitHub correction не запускает full, targeted или hidden local model
+review. Перед каждым edit и follow-on gate fix она повторно проходит
+material/uncertain classification; затем обязательны affected tests,
+configured deterministic gates, `git diff --check`, exact correction
+delta/scope и finding-by-finding readback. После push следующая GitHub
+generation проверяет полный новый head. Material или `uncertain` correction
+останавливается до edits, counter increment, commit, push и request.
 
 До создания PR baseline, local counter и local history сохраняются одним
 machine-readable state block в текущей Codex-задаче и перечитываются после
@@ -720,3 +743,216 @@ schema 3 либо рассчитывать на compatibility defaults.
 устранения drift. Безопасный откат требует вернуть и project configuration, и
 весь выбранный набор skills на один прежний exact release tag; удалять `review`
 при оставленных skills v0.8.2 или смешивать revisions нельзя.
+
+### Параметризованный release handoff
+
+Изменение review-correction phase contract выпускается через Release Please как
+`feat` и следующий minor pre-1.0 release. До появления GitHub Release consumer
+не меняет установленный previous release/schema pair. После release источник
+публикует в настроенном consumer tracker один idempotent comment с уникальным
+project-owned marker и полным tuple. Exact task IDs, Issue coordinates,
+repository, tag/revision values и authority принадлежат task spec, PR и внешнему
+comment record; shared reusable documentation хранит только placeholders:
+
+```yaml
+consumer_migration_handoff:
+  source_task: <source-task-id>
+  parent_task_or_issue: <parent-task-or-issue>
+  consumer_task: <consumer-task-id>
+  previous_release:
+    tag: <previous-release-tag>
+    revision: <previous-release-revision>
+  new_release:
+    tag: <released-minor-tag>
+    revision: <released-revision>
+    release_url: <github-release-url>
+  schema_version: 4
+  required_configuration_delta:
+    planning_publication.post_pr_correction_review:
+      full_independent_review_after_each_github_package: false
+      initial_github_generation_required: true
+      github_generation_target: exact_current_full_head
+      clean_github_generation_required_before_final_evidence_and_merge: true
+      github_review_cycle:
+        enabled: true
+        request_comment: "@codex review"
+        reviewer_logins:
+          - "chatgpt-codex-connector[bot]"
+        reviewer_login_contains: []
+        acknowledgment_reactions:
+          - eyes
+          - "+1"
+        acknowledgment_is_terminal: false
+        inspect_channels:
+          - issue_comments
+          - formal_reviews
+          - inline_review_comments
+        clean_verdict_patterns:
+          - "Codex Review: Didn't find any major issues."
+          - "Codex Review: Did not find any major issues."
+        explicit_error_patterns:
+          - "Codex Review: Something went wrong"
+          - "Try again later by commenting"
+          - "You don't have the ability to clone this repository"
+        generation:
+          bound_to_exact_current_full_head: true
+          fresh_after_each_correction_package: true
+          old_events_cannot_complete_new_head: true
+          response_binding_required: exact_reviewed_commit_or_active_request_generation
+          unbound_or_old_head_event_action: record_stale_and_ignore_for_current_generation
+        correction_counter:
+          scope: exact_pull_request
+          max_correction_rounds: 5
+          initialize_new_pull_request_at_zero: true
+          increment_once_after_applied_package: true
+          final_allowed_package_receives_generation: true
+          next_package_after_limit_stops_before_mutation: true
+          ordered_history_required: true
+        request_budget:
+          max_attempts_per_head: 2
+          silent_heartbeats_per_attempt: 2
+          acknowledged_heartbeats_without_result: 3
+          explicit_error_consumes_current_attempt: true
+          explicit_error_retry_transition: persist_transient_error_then_create_and_bind_next_request
+          exhausted_action: pause_request_budget_exhausted
+          new_head_resets_technical_counters_only: true
+        heartbeat:
+          state_store: exact_planning_pr_heartbeat
+          scope: exact_pull_request
+          interval_minutes: 7
+          destination: current_thread
+          create_and_read_back_before_request: true
+          attach_request_identity_and_read_back_before_monitoring: true
+          update_and_read_back_after_each_transition: true
+          pause_on_review_terminal_while_pull_request_open: true
+          same_pull_request_later_head_reactivates: true
+          delete_after_pull_request_terminal_only: true
+          lost_state_stops_monitor: true
+        state_machine:
+          states:
+            - request_not_created
+            - request_pending
+            - not_started
+            - in_progress
+            - findings_received
+            - transient_error
+            - clean
+            - terminal
+            - pr_terminal
+            - head_mismatch
+            - unclassified_response
+          evaluation_order:
+            - pr_terminal
+            - head_mismatch
+            - findings_received
+            - clean
+            - transient_error
+            - in_progress
+            - not_started
+            - unclassified_response
+          clean_is_absorbing_terminal_state: true
+          silence_is_never_in_progress: true
+          reactions_checked_on_exact_request_comment_only: true
+          every_response_channel_checked_before_silence: true
+        finding_policy:
+          classifications:
+            - real_in_scope
+            - false
+            - intentional_out_of_scope
+            - duplicate
+            - uncertain
+          actionable_requires_real_in_scope: true
+          non_actionable_action: evidence_reply_and_contextual_rereview
+          non_actionable_consumes_correction_round: false
+          semantic_fingerprint_required: true
+          one_semantic_repeat_stops_monitor: true
+          uncertain_action: stop_before_edits_and_return_to_owner
+      routine_github_correction_verification:
+        affected_tests_required: true
+        configured_deterministic_gates_required: true
+        git_diff_check_required: true
+        exact_correction_delta_required: true
+        finding_by_finding_readback_required: true
+        intentional_commit_required_before_push: true
+        local_commit_head_and_manifest_readback_required: true
+        next_github_generation_reviews_full_head: true
+        local_model_invocations: 0
+        follow_on_gate_fix_rechecks_materiality_before_mutation: true
+        material_or_uncertain_action: stop_before_edits_and_return_to_owner
+      final_evidence_review:
+        reuse_when: github_clean_and_exact_current_head_tree_manifest_binding_valid
+        when: github_clean_and_exact_current_head_tree_manifest_binding_missing_or_invalid
+        maximum_invocations: 1
+        review_target: exact_current_committed_head
+        uses_canonical_runner: true
+        counts_as_correction_round: false
+        clean_action: bind_exact_publication_evidence
+        non_clean_action: stop_and_return_to_spec_preparation
+        invalid_or_timeout_action: stop_and_return_to_spec_preparation
+        automatic_correction_loop: false
+        post_clean_mutation_invalidates_evidence: true
+        same_manifest_new_commit_requires_new_binding: true
+    review.correction_policy:
+      pre_pr_local_phase_closes_on_pull_request: true
+      pre_pr_local_gate_evidence_required_before_github_phase: true
+      pre_pr_local_gate_missing_action: pre_pr_local_gate_missing
+      accepted_blocker_or_owner_override_cannot_bypass_pre_pr_local_gate: true
+      full_local_model_review_after_routine_github_correction: false
+      routine_github_correction_verification:
+        affected_tests_required: true
+        configured_deterministic_gates_required: true
+        git_diff_check_required: true
+        exact_correction_delta_required: true
+        finding_by_finding_readback_required: true
+        next_github_generation_reviews_full_head: true
+        local_model_invocations: 0
+        follow_on_gate_fix_rechecks_materiality_before_mutation: true
+      material_github_correction:
+        action: stop_before_edits_and_return_to_owner
+        uncertain_uses_same_stop: true
+        terminal_reason: scope_or_contract_stop
+        stop_before_counter_increment_commit_push_or_request: true
+    review.github_codex.generation:
+      bound_to_head_sha: true
+      old_events_cannot_complete_new_head: true
+      response_binding_required: exact_reviewed_commit_or_active_request_generation
+      issue_comment_binding_requires_unsuperseded_request: true
+      issue_comment_binding_requires_current_head_match: true
+      stale_or_unbound_event_action: record_and_ignore_until_binding_proven
+  affected_skill_paths:
+    - skills/configure-project-workflow
+    - skills/deliver-reviewed-change
+    - skills/publish-planning-change
+  validators:
+    - python3 skills/configure-project-workflow/scripts/tests/test_delivery_review_contract.py
+    - python3 skills/configure-project-workflow/scripts/tests/test_planning_publication_contract.py
+    - python3 skills/publish-planning-change/scripts/tests/test_run_codex_spec_review.py
+    - python3 scripts/validate_repository.py
+  mismatch_behavior: stop_before_affected_alias_mutations
+  cutover_order:
+    - verify exact source release and handoff readback
+    - update project configuration and every selected skill to the same release
+    - validate the complete candidate
+    - activate affected aliases
+  rollback_target:
+    tag: <previous-release-tag>
+    revision: <previous-release-revision>
+  durable_artifact:
+    repository: <consumer-tracker-repository>
+    issue: <consumer-issue-number>
+    marker: <project-owned-unique-marker>
+    comment_id: <canonical-comment-id>
+    comment_url: <canonical-comment-url>
+    publisher_authority: <configured-issue-comment-write-authority>
+    publish_after: github_release_created
+    readback_required: true
+```
+
+Tag, revision, Release URL и comment ID/URL заполняются фактическими release
+evidence; полный restrictive field/value delta сверяется с ними. Repo-scoped
+token без явной cross-repository Issue authority не пытается создать comment:
+его публикует owner-authorized release operator в той же release-сессии. До
+complete readback configured consumer task остаётся заблокирована. Нельзя
+смешивать новый skill revision со старой configuration или использовать
+implicit defaults. Конкретный source task обязан материализовать и проверить
+все placeholders вне shared reusable artifacts.

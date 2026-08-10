@@ -22,6 +22,9 @@ BOUND_CYCLES = DELIVERY_ROOT / "references" / "bound-review-correction-cycles.md
 LOCAL_REVIEW = DELIVERY_ROOT / "references" / "run-independent-local-review.md"
 START_CYCLE = DELIVERY_ROOT / "references" / "start-codex-review-cycle.md"
 FINDINGS = DELIVERY_ROOT / "references" / "classify-and-handle-review-findings.md"
+ROUTINE_CORRECTION = (
+    DELIVERY_ROOT / "references" / "verify-routine-github-correction.md"
+)
 RECOVERY = DELIVERY_ROOT / "references" / "recover-stalled-or-failed-review.md"
 FINALIZATION = DELIVERY_ROOT / "references" / "finalize-codex-review-state.md"
 PLANNING_TEST = Path(__file__).with_name("test_planning_publication_contract.py")
@@ -126,6 +129,27 @@ def complete_review_contract():
             "resume_requires_provable_counters_and_history": True,
             "lost_history_stops_delivery": True,
             "bounded_cycle_analysis_required": True,
+            "pre_pr_local_phase_closes_on_pull_request": True,
+            "pre_pr_local_gate_evidence_required_before_github_phase": True,
+            "pre_pr_local_gate_missing_action": "pre_pr_local_gate_missing",
+            "accepted_blocker_or_owner_override_cannot_bypass_pre_pr_local_gate": True,
+            "full_local_model_review_after_routine_github_correction": False,
+            "routine_github_correction_verification": {
+                "affected_tests_required": True,
+                "configured_deterministic_gates_required": True,
+                "git_diff_check_required": True,
+                "exact_correction_delta_required": True,
+                "finding_by_finding_readback_required": True,
+                "next_github_generation_reviews_full_head": True,
+                "local_model_invocations": 0,
+                "follow_on_gate_fix_rechecks_materiality_before_mutation": True,
+            },
+            "material_github_correction": {
+                "action": "stop_before_edits_and_return_to_owner",
+                "uncertain_uses_same_stop": True,
+                "terminal_reason": "scope_or_contract_stop",
+                "stop_before_counter_increment_commit_push_or_request": True,
+            },
         },
         "local": {
             "max_correction_rounds": 5,
@@ -135,6 +159,18 @@ def complete_review_contract():
             "max_correction_rounds": 5,
             "fresh_generation_after_each_correction_package": True,
             "new_head_resets_request_budget_only": True,
+            "generation": {
+                "bound_to_head_sha": True,
+                "old_events_cannot_complete_new_head": True,
+                "response_binding_required": (
+                    "exact_reviewed_commit_or_active_request_generation"
+                ),
+                "issue_comment_binding_requires_unsuperseded_request": True,
+                "issue_comment_binding_requires_current_head_match": True,
+                "stale_or_unbound_event_action": (
+                    "record_and_ignore_until_binding_proven"
+                ),
+            },
             "heartbeat": {
                 "delete_on_review_terminal_state": False,
                 "delete_after_pr_terminal": True,
@@ -143,6 +179,80 @@ def complete_review_contract():
             "post_clean": {"delete_review_heartbeat_immediately": False},
         },
     }
+
+
+def v0_8_2_review_contract():
+    contract = complete_review_contract()
+    del contract["github_codex"]["generation"]
+    policy = contract["correction_policy"]
+    for key in (
+        "pre_pr_local_phase_closes_on_pull_request",
+        "pre_pr_local_gate_evidence_required_before_github_phase",
+        "pre_pr_local_gate_missing_action",
+        "accepted_blocker_or_owner_override_cannot_bypass_pre_pr_local_gate",
+        "full_local_model_review_after_routine_github_correction",
+        "routine_github_correction_verification",
+        "material_github_correction",
+    ):
+        del policy[key]
+    return contract
+
+
+def simulate_github_correction(
+    *,
+    findings=("finding-a",),
+    pre_pr_gate_bound=True,
+    owner_override=False,
+    classification="routine",
+    github_rounds_used=0,
+    local_rounds_used=0,
+    gates_pass=True,
+    exact_scope=True,
+):
+    outcome = {
+        "findings": list(findings),
+        "github_rounds_used": github_rounds_used,
+        "local_rounds_used": local_rounds_used,
+        "local_model_invocations": 0,
+        "edits": False,
+        "counter_incremented": False,
+        "commit": False,
+        "push": False,
+        "github_request": False,
+        "full_head_review": False,
+        "finding_readback": [],
+        "owner_handoff": None,
+        "terminal_reason": None,
+    }
+    if not pre_pr_gate_bound:
+        outcome["terminal_reason"] = "pre_pr_local_gate_missing"
+        outcome["owner_override_ignored"] = owner_override
+        return outcome
+    if classification in {"material", "uncertain"}:
+        outcome["terminal_reason"] = "scope_or_contract_stop"
+        outcome["owner_handoff"] = "return_to_owning_workflow"
+        return outcome
+    if github_rounds_used >= 5:
+        outcome["terminal_reason"] = "github_correction_budget_exhausted"
+        return outcome
+
+    outcome["edits"] = True
+    outcome["counter_incremented"] = True
+    outcome["github_rounds_used"] += 1
+    if not gates_pass or not exact_scope:
+        outcome["terminal_reason"] = "deterministic_correction_gate_failed"
+        return outcome
+
+    outcome.update(
+        {
+            "commit": True,
+            "push": True,
+            "github_request": True,
+            "full_head_review": True,
+            "finding_readback": list(findings),
+        }
+    )
+    return outcome
 
 
 def complete_delivery_config():
@@ -182,8 +292,18 @@ class DeliveryReviewContractTest(unittest.TestCase):
                 self.assertEqual(limit["default"], 5)
 
         github = review["properties"]["github_codex"]
-        for required in ("heartbeat", "state_machine", "post_clean"):
+        for required in ("generation", "heartbeat", "state_machine", "post_clean"):
             self.assertIn(required, github["required"])
+        generation = github["properties"]["generation"]["properties"]
+        self.assertEqual(
+            generation["response_binding_required"]["const"],
+            "exact_reviewed_commit_or_active_request_generation",
+        )
+        self.assertTrue(
+            generation["issue_comment_binding_requires_unsuperseded_request"][
+                "const"
+            ]
+        )
         self.assertFalse(
             github["properties"]["heartbeat"]["properties"]
             ["delete_on_review_terminal_state"]["const"]
@@ -234,9 +354,26 @@ class DeliveryReviewContractTest(unittest.TestCase):
             policy["properties"]["github_heartbeat_state_scope"]["const"],
             "pull_request",
         )
-        for key in policy["required"]:
-            if key != "round_unit":
-                self.assertTrue(policy["properties"][key]["const"])
+        self.assertTrue(
+            policy["properties"]["pre_pr_local_phase_closes_on_pull_request"][
+                "const"
+            ]
+        )
+        self.assertFalse(
+            policy["properties"][
+                "full_local_model_review_after_routine_github_correction"
+            ]["const"]
+        )
+        routine = policy["properties"]["routine_github_correction_verification"]
+        self.assertEqual(routine["properties"]["local_model_invocations"]["const"], 0)
+        for key in routine["required"]:
+            if key != "local_model_invocations":
+                self.assertTrue(routine["properties"][key]["const"])
+        material = policy["properties"]["material_github_correction"]
+        self.assertEqual(
+            material["properties"]["action"]["const"],
+            "stop_before_edits_and_return_to_owner",
+        )
 
         delivery_condition = next(
             item
@@ -268,9 +405,16 @@ class DeliveryReviewContractTest(unittest.TestCase):
             ("review", "correction_policy", "ordered_history_required"),
             ("review", "local", "max_correction_rounds"),
             ("review", "github_codex", "max_correction_rounds"),
+            ("review", "github_codex", "generation"),
             ("review", "github_codex", "heartbeat"),
             ("review", "github_codex", "state_machine"),
             ("review", "github_codex", "post_clean"),
+            (
+                "review",
+                "correction_policy",
+                "routine_github_correction_verification",
+            ),
+            ("review", "correction_policy", "material_github_correction"),
         ):
             with self.subTest(missing=".".join(path)):
                 incomplete = copy.deepcopy(complete)
@@ -310,6 +454,30 @@ class DeliveryReviewContractTest(unittest.TestCase):
         ] = True
         self.assertTrue(list(validator.iter_errors(invalid_post_clean)))
 
+        unbound_delivery_responses = copy.deepcopy(complete)
+        del unbound_delivery_responses["review"]["github_codex"]["generation"][
+            "response_binding_required"
+        ]
+        self.assertTrue(list(validator.iter_errors(unbound_delivery_responses)))
+
+        invalid_local_rereview = copy.deepcopy(complete)
+        invalid_local_rereview["review"]["correction_policy"][
+            "full_local_model_review_after_routine_github_correction"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(invalid_local_rereview)))
+
+        missing_deterministic_gate = copy.deepcopy(complete)
+        del missing_deterministic_gate["review"]["correction_policy"][
+            "routine_github_correction_verification"
+        ]["git_diff_check_required"]
+        self.assertTrue(list(validator.iter_errors(missing_deterministic_gate)))
+
+        bypassable_pre_pr_gate = copy.deepcopy(complete)
+        bypassable_pre_pr_gate["review"]["correction_policy"][
+            "accepted_blocker_or_owner_override_cannot_bypass_pre_pr_local_gate"
+        ] = False
+        self.assertTrue(list(validator.iter_errors(bypassable_pre_pr_gate)))
+
         for missing_state in REQUIRED_GITHUB_REVIEW_STATES:
             with self.subTest(missing_state=missing_state):
                 invalid_states = copy.deepcopy(complete)
@@ -323,6 +491,7 @@ class DeliveryReviewContractTest(unittest.TestCase):
         cycles = BOUND_CYCLES.read_text(encoding="utf-8")
         local = LOCAL_REVIEW.read_text(encoding="utf-8")
         findings = FINDINGS.read_text(encoding="utf-8")
+        routine = ROUTINE_CORRECTION.read_text(encoding="utf-8")
 
         self.assertIn("bound-review-correction-cycles.md", skill)
         self.assertIn("## Contents", cycles)
@@ -339,6 +508,99 @@ class DeliveryReviewContractTest(unittest.TestCase):
         self.assertIn("immutable delivery baseline", local)
         self.assertIn("final allowed round still\nreceives review", local)
         self.assertIn("unchanged GitHub correction counter", findings)
+        self.assertIn("pre_pr_local_gate_missing", routine)
+        self.assertIn("local_model_invocations: 0", routine)
+        self.assertIn("finding-by-finding readback", routine)
+        self.assertIn("Do not use a targeted or full local model review", routine)
+
+    def test_routine_github_package_uses_deterministic_gates_only(self):
+        single = simulate_github_correction()
+        self.assertEqual(single["github_rounds_used"], 1)
+        self.assertEqual(single["local_model_invocations"], 0)
+        self.assertTrue(single["full_head_review"])
+
+        multiple = simulate_github_correction(
+            findings=("finding-a", "finding-b")
+        )
+        self.assertEqual(multiple["github_rounds_used"], 1)
+        self.assertEqual(multiple["finding_readback"], ["finding-a", "finding-b"])
+
+        failed_test = simulate_github_correction(gates_pass=False)
+        self.assertEqual(failed_test["github_rounds_used"], 1)
+        self.assertFalse(failed_test["commit"])
+        self.assertFalse(failed_test["push"])
+        self.assertFalse(failed_test["github_request"])
+
+        unexplained_path = simulate_github_correction(exact_scope=False)
+        self.assertFalse(unexplained_path["push"])
+
+        exhausted_local = simulate_github_correction(local_rounds_used=5)
+        self.assertEqual(exhausted_local["local_rounds_used"], 5)
+        self.assertTrue(exhausted_local["github_request"])
+
+        final_round = simulate_github_correction(github_rounds_used=4)
+        self.assertEqual(final_round["github_rounds_used"], 5)
+        self.assertTrue(final_round["full_head_review"])
+        exhausted_github = simulate_github_correction(github_rounds_used=5)
+        self.assertEqual(
+            exhausted_github["terminal_reason"],
+            "github_correction_budget_exhausted",
+        )
+
+        missing_gate = simulate_github_correction(pre_pr_gate_bound=False)
+        overridden_missing_gate = simulate_github_correction(
+            pre_pr_gate_bound=False, owner_override=True
+        )
+        for outcome in (missing_gate, overridden_missing_gate):
+            self.assertEqual(outcome["terminal_reason"], "pre_pr_local_gate_missing")
+            self.assertFalse(outcome["edits"])
+            self.assertFalse(outcome["github_request"])
+
+        follow_on_uncertain = simulate_github_correction(classification="uncertain")
+        self.assertEqual(
+            follow_on_uncertain["terminal_reason"], "scope_or_contract_stop"
+        )
+        self.assertFalse(follow_on_uncertain["counter_incremented"])
+
+    def test_material_correction_categories_stop_before_every_mutation(self):
+        routine = ROUTINE_CORRECTION.read_text(encoding="utf-8")
+        normalized_routine = " ".join(routine.split())
+        material_categories = (
+            "outcome, scope, acceptance criteria",
+            "architecture",
+            "permissions",
+            "security or tenant boundary",
+            "data contract",
+            "migration or backfill",
+            "repository ownership",
+            "dependency direction",
+            "unexplained cumulative diff growth",
+        )
+        for category in material_categories:
+            with self.subTest(category=category):
+                self.assertIn(category, normalized_routine)
+                outcome = simulate_github_correction(classification="material")
+                self.assertEqual(outcome["terminal_reason"], "scope_or_contract_stop")
+                self.assertEqual(outcome["owner_handoff"], "return_to_owning_workflow")
+                self.assertEqual(outcome["local_model_invocations"], 0)
+                for mutation in (
+                    "edits",
+                    "counter_incremented",
+                    "commit",
+                    "push",
+                    "github_request",
+                ):
+                    self.assertFalse(outcome[mutation])
+
+    def test_clean_head_needs_no_final_local_review_and_model_budget_is_bounded(self):
+        skill = DELIVERY_SKILL.read_text(encoding="utf-8")
+        routine = ROUTINE_CORRECTION.read_text(encoding="utf-8")
+        self.assertIn("only active full local-review phase", skill)
+        self.assertIn("only this PR's GitHub counter is active", skill)
+        self.assertIn("local\n  counter is audit history", skill)
+        self.assertIn("active-generation candidate, never a verdict", skill)
+        self.assertIn("do not reopen", routine)
+        self.assertEqual(1 + 5 + 1 + 5, 12)
 
     def test_reviewer_context_and_drift_guards_are_explicit(self):
         cycles = BOUND_CYCLES.read_text(encoding="utf-8")
@@ -409,6 +671,9 @@ class DeliveryReviewContractTest(unittest.TestCase):
         self.assertIn("`head_mismatch`", monitor)
         self.assertIn("give every PR its own GitHub correction counter", commits)
         self.assertIn("`scope_or_contract_stop`", findings)
+        self.assertIn("active_request_generation_candidate", monitor)
+        self.assertIn("stale_or_unbound_event_ids:", start)
+        self.assertIn("response_binding_evidence:", start)
         self.assertIn("paused automation\n   status", findings)
         self.assertIn("paused automation status", monitor)
         for path in (
@@ -479,6 +744,7 @@ class DeliveryReviewContractTest(unittest.TestCase):
             "pr_terminal": "delete_report",
             "clean": "pause_merge_ready",
             "github_correction_budget_exhausted": "pause_cycle_analysis",
+            "pre_pr_local_gate_missing": "pause_report",
             "request_budget_exhausted": "pause_report",
             "acknowledged_wait_budget_exhausted": "pause_report",
             "repeated_dismissed_finding": "pause_report",
@@ -564,15 +830,48 @@ class DeliveryReviewContractTest(unittest.TestCase):
         documented_contract = migration.split("```json\n", 1)[1].split("\n```", 1)[0]
         self.assertEqual(
             json.loads(documented_contract),
-            {"review": complete_review_contract()},
+            {"review": v0_8_2_review_contract()},
         )
-        self.assertIn("материализовать указанный `review` contract", aliases)
+        self.assertIn("материализовать указанный `review` contract", migration)
         self.assertIn("`workflow_kit.revision: v0.8.2`", migration)
         self.assertIn("и выполнить validation записанной revision", migration)
         self.assertIn("`--deliver-task` остаётся fail-closed", migration)
         self.assertIn("Безопасный откат требует вернуть и project configuration", aliases)
         self.assertIn("весь выбранный набор skills на один прежний exact release tag", migration)
         self.assertIn("или смешивать revisions нельзя", migration)
+        self.assertIn("Параметризованный release handoff", aliases)
+        self.assertIn("full_local_model_review_after_routine_github_correction", aliases)
+        self.assertIn("mismatch_behavior: stop_before_affected_alias_mutations", aliases)
+        handoff = aliases.split("### Параметризованный release handoff", 1)[1]
+        required_handoff_fragments = (
+            "source_task: <source-task-id>",
+            "parent_task_or_issue: <parent-task-or-issue>",
+            "consumer_task: <consumer-task-id>",
+            "previous_release:\n    tag: <previous-release-tag>",
+            "schema_version: 4",
+            "required_configuration_delta:",
+            "initial_github_generation_required: true",
+            "github_generation_target: exact_current_full_head",
+            "skills/deliver-reviewed-change",
+            "test_delivery_review_contract.py",
+            "mismatch_behavior: stop_before_affected_alias_mutations",
+            "rollback_target:\n    tag: <previous-release-tag>",
+            "repository: <consumer-tracker-repository>",
+            "marker: <project-owned-unique-marker>",
+            "comment_id: <canonical-comment-id>",
+            "comment_url: <canonical-comment-url>",
+        )
+        for fragment in required_handoff_fragments:
+            with self.subTest(handoff_fragment=fragment):
+                self.assertIn(fragment, handoff)
+                self.assertNotIn(fragment, handoff.replace(fragment, "", 1))
+        self.assertEqual(
+            handoff.count(
+                "response_binding_required: "
+                "exact_reviewed_commit_or_active_request_generation"
+            ),
+            2,
+        )
 
 
 if __name__ == "__main__":

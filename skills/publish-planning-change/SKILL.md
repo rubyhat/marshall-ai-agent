@@ -70,6 +70,7 @@ Read project instructions and workflow configuration. Resolve:
 - independent reviewer runner, model, effort, rubric, isolation, correction
   budget, one-retry technical budget, and terminal-session settlement policy;
 - deterministic validators, commit convention, PR policy, required checks,
+  post-PR deterministic correction policy, conditional final-evidence review,
   merge authority, and allowed endpoint;
 - Issue/spec linkage, operational status, canonical revision recording,
   specification-owner ancestry, and cross-repository linkage requirements.
@@ -188,15 +189,52 @@ package-byte mutation. When review targeted a local correction checkpoint,
 reuse that exact checkpoint. For an uncommitted-review candidate, create the
 intentional commit only when its complete path/mode/blob-OID manifest is identical
 to the reviewed manifest. Push without force, create or reconcile the exact
-pull request, and obey reported checks and branch protection. Merge only when
-the configured endpoint and current user authority allow it.
+pull request, and obey reported checks and branch protection. Do not merge in
+this phase; the exact current complete pull-request head must first receive the
+clean GitHub generation and final evidence decision in step 5.
 
-### 5. Finalize the handoff
+### 5. Handle post-PR corrections and final evidence
+
+Read [run-planning-github-review-cycle.md](references/run-planning-github-review-cycle.md),
+then read
+[verify-post-pr-planning-correction.md](references/verify-post-pr-planning-correction.md).
+
+Use the planning-owned trigger, reviewer matching, response channels, request
+budgets, exact-PR heartbeat, state machine, and five-package GitHub correction
+counter. Start or reconcile the configured head-bound GitHub review generation
+for the initial complete pull-request head. Require a clean generation bound to
+the exact current full head before selecting final evidence or entering merge
+gates. Every corrected head replaces this requirement with its own new
+generation; old or unbound response events cannot satisfy it. An applied
+routine package must become a proved intentional exact-manifest commit before
+non-force push and the next generation.
+
+Do not run independent review after each routine GitHub correction package.
+Use affected tests, configured deterministic gates, `git diff --check`, exact
+correction-delta and scope verification, and finding-by-finding readback before
+push. False, intentional-out-of-scope, and duplicate findings use the configured
+fingerprinted no-edit contextual re-review path and consume no correction
+round. Material or uncertain corrections stop before edits and return to the
+owning planning workflow.
+
+After the GitHub loop reaches a clean exact current head, reuse existing
+independent evidence only when its head, tree, and complete manifest binding are
+already current. Otherwise run exactly one final independent evidence review
+through the canonical runner. A non-clean, invalid, unbound, or timed-out final
+result terminates the publication attempt without automatic corrections, push,
+merge, another GitHub request, or a second final evidence review.
+
+Only after the clean exact-current-head GitHub generation and the zero-or-one
+final evidence decision pass may the configured checks and merge-authority
+gates continue.
+
+### 6. Finalize the handoff
 
 Read [finalize-planning-publication.md](references/finalize-planning-publication.md).
 
 Verify the merged canonical branch contains the exact specification and that
-the recorded revision belongs to the reviewed pull-request head. Ask
+the recorded revision belongs to the current evidence-bound pull-request head.
+Ask
 `manage-project-work` to persist the capture-contract revision, publication
 attempt ID, normalized-result hash, complete matched reviewer session set,
 canonical spec linkage, and configured implementation-ready status only after

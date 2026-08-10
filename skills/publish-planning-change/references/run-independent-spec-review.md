@@ -1,6 +1,9 @@
 # Run independent specification review
 
-Use a fresh read-only reviewer for the exact current specification head.
+Use a fresh read-only reviewer for the exact current specification head during
+the pre-PR bounded review or the single conditional final-evidence gate after a
+clean GitHub generation. Never invoke it between routine GitHub correction
+packages.
 
 ## Preserve reviewer independence
 
@@ -161,6 +164,15 @@ for an unchanged clean specification. If the final allowed corrected head still
 has a blocking or actionable finding, stop before any further correction,
 review request, commit, push, or publication. Do not start a sixth correction
 when `max_correction_rounds` is five.
+
+For the post-PR final-evidence gate, do not start or resume a correction round.
+The invocation is zero when existing evidence already binds the exact current
+head, tree, and complete manifest, and otherwise exactly one. A `NON_CLEAN`,
+invalid, unbound, changed-target, or timed-out final result is terminal for the
+current publication attempt: preserve its evidence and return to spec
+preparation without edits, push, another GitHub request, or a second final
+invocation. The final-evidence invocation increments neither correction
+counter.
 
 ## Settle and consolidate authoritative results
 

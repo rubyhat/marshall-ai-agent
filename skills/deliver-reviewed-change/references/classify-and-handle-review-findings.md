@@ -22,21 +22,30 @@ follow-up work as non-actionable for this delivery.
 
 ## Fix a real finding
 
-1. compare the proposed package with the immutable delivery baseline and task
+1. require bound passed pre-PR local-gate evidence; otherwise stop as
+   `pre_pr_local_gate_missing` without an override path;
+2. compare the proposed package with the immutable delivery baseline and task
    contract;
-2. stop on material scope, contract, architecture, ownership, or unexplained
-   cumulative-diff growth;
-3. verify another GitHub correction round is available before editing;
-4. persist and read back this finding, reviewed head, and paused automation
+3. stop before edits on material scope, contract, architecture, permissions,
+   security or tenant boundary, data, migration, ownership, dependency, or
+   unexplained cumulative-diff growth, and use the same stop for `uncertain`;
+4. verify another GitHub correction round is available before editing;
+5. persist and read back this finding, reviewed head, and paused automation
    status in the exact PR heartbeat before editing;
-5. apply the smallest coherent fix in the task worktree and increment the
+6. apply the smallest coherent fix in the task worktree and increment the
    GitHub counter once for the complete package;
-6. add or update relevant tests and run affected implementation gates;
-7. repeat local review when configured or material;
-8. commit intentionally, then re-read the still-paused exact PR heartbeat before
+7. run the deterministic routine-correction gate from
+   [verify-routine-github-correction.md](verify-routine-github-correction.md),
+   including affected tests, configured gates, `git diff --check`, exact delta
+   and scope verification, and finding readback;
+8. record `local_model_invocations: 0`; do not run a full, targeted, or hidden
+   local model review for this routine package;
+9. classify every follow-on gate-fix edit again before mutation and stop if it
+   is material or uncertain;
+10. commit intentionally, then re-read the still-paused exact PR heartbeat before
    a head-changing push;
-9. push and capture the new head SHA;
-10. reactivate that same heartbeat and start a new review generation with reset
+11. push and capture the new head SHA;
+12. reactivate that same heartbeat and start a new review generation with reset
    technical request counters and the
    unchanged GitHub correction counter.
 
