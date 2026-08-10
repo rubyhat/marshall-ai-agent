@@ -857,7 +857,7 @@ consumer_migration_handoff:
         finding_policy:
           classifications:
             - real_in_scope
-            - false
+            - "false"
             - intentional_out_of_scope
             - duplicate
             - uncertain
