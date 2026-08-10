@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.8.3...v0.9.0) (2026-08-10)
+
+
+### Новые возможности
+
+* **review:** separate local and GitHub correction phases ([#68](https://github.com/rubyhat/marshall-ai-agent/issues/68)) ([5e95a6f](https://github.com/rubyhat/marshall-ai-agent/commit/5e95a6f06118c0d46fdda8b23184835009a8baff))
+
 ## [0.8.3](https://github.com/rubyhat/marshall-ai-agent/compare/v0.8.2...v0.8.3) (2026-08-09)
 
 
