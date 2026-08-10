@@ -88,6 +88,38 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   bounded whole-second interval values, settlement timeout strictly greater
   than interval, final rescan, cumulative token capture, and
   the full current provenance tuple in publication evidence.
+  Also require post-PR routine packages to use deterministic verification with
+  zero local model invocations and no independent review between packages.
+  Require a complete standalone planning GitHub review cycle with an exact
+  trigger, at least one reviewer matcher, acknowledgment reactions, issue,
+  formal-review and inline-comment inspection, clean/error patterns, bounded
+  per-head request attempts, a persisted/read-back exact-PR heartbeat, and the
+  configured strict response evaluation order. Confirm explicit errors persist
+  `transient_error`, consume their current
+  attempt, create and bind the next request only inside the remaining budget,
+  and pause as `request_budget_exhausted` at the limit. Confirm false,
+  intentional-out-of-scope, and duplicate findings create one fingerprinted
+  no-edit contextual re-review without consuming a correction round, and one
+  repeated semantic dismissal stops monitoring. Confirm response events bind to
+  the exact requested head through provider commit metadata or complete active-
+  request-generation correlation. An issue comment without commit metadata
+  must remain non-terminal until the exact PR, unsuperseded request attempt,
+  new event, and unchanged head are all proven; old-head and unbound events are
+  recorded as stale and ignored.
+  Confirm an applied package is committed intentionally and its local
+  head/tree/manifest is read back before push, then the matching remote PR head
+  is proved before the next generation. Confirm a new PR initializes
+  its GitHub correction counter and ordered history at zero, the maximum is
+  five, each applied package increments once, the fifth receives review, and a
+  sixth stops before mutation. A new head may reset only technical request
+  state and must preserve the exact PR counter and history.
+  Require an initial GitHub generation for the exact complete pull-request head
+  and a clean exact-current-head generation before final evidence or merge.
+  That clean generation leads to zero final evidence invocations only for an
+  already valid current head/tree/manifest binding, or exactly one canonical-
+  runner invocation otherwise. Reject a maximum other than one, an automatic
+  correction loop, or a non-clean/invalid/timeout action that does not stop and
+  return to spec preparation.
 - When `execute-project-task` is selected without `publish-planning-change`,
   require an empty implementation section; reject publication readiness,
   evidence, ancestry and manifest gates, `publication_upgrade_required`, and
@@ -101,6 +133,18 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   Confirm a new PR head resets only technical request attempts, the final
   allowed correction still receives review, lost history fails closed, and a
   bounded cycle analysis is required on exhaustion or material scope drift.
+  Confirm pull-request creation closes the active local phase only after bound
+  passed pre-PR evidence; missing evidence must return
+  `pre_pr_local_gate_missing` without accepted-blocker or owner-override bypass.
+  Confirm every routine GitHub correction and follow-on gate fix is classified
+  before mutation, runs affected tests, deterministic gates, `git diff --check`,
+  exact correction delta/scope and finding readback, records zero local model
+  invocations, and relies on the next GitHub generation to review the complete
+  head. Material or uncertain corrections must stop before edits or counters.
+  Require exact-commit or complete active-request-generation binding before any
+  delivery reviewer event can produce findings, CLEAN, progress, or an error;
+  the inspector must leave issue comments without commit metadata non-terminal
+  until heartbeat correlation is proven.
   Require one machine-readable pre-PR state block in the retained current Codex
   task, update/readback after every local transition, and exact transfer into
   the first GitHub heartbeat. A different conversation without proven state

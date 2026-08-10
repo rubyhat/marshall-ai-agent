@@ -121,6 +121,7 @@
         "artifact_policy",
         "workspace",
         "independent_review",
+        "post_pr_correction_review",
         "readiness",
         "completion_gate"
       ],
@@ -403,6 +404,369 @@
             }
           },
           "additionalProperties": true
+        },
+        "post_pr_correction_review": {
+          "type": "object",
+          "required": [
+            "full_independent_review_after_each_github_package",
+            "initial_github_generation_required",
+            "github_generation_target",
+            "clean_github_generation_required_before_final_evidence_and_merge",
+            "github_review_cycle",
+            "routine_github_correction_verification",
+            "final_evidence_review"
+          ],
+          "properties": {
+            "full_independent_review_after_each_github_package": {
+              "const": false
+            },
+            "initial_github_generation_required": {"const": true},
+            "github_generation_target": {"const": "exact_current_full_head"},
+            "clean_github_generation_required_before_final_evidence_and_merge": {
+              "const": true
+            },
+            "github_review_cycle": {
+              "type": "object",
+              "required": [
+                "enabled",
+                "request_comment",
+                "reviewer_logins",
+                "reviewer_login_contains",
+                "acknowledgment_reactions",
+                "acknowledgment_is_terminal",
+                "inspect_channels",
+                "clean_verdict_patterns",
+                "explicit_error_patterns",
+                "generation",
+                "correction_counter",
+                "request_budget",
+                "heartbeat",
+                "state_machine",
+                "finding_policy"
+              ],
+              "properties": {
+                "enabled": {"const": true},
+                "request_comment": {"type": "string", "minLength": 1},
+                "reviewer_logins": {
+                  "type": "array",
+                  "items": {"type": "string", "minLength": 1},
+                  "uniqueItems": true
+                },
+                "reviewer_login_contains": {
+                  "type": "array",
+                  "items": {"type": "string", "minLength": 1},
+                  "uniqueItems": true
+                },
+                "acknowledgment_reactions": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {"type": "string", "minLength": 1},
+                  "uniqueItems": true
+                },
+                "acknowledgment_is_terminal": {"const": false},
+                "inspect_channels": {
+                  "const": [
+                    "issue_comments",
+                    "formal_reviews",
+                    "inline_review_comments"
+                  ]
+                },
+                "clean_verdict_patterns": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {"type": "string", "minLength": 1},
+                  "uniqueItems": true
+                },
+                "explicit_error_patterns": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {"type": "string", "minLength": 1},
+                  "uniqueItems": true
+                },
+                "generation": {
+                  "type": "object",
+                  "required": [
+                    "bound_to_exact_current_full_head",
+                    "fresh_after_each_correction_package",
+                    "old_events_cannot_complete_new_head",
+                    "response_binding_required",
+                    "unbound_or_old_head_event_action"
+                  ],
+                  "properties": {
+                    "bound_to_exact_current_full_head": {"const": true},
+                    "fresh_after_each_correction_package": {"const": true},
+                    "old_events_cannot_complete_new_head": {"const": true},
+                    "response_binding_required": {
+                      "const": "exact_reviewed_commit_or_active_request_generation"
+                    },
+                    "unbound_or_old_head_event_action": {
+                      "const": "record_stale_and_ignore_for_current_generation"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "correction_counter": {
+                  "type": "object",
+                  "required": [
+                    "scope",
+                    "max_correction_rounds",
+                    "initialize_new_pull_request_at_zero",
+                    "increment_once_after_applied_package",
+                    "final_allowed_package_receives_generation",
+                    "next_package_after_limit_stops_before_mutation",
+                    "ordered_history_required"
+                  ],
+                  "properties": {
+                    "scope": {"const": "exact_pull_request"},
+                    "max_correction_rounds": {"const": 5},
+                    "initialize_new_pull_request_at_zero": {"const": true},
+                    "increment_once_after_applied_package": {"const": true},
+                    "final_allowed_package_receives_generation": {"const": true},
+                    "next_package_after_limit_stops_before_mutation": {
+                      "const": true
+                    },
+                    "ordered_history_required": {"const": true}
+                  },
+                  "additionalProperties": false
+                },
+                "request_budget": {
+                  "type": "object",
+                  "required": [
+                    "max_attempts_per_head",
+                    "silent_heartbeats_per_attempt",
+                    "acknowledged_heartbeats_without_result",
+                    "explicit_error_consumes_current_attempt",
+                    "explicit_error_retry_transition",
+                    "exhausted_action",
+                    "new_head_resets_technical_counters_only"
+                  ],
+                  "properties": {
+                    "max_attempts_per_head": {"type": "integer", "minimum": 1},
+                    "silent_heartbeats_per_attempt": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "acknowledged_heartbeats_without_result": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "explicit_error_consumes_current_attempt": {"const": true},
+                    "explicit_error_retry_transition": {
+                      "const": "persist_transient_error_then_create_and_bind_next_request"
+                    },
+                    "exhausted_action": {
+                      "const": "pause_request_budget_exhausted"
+                    },
+                    "new_head_resets_technical_counters_only": {"const": true}
+                  },
+                  "additionalProperties": false
+                },
+                "heartbeat": {
+                  "type": "object",
+                  "required": [
+                    "state_store",
+                    "scope",
+                    "interval_minutes",
+                    "destination",
+                    "create_and_read_back_before_request",
+                    "attach_request_identity_and_read_back_before_monitoring",
+                    "update_and_read_back_after_each_transition",
+                    "pause_on_review_terminal_while_pull_request_open",
+                    "same_pull_request_later_head_reactivates",
+                    "delete_after_pull_request_terminal_only",
+                    "lost_state_stops_monitor"
+                  ],
+                  "properties": {
+                    "state_store": {"const": "exact_planning_pr_heartbeat"},
+                    "scope": {"const": "exact_pull_request"},
+                    "interval_minutes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 60
+                    },
+                    "destination": {"const": "current_thread"},
+                    "create_and_read_back_before_request": {"const": true},
+                    "attach_request_identity_and_read_back_before_monitoring": {
+                      "const": true
+                    },
+                    "update_and_read_back_after_each_transition": {"const": true},
+                    "pause_on_review_terminal_while_pull_request_open": {
+                      "const": true
+                    },
+                    "same_pull_request_later_head_reactivates": {"const": true},
+                    "delete_after_pull_request_terminal_only": {"const": true},
+                    "lost_state_stops_monitor": {"const": true}
+                  },
+                  "additionalProperties": false
+                },
+                "state_machine": {
+                  "type": "object",
+                  "required": [
+                    "states",
+                    "evaluation_order",
+                    "clean_is_absorbing_terminal_state",
+                    "silence_is_never_in_progress",
+                    "reactions_checked_on_exact_request_comment_only",
+                    "every_response_channel_checked_before_silence"
+                  ],
+                  "properties": {
+                    "states": {
+                      "const": [
+                        "request_not_created",
+                        "request_pending",
+                        "not_started",
+                        "in_progress",
+                        "findings_received",
+                        "transient_error",
+                        "clean",
+                        "terminal",
+                        "pr_terminal",
+                        "head_mismatch",
+                        "unclassified_response"
+                      ]
+                    },
+                    "evaluation_order": {
+                      "const": [
+                        "pr_terminal",
+                        "head_mismatch",
+                        "findings_received",
+                        "clean",
+                        "transient_error",
+                        "in_progress",
+                        "not_started",
+                        "unclassified_response"
+                      ]
+                    },
+                    "clean_is_absorbing_terminal_state": {"const": true},
+                    "silence_is_never_in_progress": {"const": true},
+                    "reactions_checked_on_exact_request_comment_only": {
+                      "const": true
+                    },
+                    "every_response_channel_checked_before_silence": {
+                      "const": true
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "finding_policy": {
+                  "type": "object",
+                  "required": [
+                    "classifications",
+                    "actionable_requires_real_in_scope",
+                    "non_actionable_action",
+                    "non_actionable_consumes_correction_round",
+                    "semantic_fingerprint_required",
+                    "one_semantic_repeat_stops_monitor",
+                    "uncertain_action"
+                  ],
+                  "properties": {
+                    "classifications": {
+                      "const": [
+                        "real_in_scope",
+                        "false",
+                        "intentional_out_of_scope",
+                        "duplicate",
+                        "uncertain"
+                      ]
+                    },
+                    "actionable_requires_real_in_scope": {"const": true},
+                    "non_actionable_action": {
+                      "const": "evidence_reply_and_contextual_rereview"
+                    },
+                    "non_actionable_consumes_correction_round": {"const": false},
+                    "semantic_fingerprint_required": {"const": true},
+                    "one_semantic_repeat_stops_monitor": {"const": true},
+                    "uncertain_action": {
+                      "const": "stop_before_edits_and_return_to_owner"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "anyOf": [
+                {"properties": {"reviewer_logins": {"minItems": 1}}},
+                {"properties": {"reviewer_login_contains": {"minItems": 1}}}
+              ],
+              "additionalProperties": false
+            },
+            "routine_github_correction_verification": {
+              "type": "object",
+              "required": [
+                "affected_tests_required",
+                "configured_deterministic_gates_required",
+                "git_diff_check_required",
+                "exact_correction_delta_required",
+                "finding_by_finding_readback_required",
+                "intentional_commit_required_before_push",
+                "local_commit_head_and_manifest_readback_required",
+                "next_github_generation_reviews_full_head",
+                "local_model_invocations",
+                "follow_on_gate_fix_rechecks_materiality_before_mutation",
+                "material_or_uncertain_action"
+              ],
+              "properties": {
+                "affected_tests_required": {"const": true},
+                "configured_deterministic_gates_required": {"const": true},
+                "git_diff_check_required": {"const": true},
+                "exact_correction_delta_required": {"const": true},
+                "finding_by_finding_readback_required": {"const": true},
+                "intentional_commit_required_before_push": {"const": true},
+                "local_commit_head_and_manifest_readback_required": {
+                  "const": true
+                },
+                "next_github_generation_reviews_full_head": {"const": true},
+                "local_model_invocations": {"const": 0},
+                "follow_on_gate_fix_rechecks_materiality_before_mutation": {
+                  "const": true
+                },
+                "material_or_uncertain_action": {
+                  "const": "stop_before_edits_and_return_to_owner"
+                }
+              },
+              "additionalProperties": false
+            },
+            "final_evidence_review": {
+              "type": "object",
+              "required": [
+                "reuse_when",
+                "when",
+                "maximum_invocations",
+                "review_target",
+                "uses_canonical_runner",
+                "counts_as_correction_round",
+                "clean_action",
+                "non_clean_action",
+                "invalid_or_timeout_action",
+                "automatic_correction_loop",
+                "post_clean_mutation_invalidates_evidence",
+                "same_manifest_new_commit_requires_new_binding"
+              ],
+              "properties": {
+                "reuse_when": {
+                  "const": "github_clean_and_exact_current_head_tree_manifest_binding_valid"
+                },
+                "when": {
+                  "const": "github_clean_and_exact_current_head_tree_manifest_binding_missing_or_invalid"
+                },
+                "maximum_invocations": {"const": 1},
+                "review_target": {"const": "exact_current_committed_head"},
+                "uses_canonical_runner": {"const": true},
+                "counts_as_correction_round": {"const": false},
+                "clean_action": {"const": "bind_exact_publication_evidence"},
+                "non_clean_action": {
+                  "const": "stop_and_return_to_spec_preparation"
+                },
+                "invalid_or_timeout_action": {
+                  "const": "stop_and_return_to_spec_preparation"
+                },
+                "automatic_correction_loop": {"const": false},
+                "post_clean_mutation_invalidates_evidence": {"const": true},
+                "same_manifest_new_commit_requires_new_binding": {"const": true}
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         },
         "readiness": {
           "type": "object",
@@ -797,7 +1161,14 @@
             "different_conversation_requires_proven_state",
             "resume_requires_provable_counters_and_history",
             "lost_history_stops_delivery",
-            "bounded_cycle_analysis_required"
+            "bounded_cycle_analysis_required",
+            "pre_pr_local_phase_closes_on_pull_request",
+            "pre_pr_local_gate_evidence_required_before_github_phase",
+            "pre_pr_local_gate_missing_action",
+            "accepted_blocker_or_owner_override_cannot_bypass_pre_pr_local_gate",
+            "full_local_model_review_after_routine_github_correction",
+            "routine_github_correction_verification",
+            "material_github_correction"
           ],
           "properties": {
             "round_unit": {"const": "review_driven_correction_package"},
@@ -855,7 +1226,66 @@
             "different_conversation_requires_proven_state": {"const": true},
             "resume_requires_provable_counters_and_history": {"const": true},
             "lost_history_stops_delivery": {"const": true},
-            "bounded_cycle_analysis_required": {"const": true}
+            "bounded_cycle_analysis_required": {"const": true},
+            "pre_pr_local_phase_closes_on_pull_request": {"const": true},
+            "pre_pr_local_gate_evidence_required_before_github_phase": {
+              "const": true
+            },
+            "pre_pr_local_gate_missing_action": {
+              "const": "pre_pr_local_gate_missing"
+            },
+            "accepted_blocker_or_owner_override_cannot_bypass_pre_pr_local_gate": {
+              "const": true
+            },
+            "full_local_model_review_after_routine_github_correction": {
+              "const": false
+            },
+            "routine_github_correction_verification": {
+              "type": "object",
+              "required": [
+                "affected_tests_required",
+                "configured_deterministic_gates_required",
+                "git_diff_check_required",
+                "exact_correction_delta_required",
+                "finding_by_finding_readback_required",
+                "next_github_generation_reviews_full_head",
+                "local_model_invocations",
+                "follow_on_gate_fix_rechecks_materiality_before_mutation"
+              ],
+              "properties": {
+                "affected_tests_required": {"const": true},
+                "configured_deterministic_gates_required": {"const": true},
+                "git_diff_check_required": {"const": true},
+                "exact_correction_delta_required": {"const": true},
+                "finding_by_finding_readback_required": {"const": true},
+                "next_github_generation_reviews_full_head": {"const": true},
+                "local_model_invocations": {"const": 0},
+                "follow_on_gate_fix_rechecks_materiality_before_mutation": {
+                  "const": true
+                }
+              },
+              "additionalProperties": false
+            },
+            "material_github_correction": {
+              "type": "object",
+              "required": [
+                "action",
+                "uncertain_uses_same_stop",
+                "terminal_reason",
+                "stop_before_counter_increment_commit_push_or_request"
+              ],
+              "properties": {
+                "action": {
+                  "const": "stop_before_edits_and_return_to_owner"
+                },
+                "uncertain_uses_same_stop": {"const": true},
+                "terminal_reason": {"const": "scope_or_contract_stop"},
+                "stop_before_counter_increment_commit_push_or_request": {
+                  "const": true
+                }
+              },
+              "additionalProperties": false
+            }
           },
           "additionalProperties": true
         },
@@ -881,6 +1311,7 @@
             "max_correction_rounds",
             "fresh_generation_after_each_correction_package",
             "new_head_resets_request_budget_only",
+            "generation",
             "heartbeat",
             "state_machine",
             "post_clean"
@@ -893,6 +1324,34 @@
             },
             "fresh_generation_after_each_correction_package": {"const": true},
             "new_head_resets_request_budget_only": {"const": true},
+            "generation": {
+              "type": "object",
+              "required": [
+                "bound_to_head_sha",
+                "old_events_cannot_complete_new_head",
+                "response_binding_required",
+                "issue_comment_binding_requires_unsuperseded_request",
+                "issue_comment_binding_requires_current_head_match",
+                "stale_or_unbound_event_action"
+              ],
+              "properties": {
+                "bound_to_head_sha": {"const": true},
+                "old_events_cannot_complete_new_head": {"const": true},
+                "response_binding_required": {
+                  "const": "exact_reviewed_commit_or_active_request_generation"
+                },
+                "issue_comment_binding_requires_unsuperseded_request": {
+                  "const": true
+                },
+                "issue_comment_binding_requires_current_head_match": {
+                  "const": true
+                },
+                "stale_or_unbound_event_action": {
+                  "const": "record_and_ignore_until_binding_proven"
+                }
+              },
+              "additionalProperties": true
+            },
             "heartbeat": {
               "type": "object",
               "required": [

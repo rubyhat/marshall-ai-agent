@@ -1,6 +1,8 @@
 # Run Independent Local Review
 
 Use a fresh configured reviewer before commit, push, or pull-request creation.
+This is a pre-PR gate. Once the exact pull request exists with bound passed
+evidence, the active local-review phase is closed.
 
 ## Prepare neutral context
 
@@ -64,3 +66,8 @@ Local review passes when:
 - the task still matches its specification and authorized endpoint.
 
 Keep changes uncommitted until this gate succeeds.
+
+Do not invoke this workflow for a routine GitHub correction package. Post-PR
+routine corrections use deterministic verification and the next full-head
+GitHub generation. A missing bound pre-PR result is
+`pre_pr_local_gate_missing`, not permission to manufacture a post-PR local gate.

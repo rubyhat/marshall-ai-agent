@@ -88,11 +88,20 @@ Read [bound-review-correction-cycles.md](references/bound-review-correction-cycl
 
 Use a fresh configured reviewer without implementation discussion history. Evaluate every finding against code, tests, architecture, specification, and scope. Fix real findings locally, rerun affected gates, and repeat review as required. Do not commit until the local-review gate passes or an allowed blocker is explicit.
 
+This is the only active full local-review phase. Creating or proving the exact
+pull request closes it after its passed evidence is bound to the delivery
+baseline. Preserve its counter and history as provenance, but never reopen it
+for a routine GitHub correction.
+
 ### 3. Commit, push, and open or reconcile the pull request
 
 Read [commit-push-and-open-pr.md](references/commit-push-and-open-pr.md).
 
 Create intentional task-scoped commits, push without force, create or reuse the exact pull request, verify target and head branches, link the task, and apply the configured PR-review status through `manage-project-work`. Read back external mutations.
+
+Before entering GitHub review, require bound evidence that the pre-PR local gate
+passed. A pull request without that evidence stops as
+`pre_pr_local_gate_missing`; an accepted blocker or override cannot bypass it.
 
 Stop here when the authorized endpoint is only pull-request creation.
 
@@ -133,16 +142,33 @@ python3 scripts/inspect_codex_review_cycle.py \
 
 Pass configured reviewer and pattern arguments. Treat script classifications as mechanical evidence; the agent still decides whether a finding is actionable.
 
+Before any reviewer event can produce findings, CLEAN, progress, or an error,
+bind it to the persisted generation head. Accept provider commit metadata only
+when it equals that head. Treat an issue comment without commit metadata as an
+active-generation candidate, never a verdict, until the exact-PR heartbeat
+proves the same unsuperseded request attempt and an unchanged current head.
+Record and ignore old-head or unbound events for the current generation.
+
 ### 6. Handle findings without scope drift
 
 Read [classify-and-handle-review-findings.md](references/classify-and-handle-review-findings.md).
+Read [verify-routine-github-correction.md](references/verify-routine-github-correction.md)
+before editing a routine GitHub finding.
 
-- Fix a real in-scope finding, rerun gates and local review as required, commit and push, then start a new head-bound generation.
+- Fix a routine real in-scope finding, run affected tests and the configured
+  deterministic correction gate without a local model invocation, commit and
+  push, then start a new head-bound generation.
 - Answer an evidenced false or intentionally out-of-scope finding without changing code, request a contextual re-review, and persist its semantic fingerprint.
 - Stop and inform the user when the same dismissed finding returns once.
-- Stop before mutations and return a bounded cycle analysis when the next local
-  or GitHub correction package would exceed its configured independent limit.
+- Stop before mutations and return a bounded cycle analysis when the next
+  correction package would exceed the limit for its active phase. In the
+  GitHub phase, only this PR's GitHub counter is active; the retained local
+  counter is audit history and cannot block an otherwise valid package.
 - Stop on uncertainty that could change scope, architecture, security, or task outcome.
+
+Classify every follow-on edit needed to repair a failed package gate before
+mutation. Material or uncertain corrections stop before edits, counter
+increment, commit, push, or a new request and return to the owning workflow.
 
 For every terminal finding outcome, select its terminal reason and apply
 [finalize-codex-review-state.md](references/finalize-codex-review-state.md).

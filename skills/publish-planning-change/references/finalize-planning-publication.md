@@ -6,8 +6,10 @@ Establish durable evidence before unlocking implementation.
 
 After merge, verify:
 
+- a clean GitHub generation was bound to the exact complete head that entered
+  final evidence and merge gates;
 - the exact pull request is merged into the configured canonical target;
-- the merged head is the independently reviewed head or a provider-created
+- the merged head is the final evidence-bound head or a provider-created
   equivalent whose tree contains the exact reviewed artifacts;
 - the bound reviewed-head revision and tree OID resolve, and its complete
   publication-package path/mode/blob-OID manifest equals both the captured clean-
@@ -28,6 +30,12 @@ After merge, verify:
 
 If any item is uncertain, keep publication incomplete and do not unlock
 implementation.
+
+When GitHub correction changed the pull-request head, require the conditional
+final-evidence gate to have completed: zero invocations only for an already
+valid exact head/tree/manifest binding, otherwise one clean canonical-runner
+result for the current head. A non-clean, invalid, unbound, or timed-out final
+result cannot reach this step, and no post-evidence mutation is allowed.
 
 ## Update operational state
 

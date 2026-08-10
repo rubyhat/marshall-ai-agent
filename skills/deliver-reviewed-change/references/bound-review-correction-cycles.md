@@ -83,9 +83,11 @@ These events do not consume a correction round by themselves:
 - a contextual re-review of an unchanged head.
 
 Attribute a package to the reviewer whose non-clean result caused it. A GitHub
-finding fixed locally consumes one GitHub round. A local verification review of
-that package consumes no local round when clean; any additional code package
-required by a new local finding consumes one local round.
+finding fixed locally consumes one GitHub round. The active local-review phase
+closes when the exact pull request is created with bound passed local-gate
+evidence. Routine GitHub packages do not invoke a local model and cannot create
+another local correction round; the retained local counter and history are
+audit provenance only.
 
 ## Enforce the local-review budget
 
@@ -105,10 +107,18 @@ creation.
 
 ## Enforce the GitHub-review budget
 
-Before changing code for a GitHub review finding, apply the same sequence to
-that exact pull request's `github_correction_rounds_used`. Record the finding
-fingerprints, package, before/after head SHAs and diff statistics, gates, and
-resulting request generation in that PR's ordered history.
+Before changing code for a GitHub review finding, require bound passed pre-PR
+local-gate evidence, apply the classification and deterministic package gate in
+[verify-routine-github-correction.md](verify-routine-github-correction.md), and
+compare that exact pull request's `github_correction_rounds_used` with its
+configured limit. Record the finding fingerprints, package, before/after head
+SHAs and diff statistics, affected tests, deterministic gates, exact delta,
+finding readback, `local_model_invocations: 0`, and resulting request generation
+in that PR's ordered history.
+
+An exhausted local counter does not block an otherwise valid GitHub package.
+Missing pre-PR evidence stops as `pre_pr_local_gate_missing`; it cannot be
+repaired by an owner override, accepted blocker, or a post-PR local review.
 
 A pushed head in the same PR resets only the configured technical
 request-attempt and waiting counters for the new generation. It never resets

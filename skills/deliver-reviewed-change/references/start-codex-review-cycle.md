@@ -114,6 +114,8 @@ github_correction_rounds_used:
 github_correction_history:
 dismissed_finding_fingerprints:
 last_seen_event_ids:
+stale_or_unbound_event_ids:
+response_binding_evidence:
 state:
 terminal_reason:
 terminal_head_sha:
@@ -137,6 +139,8 @@ The prompt must also state:
 - apply [finalize-codex-review-state.md](finalize-codex-review-state.md) at every
   terminal state;
 - report once on success or stop;
+- never promote a reviewer event until exact-commit or complete active-request-
+  generation binding is persisted;
 - never broaden the authorized endpoint.
 
 Read back the created or reactivated automation and confirm:

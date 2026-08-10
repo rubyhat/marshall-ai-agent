@@ -25,6 +25,14 @@ Stage only task files. Do not include unrelated dirty changes. Verify the create
 
 Search by repository, head branch, task ID, and existing task links before creating a PR. Reuse the exact existing PR after verifying identity.
 
+Before creating or accepting the pull request as the GitHub-review boundary,
+persist and read back passed pre-PR local-gate evidence bound to the immutable
+delivery baseline and candidate head. Pull-request creation closes the active
+local-review phase. Preserve its counter and ordered history as provenance. If
+an existing pull request cannot prove this evidence, stop with
+`pre_pr_local_gate_missing` before GitHub correction, request, or merge; an
+accepted blocker or owner override cannot bypass this stop.
+
 Apply configured:
 
 - base branch;
