@@ -250,11 +250,13 @@ Reusable skill не является глобальной базой прави�
 приоритета:
 
 1. platform/system safety и ограничения среды;
-2. явная authority пользователя в текущем scope;
-3. project-specific invariants и configuration;
-4. exact task artifact и согласованные решения;
-5. reusable skill;
-6. необязательные examples и defaults.
+2. применимые project instructions, включая non-waivable safety invariants и
+   sticky session constraints;
+3. явная authority пользователя внутри разрешённых этими границами вариантов;
+4. остальные project-specific invariants и configuration;
+5. exact task artifact и согласованные решения;
+6. reusable skill;
+7. необязательные examples и defaults.
 
 При конфликте skill называет несовместимые правила и не переписывает project
 contract под свой baseline. Один факт должен иметь одного владельца: если
