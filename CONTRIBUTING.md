@@ -6,16 +6,20 @@
 
 ## Рабочий процесс
 
-1. Создайте отдельную ветку.
-2. Измените только owning skill и необходимые repository-level файлы.
-3. Обновите `agents/openai.yaml`, если изменились trigger или назначение skill.
-4. Запустите:
+1. Прочитайте
+   [`docs/skill-design-manifesto.md`](docs/skill-design-manifesto.md) и
+   определите responsibility, entry contract, decision policy, completion и
+   handoff изменяемого skill.
+2. Создайте отдельную ветку.
+3. Измените только owning skill и необходимые repository-level файлы.
+4. Обновите `agents/openai.yaml`, если изменились trigger или назначение skill.
+5. Запустите:
 
    ```bash
    python3 scripts/validate_repository.py
    ```
 
-5. Для каждого изменённого skill дополнительно запустите системный validator:
+6. Для каждого изменённого skill дополнительно запустите системный validator:
 
    ```bash
    python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-creator/scripts/quick_validate.py" skills/<skill-name>
@@ -30,8 +34,11 @@
    .venv/bin/python "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-creator/scripts/quick_validate.py" skills/<skill-name>
    ```
 
-6. Откройте Pull Request и дождитесь обязательной проверки `Validate / Skills`.
-7. Используйте squash merge с Conventional Commit title.
+7. Проверьте representative positive, negative и recovery scenarios; для
+   сложного поведения выполните независимый forward-test без передачи агенту
+   ожидаемого ответа.
+8. Откройте Pull Request и дождитесь обязательной проверки `Validate / Skills`.
+9. Используйте squash merge с Conventional Commit title.
 
 Не редактируйте `version.txt`, `.release-please-manifest.json` или release
 sections в `CHANGELOG.md` вручную в обычном feature/fix PR. Эти файлы принадлежат
