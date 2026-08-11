@@ -19,6 +19,13 @@ project-neutral; для процедурных инструкций сохран
 
 - `~/.codex/skills/.system/skill-creator/SKILL.md`
 
+До проектирования или изменения поведения полностью прочитать
+`docs/skill-design-manifesto.md`. Манифест является каноническим стандартом
+responsibility, самостоятельности, decision policy, handoff, stop conditions и
+защиты от бесконечных workflow/review loops. Если предлагаемое решение ему
+противоречит, сначала явно согласовать изменение самого манифеста либо
+обоснованное exact исключение.
+
 Перед реализацией нового skill сначала согласовать с пользователем:
 
 1. responsibility и owning boundary;
@@ -109,6 +116,8 @@ Release, не возвращаясь к body Release Please PR.
 
 - `README.md` — human-facing обзор, каталог и основной flow.
 - `CONTRIBUTING.md` — правила contribution и Conventional Commits.
+- `docs/skill-design-manifesto.md` — канонические принципы и критерии качества
+  при проектировании reusable skills.
 - `docs/releasing.md` — канонический versioning/release runbook.
 - `docs/workflow-aliases.md` — human-facing contracts быстрых команд,
   sequence guards и рекомендуемые последовательности.

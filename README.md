@@ -295,6 +295,7 @@ marshall-ai-agent/
 │   ├── release-please.yml
 │   └── validate.yml
 ├── docs/
+│   ├── skill-design-manifesto.md
 │   ├── releasing.md
 │   └── workflow-aliases.md
 ├── scripts/
@@ -326,15 +327,20 @@ marshall-ai-agent/
 ## Развитие и проверка
 
 Для создания и обновления skills используется системный `skill-creator`.
+Архитектурные требования к responsibility, самостоятельности, decision policy,
+handoff, runbooks, stop conditions и bounded review закреплены в
+[`docs/skill-design-manifesto.md`](docs/skill-design-manifesto.md).
 
 Минимальный цикл изменения:
 
-1. Проверить trigger, exclusions и ownership boundaries.
+1. Прочитать манифест и проверить responsibility, самостоятельность, trigger,
+   exclusions и ownership boundaries.
 2. Обновить `SKILL.md` и только необходимые bundled resources.
 3. Убедиться, что `agents/openai.yaml` соответствует текущему skill.
 4. Запустить `python3 scripts/validate_repository.py`.
 5. Для изменённого skill запустить системный `quick_validate.py`.
-6. Синхронизировать устанавливаемую копию только после успешной проверки.
+6. Проверить representative positive, negative и recovery scenarios.
+7. Синхронизировать устанавливаемую копию только после успешной проверки.
 
 Repository validator проверяет каталог skills, frontmatter, UI metadata,
 относительные ссылки, JSON, Python syntax, portability и bundled script tests.
