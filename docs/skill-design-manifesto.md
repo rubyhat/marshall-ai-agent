@@ -249,7 +249,8 @@ skill-name/
 Reusable skill не является глобальной базой правил проекта. Общий порядок
 приоритета:
 
-1. platform/system safety и ограничения среды;
+1. применимые system и developer instructions, включая platform safety и
+   ограничения среды;
 2. применимые project instructions, включая non-waivable safety invariants и
    sticky session constraints;
 3. явная authority пользователя внутри разрешённых этими границами вариантов;
