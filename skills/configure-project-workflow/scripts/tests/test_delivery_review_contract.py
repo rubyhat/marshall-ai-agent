@@ -630,6 +630,7 @@ class DeliveryReviewContractTest(unittest.TestCase):
             "specification_or_equivalent_contract:",
             "acceptance_criteria:",
             "non_goals:",
+            "pre_review_destination_revisions_or_not_applicable:",
             "initial_diff_manifest:",
             "initial_diff_stats:",
             "delivery_baseline_fingerprint",
@@ -651,6 +652,7 @@ class DeliveryReviewContractTest(unittest.TestCase):
         self.assertIn("Before a workflow-owned push that will change", start)
         self.assertIn("Before posting a remote review trigger", start)
         self.assertIn("state is `request_not_created`", start)
+        self.assertIn("per-repository pre-review destination-revision mapping", start)
         self.assertIn("For every initial, retry, or contextual request attempt", start)
         self.assertIn("must not consume or reset either correction counter", recovery)
         self.assertIn("Initialize only the local correction counter", readiness)

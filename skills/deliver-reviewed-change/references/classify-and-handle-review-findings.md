@@ -32,8 +32,10 @@ follow-up work as non-actionable for this delivery.
 4. verify another GitHub correction round is available before editing;
 5. persist and read back this finding, reviewed head, and paused automation
    status in the exact PR heartbeat before editing;
-6. apply the smallest coherent fix in the task worktree and increment the
-   GitHub counter once for the complete package;
+6. apply the smallest coherent fix in the delivery-owned task worktree or, for
+   aggregate promotion, its delivery-owned source/helper worktree, and increment
+   the GitHub counter once for the complete package. Never route a promotion
+   correction through a completed child task's workspace;
 7. run the deterministic routine-correction gate from
    [verify-routine-github-correction.md](verify-routine-github-correction.md),
    including affected tests, configured gates, `git diff --check`, exact delta

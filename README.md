@@ -163,8 +163,8 @@ analyze-product-reference
 | `shape-project-work` | Превращает идею или проблему в согласованный outcome, scope и conceptual work breakdown. |
 | `write-task-spec` | Создаёт, обновляет и проверяет full или lightweight task specifications. |
 | `publish-planning-change` | Проводит exact task specification через independent review, PR, merge, canonical-revision verification и cleanup planning workspace. |
-| `execute-project-task` | Выполняет одну implementation-ready задачу в изолированном workspace до local-review handoff. |
-| `deliver-reviewed-change` | Проводит точную задачу через bounded local/GitHub review correction cycles, PR, merge и cleanup. |
+| `execute-project-task` | Выполняет одну implementation-ready задачу от project-defined base к intended target в изолированном workspace до local-review handoff. |
+| `deliver-reviewed-change` | Проводит точную задачу или configured aggregate integration branch через bounded local/GitHub review correction cycles, PR, merge и cleanup. |
 | `design-frontend-flow` | Проектирует frontend surfaces, states, actions, recovery, responsive behavior и contract needs. |
 | `triage-frontend-qa` | Воспроизводит и классифицирует один конкретный frontend-дефект. |
 | `analyze-product-reference` | Исследует внешний продукт как bounded evidence и адаптирует findings к целевому проекту. |
@@ -194,7 +194,7 @@ analyze-product-reference
 | `--reference-analysis <product, URL, artifact или вопрос>` | Выполнить chat-first анализ внешнего reference. |
 | `--spec-check <Task ID или spec path>` | Провести read-only audit task-spec. |
 | `--execute-task <Task ID, Issue URL или spec path>` | Выполнить локальную implementation одной ready-задачи. |
-| `--deliver-task <Task ID, PR URL, spec path или current task>` | Запустить разрешённый delivery-flow одной точной задачи. |
+| `--deliver-task <Task ID, Epic/result anchor, Issue URL, PR URL, spec path или current task>` | Запустить разрешённый delivery-flow точной задачи или configured aggregate promotion. |
 
 Это plain-text соглашения проекта, а не встроенные пользовательские slash-команды Codex. Они начинают работать только после маршрутизации в project instructions и configuration. Alias не расширяет полномочия за пределы, явно описанные соответствующим skill и проектной политикой.
 

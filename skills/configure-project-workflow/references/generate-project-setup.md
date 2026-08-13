@@ -219,7 +219,32 @@ When `publish-planning-change` is selected, generate:
 When `execute-project-task` is selected, generate:
 
 - the implementation-start tracker checkpoint after readiness succeeds and
-  before implementation worktree or feature-branch creation.
+  before implementation worktree or feature-branch creation;
+- one root `branch_routing` contract whose compatibility fallback uses the
+  repository default branch as both task base and pull-request target, whose
+  optional overrides are owned by project configuration or the exact task at
+  per-repository granularity, and whose one resolved runtime record is keyed by
+  exact task or aggregate anchor plus repository. Require that record to carry
+  a typed, bounded `values` collection scoped to the exact task or aggregate.
+  Permit that generated collection to remain empty while no concrete route is
+  active. When populated, require one route for every selected repository and
+  no unrelated routes; every item carries the exact anchor, repository,
+  intended base, intended target, and verified creation-source branch or an
+  explicit not-applicable value for the base, plus the target's exact revision
+  or absence and its verified creation-source branch or not-applicable value.
+  Do not create a persisted branch registry;
+- an execution handoff that records repository, task branch, intended base,
+  intended target, routing source, base and target creation-source branches or
+  not-applicable values, target revision or explicit absence, and base
+  revision;
+- safe first-use and resume semantics for an intended base branch: derive a
+  missing branch only from a verified project-selected base, resume an existing
+  branch only after ownership and ancestry checks, stop on a remote-ref race,
+  and never authorize force or history rewrite.
+- safe target preparation: record an existing target's exact revision; when an
+  independently resolved target is absent, require a verified project-selected
+  creation base, prepare only that clean target base locally without candidate
+  changes, and carry its provenance to delivery for non-overwriting creation;
 - when `publish-planning-change` is not selected, keep the required
   `implementation` section empty and omit publication evidence, publication
   ancestry and manifest gates, `publication_upgrade_required`, and every
@@ -239,6 +264,36 @@ during implementation invalidates the selected publication evidence, stops
 
 When `deliver-reviewed-change` is selected, generate:
 
+- actual-target delivery routing: PR creation, review comparison, post-merge
+  synchronization, and cleanup use the target resolved for that exact task and
+  repository rather than silently substituting the default branch. Existing
+  targets are observed and reconciled but never pushed or committed to directly
+  during delivery; ordinary pushes are limited to the delivery source branch;
+- an `aggregate_promotion` policy disabled by default. When the project enables
+  it, require a typed reference to the ordinary resolved runtime routing record,
+  keyed by aggregate anchor plus repository, and require that record to resolve
+  and validate concrete aggregate source, destination, and routing-source values
+  for every selected repository in that record's typed `values` collection.
+  Reject missing, duplicate, mismatched, or unrelated repository routes. Keep this
+  record task/aggregate-scoped rather than creating a branch registry. Also
+  require project-owned readiness evidence, count allowed direct deliveries
+  per repository toward the achieved outcome while continuing unsatisfied
+  repository routes, require either a meaningful destination-to-source
+  diff or proof that the result is already integrated, prepare the current
+  target on the source or a safe helper without committing before review and
+  commit it only after the local gate passes, materialize and validate
+  a delivery-owned source/helper worktree even when the source exists only on
+  the remote, forbid reuse of a completed child-task worktree for promotion
+  corrections, and reuse the ordinary review, CI, merge-authority, and no-force
+  gates;
+- when aggregate promotion is enabled, require a separate aggregate review
+  scope bound to the task-or-aggregate anchor, equivalent contract, readiness,
+  direct-delivery evidence, branches, exact per-repository pre-review
+  destination revisions, and candidate manifest. Preserve the
+  ordinary task-only scope binding unchanged for backward compatibility. Keep
+  the aggregate anchor active through per-PR synchronization and cleanup, and
+  apply done status or closure only after every selected repository route is
+  satisfied and every required repository PR is merged;
 - one immutable delivery baseline bound to the exact task, specification or
   equivalent contract, acceptance criteria, non-goals, initial complete diff
   manifest, and initial diff statistics;
@@ -306,10 +361,11 @@ When `deliver-reviewed-change` is selected, generate:
   unexplained material cumulative diff growth.
 
 Require the local reviewer and reviewer-visible pull-request context to receive
-the exact task contract, acceptance criteria, non-goals, and complete current
-diff without implementation discussion or an intended verdict. Require every
-actionable finding to name a concrete current-task failure or credible mandatory
-risk before it may authorize a correction package.
+the exact task or aggregate result contract, acceptance criteria, non-goals,
+and complete current diff against the actual target without implementation
+discussion or an intended verdict. Require every actionable finding to name a
+concrete current-delivery failure or credible mandatory risk before it may
+authorize a correction package.
 
 Do not copy project-specific values from an example project.
 

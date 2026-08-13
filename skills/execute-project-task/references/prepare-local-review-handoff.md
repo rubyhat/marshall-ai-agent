@@ -41,7 +41,10 @@ Do not duplicate the specification, Issue, or full command log in memory.
 Provide:
 
 - exact task anchor and readiness result;
-- repository, worktree, and branch mapping;
+- repository, worktree, task branch, intended base, intended pull-request
+  target, routing source, verified base- and target-creation source branches or
+  not-applicable values, target revision or explicit absence, and base-revision
+  mapping;
 - concise implemented outcome;
 - relevant gate results, including blocked or accepted exceptions;
 - material assumptions, risks, and known limitations;

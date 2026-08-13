@@ -13,13 +13,15 @@ Bind every review generation to one exact pull request head.
 
 Before requesting review, capture:
 
-- Task ID and Issue;
+- task ID or aggregate result anchor, plus its Issue or equivalent tracker anchor;
 - repository and PR URL/number;
 - authorized endpoint;
 - current PR state;
 - current head SHA;
 - review-generation number;
 - immutable delivery-baseline fingerprint;
+- for aggregate promotion, the exact pre-review destination revision keyed by
+  every selected repository;
 - local correction state and this PR's GitHub correction counter and history;
 - required checks to rerun after code changes;
 - configured reviewer matching and response patterns.
@@ -78,7 +80,7 @@ cadence and verify the saved automation. Until a request exists, set
 Its prompt must contain a compact machine-readable state block with:
 
 ```yaml
-task_id:
+task_id_or_aggregate_anchor:
 repository:
 pr_url:
 authorized_endpoint:
@@ -95,7 +97,7 @@ in_progress_heartbeat_count:
 explicit_error_count:
 github_counter_scope: pull_request
 delivery_baseline:
-  task_id:
+  task_id_or_aggregate_anchor:
   issue:
   specification_or_equivalent_contract:
   specification_revision_or_not_applicable:
@@ -105,6 +107,9 @@ delivery_baseline:
   worktrees:
   branches:
   target_branches:
+  aggregate_readiness_evidence_or_not_applicable:
+  direct_delivery_evidence_or_not_applicable:
+  pre_review_destination_revisions_or_not_applicable:
   initial_diff_manifest:
   initial_diff_stats:
 delivery_baseline_fingerprint:
@@ -151,6 +156,8 @@ Read back the created or reactivated automation and confirm:
 - repository, immutable PR identity, and head SHA are correct;
 - GitHub counter scope is the exact pull request;
 - baseline, counters, histories, and terminal rules are present;
+- aggregate promotion baseline and heartbeat state contain the same complete
+  per-repository pre-review destination-revision mapping;
 - state is `request_not_created`, status is active, and no request identity is
   fabricated;
 - reactivation reused the same automation identity and preserved the same PR's

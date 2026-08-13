@@ -1,6 +1,6 @@
 ---
 name: execute-project-task
-description: Execute an exact implementation-ready project task in an isolated, project-configured workspace and prepare the uncommitted changes for independent local review. Use when the user explicitly asks to implement, build, fix, start, continue, or resume a resolved task or specification, or invokes `--execute-task` with a Task ID, Issue URL, or spec path. Verify active conversation authority before task lookup or mutations, then verify readiness, select affected repositories, create or reuse task worktrees and branches, protect parallel work, implement against the agreed specification, control scope drift, run relevant quality gates, self-check the diff, and establish the local-review checkpoint. Do not use for discussion or diagnosis-only requests, shaping, specification writing, independent review, commit, push, pull-request creation, merge, workspace cleanup, or production mutations.
+description: Execute an exact implementation-ready project task in an isolated, project-configured workspace and prepare the uncommitted changes for independent local review. Use when the user explicitly asks to implement, build, fix, start, continue, or resume a resolved task or specification, or invokes `--execute-task` with a Task ID, Issue URL, or spec path. Verify active conversation authority before task lookup or mutations, then verify readiness, resolve each repository's intended task base and pull-request target, create or reuse task worktrees and branches, protect parallel work, implement against the agreed specification, run relevant quality gates, self-check the diff, and establish the local-review checkpoint. Do not use for discussion or diagnosis-only requests, shaping, specification writing, independent review, commit, push, pull-request creation, merge, workspace cleanup, or production mutations.
 ---
 
 # Execute Project Task
@@ -42,6 +42,9 @@ Read project instructions and workflow configuration. Resolve:
 - task identity, specification, canonical publication revision, tracker, and
   status requirements;
 - repository map, default branches, remotes, and frozen repositories;
+- project- or task-defined base and target branch routing per repository, with
+  the repository default branch as the compatibility fallback, resolved as one
+  task-or-aggregate-and-repository record rather than a branch registry;
 - worktree policy, workspace root, branch naming, and explicit exceptions;
 - degraded-mode behavior when a remote or task tracker is unavailable;
 - project and repository quality gates;
@@ -57,7 +60,8 @@ After the active-conversation gate passes, treat `--execute-task <Task ID,
 Issue URL, or spec path>` as authority to execute that exact task locally:
 
 - resolve and validate the task;
-- create or reuse configured worktrees and feature branches;
+- safely establish or resume configured intended base branches when needed,
+  then create or reuse task worktrees and feature branches from them;
 - edit task-scoped files;
 - run local dependency, generation, build, test, and verification commands required by the task;
 - apply routine configured task-status checkpoints.
@@ -117,7 +121,12 @@ If the tracker is unavailable, follow configured degraded-mode policy. Never cla
 
 Read [create-or-resume-task-workspace.md](references/create-or-resume-task-workspace.md).
 
-Select only repositories that will be modified. Include a root or coordination repository only when its files are implementation deliverables. Reuse an existing workspace only after verifying its task identity, branch, worktree registration, and working state.
+Select only repositories that will be modified. Include a root or coordination repository only when its files are implementation deliverables. Resolve the intended task base and pull-request target independently for every selected repository. When no project or task override exists, use the repository default branch for both. Reuse an existing workspace only after verifying its task identity, branch routing, worktree registration, and working state.
+
+For each selected repository, retain the routing source, exact target revision
+or explicit absence, and separate verified base- and target-creation source
+branches when establishment was required. Carry them into the delivery handoff;
+use explicit not-applicable provenance only for refs that already existed.
 
 For more than one repository, also read [create-multi-repo-worktrees.md](references/create-multi-repo-worktrees.md).
 
@@ -158,6 +167,8 @@ Do not declare the implementation ready while a required gate fails unless proje
 Inspect the complete working-tree diff and status. Confirm:
 
 - the diff maps to the exact task and acceptance criteria;
+- every repository still uses the resolved intended base and target recorded at
+  workspace creation;
 - no unrelated, generated, temporary, secret, debug, or local-only files leaked into the change;
 - contracts, permissions, errors, migrations, localization, accessibility, observability, and documentation were handled when applicable;
 - quality-gate evidence is current for the final diff;
@@ -173,7 +184,8 @@ Only after readiness, implementation, gates, and self-check succeed:
 
 1. ask `manage-project-work` to apply the configured local-review status;
 2. use `record-project-context` only for a useful rolling handoff or durable discovery;
-3. report repositories, worktrees, branches, changes, checks, blockers, and assumptions;
+3. report repositories, worktrees, task branches, intended bases and targets,
+   changes, checks, blockers, and assumptions;
 4. hand the uncommitted state to `deliver-reviewed-change`.
 
 Stop before independent review, commit, push, pull-request creation, merge, deployment, or workspace cleanup.

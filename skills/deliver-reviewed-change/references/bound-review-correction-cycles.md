@@ -1,7 +1,8 @@
 # Bound Review Correction Cycles
 
 Keep local-review corrections and GitHub pull-request review corrections
-bounded independently while preserving one exact task contract.
+bounded independently while preserving one exact task or aggregate-result
+contract.
 
 ## Contents
 
@@ -18,15 +19,17 @@ bounded independently while preserving one exact task contract.
 
 Before the first independent local review, capture one delivery baseline with:
 
-- exact Task ID, Issue, specification or equivalent approved contract, and its
-  revision when one exists;
+- exact Task ID or aggregate result anchor, Issue, specification or equivalent
+  approved contract, and its revision when one exists;
 - acceptance criteria, explicit non-goals, repositories, worktrees, branches,
   and target branches;
-- the complete initial task diff manifest with path, status, and content hash;
+- the complete initial candidate diff manifest against the resolved target with
+  path, status, and content hash;
+- for ordinary task mode, preserve this as the complete initial task diff manifest;
 - initial diff statistics, including changed files, additions, and deletions.
 
-Give every reviewer only neutral bounded context: the exact task contract,
-acceptance criteria, non-goals, complete current diff, applicable instructions,
+Give every reviewer only neutral bounded context: the exact task or aggregate
+result contract, acceptance criteria, non-goals, complete current diff, applicable instructions,
 and required gates. Require each actionable finding to identify a concrete
 current-task failure or credible mandatory risk and its relationship to the
 reviewed diff. Do not include implementation discussion, the desired verdict,
@@ -61,10 +64,12 @@ history to zero in the first heartbeat for each new pull request. Do not create
 one task-wide GitHub correction counter.
 
 The state block must retain the complete baseline rather than only its
-fingerprint. Include Task ID, Issue, specification or equivalent contract and
-revision, acceptance criteria, non-goals, repositories, worktrees, branches,
-target branches, the initial diff manifest, and initial diff statistics. Keep a
-fingerprint as an integrity check, not as a substitute for those fields.
+fingerprint. Include the task or aggregate anchor, Issue, specification or
+equivalent contract and revision, acceptance criteria, non-goals, repositories,
+worktrees, source branches, target branches, the initial candidate diff
+manifest, and initial diff statistics. For aggregate promotion also retain the
+project-owned readiness and direct-delivery evidence. Keep a fingerprint as an
+integrity check, not as a substitute for those fields.
 
 One correction round is one coherent package of code, tests, configuration, or
 documentation changes made in response to one non-clean review result.

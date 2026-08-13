@@ -14,6 +14,8 @@ For every selected repository, inspect:
 
 - repository identity and configured remote;
 - default branch and available remote-tracking ref;
+- project- or task-defined intended base and pull-request target for this exact
+  repository, including whether either ref already exists locally or remotely;
 - current branch and working-tree status in the main workspace;
 - registered worktrees;
 - existing task branch and proposed workspace path;
@@ -29,6 +31,8 @@ Reuse an existing task workspace only when:
 - its path belongs to the exact task;
 - its worktree registration points to the expected repository;
 - its branch belongs to the exact task;
+- its recorded intended base and target still match current project and task
+  policy;
 - its dirty changes are understood as task state;
 - no other active task or session owns it incompatibly.
 
@@ -38,23 +42,50 @@ Report the resumed branch and existing changes before continuing. Do not recreat
 
 When a workspace does not exist:
 
-1. resolve the configured remote and default branch;
-2. fetch and prune when network and policy allow;
-3. verify the intended remote-tracking base;
-4. when file-backed planning publication is configured and this repository also
+1. resolve the configured remote, repository default branch, and any exact-task
+   repository override for the intended task base and pull-request target as
+   one record keyed by the task or aggregate anchor plus repository. Record
+   whether it came from the exact task contract, project configuration, or the
+   compatibility fallback; do not build a persisted branch registry;
+2. when no override exists, use the repository default branch for both the
+   intended base and target so existing projects keep their current behavior;
+3. fetch and prune the relevant refs when network and policy allow;
+4. verify the intended base when it exists. When it does not exist and project
+   policy authorizes first-use establishment, derive it from the verified
+   configured creation base, prove that no conflicting local or remote branch
+   appeared, and create or prepare it without force, reset, or history rewrite;
+5. verify the intended target independently. When it exists, record its exact
+   revision and an explicit not-applicable target-creation source. When it is
+   absent, require a verified project-selected target creation base, record the
+   explicit absence and creation-source branch, and prepare a clean local target
+   ref at exactly that base without candidate changes. If policy cannot prove
+   this provenance, stop before workspace creation; do not defer an unresolvable
+   absent target to delivery and do not push it during execution;
+6. when file-backed planning publication is configured and this repository also
    owns the canonical task specification, verify that the base contains or
    descends from the ordinary merged revision in the complete current
    capture-contract publication record;
-5. when file-backed planning publication is configured and the specification
+7. when file-backed planning publication is configured and the specification
    owner is a different repository, verify the recorded matching exact-task
    ordinary tuple with Task ID, owner repository, canonical spec path, merged
    revision, capture-contract revision, publication-attempt ID,
    normalized-result hash, and complete matched reviewer session set instead of
    requiring impossible shared Git ancestry;
-6. derive the configured task branch and workspace path;
-7. ensure neither collides with another task;
-8. create the feature branch and worktree from that base;
-9. verify branch, `HEAD`, worktree registration, and clean initial state.
+8. derive the configured task branch and workspace path;
+9. ensure the task branch, intended base, intended target, and workspace do not
+   collide with another task or owner;
+10. create the feature branch and worktree from the resolved intended base;
+11. verify branch, `HEAD`, base revision, intended target, target revision or
+    explicit absence, worktree registration, and clean initial state. Retain
+    separate verified base- and target-creation source branches when either ref
+    was prepared, or explicit not-applicable values when they already existed.
+
+The intended base and pull-request target may be the same integration branch,
+but do not assume that they are. If first-use preparation remains local because
+execution authority excludes push, record the missing remote branch as an
+explicit delivery gate together with its verified creation-source provenance.
+If a remote base or target branch appears or moves before delivery, reconcile
+its ownership and ancestry instead of overwriting it.
 
 Apply the following evidence rules only when file-backed planning publication is
 configured. Historical legacy derived revisions and cross-repository legacy
@@ -69,7 +100,7 @@ A typical command shape is:
 
 ```text
 git -C <repository> fetch --prune <remote>
-git -C <repository> worktree add -b <task-branch> <workspace-path> <remote>/<default-branch>
+git -C <repository> worktree add -b <task-branch> <workspace-path> <resolved-base>
 ```
 
 Adapt commands to the configured repository and Git version. Do not copy these placeholders literally.
@@ -79,7 +110,7 @@ Adapt commands to the configured repository and Git version. Do not copy these p
 If fetch fails:
 
 - do not silently treat a stale local branch as current;
-- report the failed remote operation and known local base;
+- report the failed remote operation and every affected intended base or target;
 - continue from a local base only when project degraded-mode policy allows it;
 - record the base ref or commit and the staleness risk;
 - preserve a pending remote verification gate for delivery.

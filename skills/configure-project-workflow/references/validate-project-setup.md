@@ -79,6 +79,33 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   canonical-publication gate.
 - Confirm `execute-project-task` establishes its implementation-start status
   after readiness and before workspace creation.
+- When `execute-project-task` is selected, treat an absent `branch_routing`
+  section as the backward-compatible repository-default base and target. When
+  the section is materialized, confirm the same explicit fallback, permit
+  overrides only from project configuration or the exact task at per-repository
+  granularity, require one resolved record keyed by exact task or aggregate
+  anchor plus repository, and reject any requirement for a persisted branch
+  registry. Permit its typed, task-or-aggregate-scoped `values` collection to
+  remain empty while no concrete route is active. When populated, require every
+  item to carry the anchor, repository, intended base, intended target, and
+  base creation-source branch or explicit not-applicable value, plus the
+  target's exact revision or explicit absence and target creation-source branch
+  or not-applicable value, with exactly one concrete route for every selected
+  repository and no unrelated routes. Confirm the handoff records both branches,
+  routing source, both creation-provenance values, target revision or absence,
+  and the base revision, and forbid
+  force or history rewrite when establishing or resuming an intended base.
+  When `deliver-reviewed-change` is absent, reject enabled aggregate promotion;
+  the section may be absent or remain explicitly disabled for template
+  compatibility. When aggregate promotion is enabled, require its typed policy
+  reference to the exact aggregate-and-repository resolved runtime routing
+  record's `values` collection and require every item to validate non-empty
+  anchor, repository, source, destination, and routing-source values. Require
+  exact coverage of the selected repository set with no duplicates; ownership
+  labels or field-name metadata alone are insufficient. Require a
+  delivery-owned source/helper worktree for review and corrections, including
+  materialization from a verified remote-only source, and reject reuse of a
+  completed child-task worktree.
 - When `publish-planning-change` is selected, require the canonical runner
   command template rather than direct `codex review`, all runtime placeholders,
   including every configured settlement value and the bounded reviewer
@@ -178,6 +205,29 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   Confirm one `finalize_codex_review_state` procedure owns the exhaustive
   terminal-reason matrix and every terminal branch delegates to it without
   duplicating mutation rules.
+- Confirm delivery creates and reviews every pull request against its resolved
+  actual target, synchronizes that target after merge, and does not delete a
+  shared integration branch as ordinary task cleanup. Confirm an existing
+  target is only observed and reconciled before PR creation, never pushed or
+  committed to directly, and that ordinary delivery pushes are limited to the
+  source branch. If aggregate promotion is
+  enabled, require project-owned source, destination, and readiness; count
+  allowed direct-delivery evidence per repository while continuing remaining
+  unsatisfied routes; prohibit empty promotion pull requests;
+  resolve concrete per-repository source and destination values through the
+  configured typed runtime routing-record values reference, with exactly one
+  matching route per selected repository and no unrelated entries;
+  prepare destination synchronization on the source or a safe helper without
+  committing before review, and commit it only after the local gate passes;
+  create or reuse and validate a delivery-owned source/helper worktree before
+  review, including when the source initially exists only as a remote ref;
+  prohibit routing promotion corrections through a completed child worktree;
+  require an aggregate-specific immutable review scope bound to the aggregate
+  anchor, readiness, direct-delivery evidence, exact per-repository pre-review
+  destination revisions, and complete candidate manifest; preserve the standard
+  review, CI, merge-authority, and no-force gates; retain per-PR synchronization
+  and cleanup, but forbid aggregate done status or closure until every selected
+  repository route is satisfied and every required repository PR is merged.
 - Confirm reviewer context is bound to the exact task contract, acceptance
   criteria, non-goals, initial diff manifest and statistics. Generalized
   hardening, unsubstantiated edge cases, unrelated defects, and unexplained
@@ -266,7 +316,18 @@ Evaluate representative prompts without performing their mutations:
   candidates -> stop before mutations and ask for the exact anchor or choice;
 - accept current recommendations -> only the latest recommended question set;
 - request implementation -> readiness and explicit authority gate;
-- request delivery -> exact endpoint gate;
+- request implementation with no branch override -> use the repository default
+  branch as both base and target;
+- request implementation with per-repository branch overrides -> resolve and
+  record each repository independently, safely prepare a missing intended base,
+  and stop rather than overwrite a concurrently created remote ref;
+- request delivery -> exact endpoint and actual-target gate;
+- request aggregate promotion with a meaningful diff -> verify project-owned
+  readiness, materialize a delivery-owned source/helper worktree, synchronize
+  target into that source or helper, then reuse the ordinary review and
+  delivery gates;
+- request aggregate promotion after allowed direct deliveries already achieved
+  the result -> return already integrated without an empty branch or PR;
 - planning session then request implementation -> stop before task lookup or
   mutations and require the configured release action;
 - planning session then request delivery -> stop before review or delivery
