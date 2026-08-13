@@ -474,7 +474,7 @@ class BranchRoutingContractTest(unittest.TestCase):
         self.assertIn("completed child task's worktree", readiness)
         self.assertIn("return `Already integrated`", readiness)
         self.assertIn(
-            "return `Already integrated` before any source comparison",
+            "return `Already integrated` only when every selected repository",
             normalized_readiness,
         )
         self.assertIn("return `Not ready` and fail closed", normalized_readiness)
@@ -485,9 +485,13 @@ class BranchRoutingContractTest(unittest.TestCase):
         self.assertIn("provider-supported non-overwriting creation", pull_request)
         self.assertIn("non-committing strategy", readiness)
         self.assertIn("first point where newly prepared", pull_request)
+        self.assertIn("mark that\n   repository route satisfied", readiness)
+        self.assertIn("only when every selected repository", readiness)
         self.assertIn("exact destination revision", readiness)
         self.assertIn("pre-review destination revision", cleanup)
-        self.assertIn("rerun every invalidated local review", cleanup)
+        self.assertIn("repository owned by the exact pull request", cleanup)
+        self.assertIn("Previously\n  completed repositories", cleanup)
+        self.assertIn("rerun every invalidated local\n  review", cleanup)
         self.assertIn("update the actual merged target branch", cleanup)
         self.assertIn("Do not remove an aggregate or integration source branch", cleanup)
 

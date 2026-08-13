@@ -55,16 +55,19 @@ For aggregate promotion:
    through the immutable review input and GitHub review state so it can be
    revalidated immediately before merge;
 3. when the source is absent, evaluate the project-approved direct-delivery
-   evidence first. If it proves that the complete aggregate outcome is already
-   present in the destination, return `Already integrated` before any source
-   comparison and do not create a branch or pull request. Otherwise return
+   evidence for that repository first. If it proves that repository's complete
+   aggregate contribution is already present in its destination, mark that
+   repository route satisfied and continue evaluating the remaining selected
+   routes without creating a branch or pull request for it. Otherwise return
    `Not ready` and fail closed before branch, review, or pull-request creation;
 4. with an existing source, establish safe ancestry and determine whether it
    contains a meaningful result not already in the destination. When approved
-   evidence proves the complete result is already present, return `Already
-   integrated` and do not create an empty pull request. When no meaningful
-   destination-to-source diff remains and the evidence is incomplete, return
-   `Not ready` and fail closed before review or pull-request creation;
+   evidence proves that repository's complete result is already present, mark
+   its route satisfied and continue without an empty pull request. When no
+   meaningful destination-to-source diff remains and the evidence is
+   incomplete, return `Not ready` and fail closed before review or pull-request
+   creation; return `Already integrated` only when every selected repository is
+   satisfied; otherwise continue only with the remaining source routes;
 5. create or reuse and validate a delivery-owned worktree for the source branch
    or a safe helper. When the source exists only as a remote ref, first fetch
    and verify it, then materialize the local branch/worktree without rewriting

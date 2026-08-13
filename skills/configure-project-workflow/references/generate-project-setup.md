@@ -277,7 +277,8 @@ When `deliver-reviewed-change` is selected, generate:
   Reject missing, duplicate, mismatched, or unrelated repository routes. Keep this
   record task/aggregate-scoped rather than creating a branch registry. Also
   require project-owned readiness evidence, count allowed direct deliveries
-  toward the achieved outcome, require either a meaningful destination-to-source
+  per repository toward the achieved outcome while continuing unsatisfied
+  repository routes, require either a meaningful destination-to-source
   diff or proof that the result is already integrated, prepare the current
   target on the source or a safe helper without committing before review and
   commit it only after the local gate passes, materialize and validate

@@ -212,7 +212,8 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   committed to directly, and that ordinary delivery pushes are limited to the
   source branch. If aggregate promotion is
   enabled, require project-owned source, destination, and readiness; count
-  allowed direct-delivery evidence; prohibit empty promotion pull requests;
+  allowed direct-delivery evidence per repository while continuing remaining
+  unsatisfied routes; prohibit empty promotion pull requests;
   resolve concrete per-repository source and destination values through the
   configured typed runtime routing-record values reference, with exactly one
   matching route per selected repository and no unrelated entries;
