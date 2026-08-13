@@ -52,13 +52,15 @@ def branch_routing_contract():
                     "intended_target_branch",
                     "base_creation_source_branch_or_not_applicable",
                 ],
-                "values": {
-                    "task_or_aggregate_anchor": "MAI-EPIC-BRANCH-WORKFLOW-72",
-                    "repository": "rubyhat/marshall-ai-agent",
-                    "aggregate_source_branch": "integration/epic-72",
-                    "aggregate_destination_branch": "main",
-                    "routing_source": "project_configuration",
-                },
+                "values": [
+                    {
+                        "task_or_aggregate_anchor": "MAI-EPIC-BRANCH-WORKFLOW-72",
+                        "repository": "rubyhat/marshall-ai-agent",
+                        "aggregate_source_branch": "integration/epic-72",
+                        "aggregate_destination_branch": "main",
+                        "routing_source": "project_configuration",
+                    }
+                ],
             },
             "branch_registry_required": False,
         },
@@ -189,6 +191,8 @@ class BranchRoutingContractTest(unittest.TestCase):
         )
         self.assertFalse(override["branch_registry_required"]["const"])
         values = override["resolved_record"]["properties"]["values"]
+        self.assertEqual("array", values["type"])
+        self.assertEqual(1, values["minItems"])
         for field in (
             "task_or_aggregate_anchor",
             "repository",
@@ -196,7 +200,9 @@ class BranchRoutingContractTest(unittest.TestCase):
             "aggregate_destination_branch",
             "routing_source",
         ):
-            self.assertEqual("string", values["properties"][field]["type"])
+            self.assertEqual(
+                "string", values["items"]["properties"][field]["type"]
+            )
 
     def test_schema_accepts_optional_project_owned_branch_routing(self):
         if Draft202012Validator is None:
@@ -299,15 +305,36 @@ class BranchRoutingContractTest(unittest.TestCase):
 
         config["branch_routing"] = branch_routing_contract()
         del config["branch_routing"]["override_scope"]["resolved_record"]["values"][
-            "aggregate_source_branch"
-        ]
+            0
+        ]["aggregate_source_branch"]
         self.assertTrue(list(validator.iter_errors(config)))
 
         config["branch_routing"] = branch_routing_contract()
         config["branch_routing"]["override_scope"]["resolved_record"]["values"][
-            "aggregate_destination_branch"
-        ] = ""
+            0
+        ]["aggregate_destination_branch"] = ""
         self.assertTrue(list(validator.iter_errors(config)))
+
+    def test_enabled_promotion_accepts_one_route_per_repository(self):
+        if Draft202012Validator is None:
+            self.skipTest("jsonschema is unavailable")
+
+        schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+        config = load_delivery_fixture()
+        config["branch_routing"] = branch_routing_contract()
+        config["review"]["aggregate_scope_binding"] = aggregate_scope_binding()
+        config["branch_routing"]["override_scope"]["resolved_record"]["values"].append(
+            {
+                "task_or_aggregate_anchor": "MAI-EPIC-BRANCH-WORKFLOW-72",
+                "repository": "rubyhat/consumer-repository",
+                "aggregate_source_branch": "integration/epic-72",
+                "aggregate_destination_branch": "main",
+                "routing_source": "exact_task_contract",
+            }
+        )
+
+        errors = list(Draft202012Validator(schema).iter_errors(config))
+        self.assertEqual([], [error.message for error in errors])
 
     def test_enabled_promotion_requires_delivery_owned_correction_worktree(self):
         if Draft202012Validator is None:

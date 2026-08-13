@@ -44,10 +44,10 @@ For every repository in ordinary task mode:
 For aggregate promotion:
 
 1. resolve and read back the configured runtime routing record for the exact
-   aggregate anchor and repository. Require concrete source and destination
-   branches plus their routing source from its typed values location; verify
-   the values identify the requested aggregate and repository, and stop when
-   the record is missing, empty, mismatched, or ambiguous;
+   aggregate anchor and its selected repositories. Require exactly one concrete
+   source, destination, and routing-source tuple per selected repository from
+   its typed values collection. Stop when any route is missing, duplicated,
+   empty, mismatched, ambiguous, or belongs to an unrelated repository;
 2. fetch or otherwise verify the current destination ref and the source ref
    when it exists. Stop if the destination is missing or either existing ref's
    ownership is ambiguous;

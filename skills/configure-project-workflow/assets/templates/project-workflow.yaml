@@ -384,9 +384,9 @@ branch_routing:
         - intended_base_branch
         - intended_target_branch
         - base_creation_source_branch_or_not_applicable
-      # Populate one exact resolved record at runtime or from the exact task
-      # contract. This remains a single task/aggregate record, not a registry.
-      values: {}
+      # Populate the exact task/aggregate-scoped repository routes at runtime or
+      # from the exact task contract. This bounded collection is not a registry.
+      values: []
     branch_registry_required: false
   execution_handoff:
     required_context:

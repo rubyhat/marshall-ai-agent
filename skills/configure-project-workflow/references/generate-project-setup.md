@@ -225,9 +225,11 @@ When `execute-project-task` is selected, generate:
   optional overrides are owned by project configuration or the exact task at
   per-repository granularity, and whose one resolved runtime record is keyed by
   exact task or aggregate anchor plus repository. Require that record to carry
-  a typed `values` location for the exact anchor, repository, intended base,
-  intended target, and the verified creation-source branch when first-use
-  establishment is needed; do not create a persisted branch registry;
+  a typed, bounded `values` collection scoped to the exact task or aggregate,
+  with one route for every selected repository and no unrelated routes. Each
+  route carries the exact anchor, repository, intended base, intended target,
+  and verified creation-source branch when first-use establishment is needed;
+  do not create a persisted branch registry;
 - an execution handoff that records repository, task branch, intended base,
   intended target, routing source, creation-source branch or not-applicable,
   and base revision;
@@ -263,7 +265,8 @@ When `deliver-reviewed-change` is selected, generate:
   it, require a typed reference to the ordinary resolved runtime routing record,
   keyed by aggregate anchor plus repository, and require that record to resolve
   and validate concrete aggregate source, destination, and routing-source values
-  in that record's typed `values` location. Keep this
+  for every selected repository in that record's typed `values` collection.
+  Reject missing, duplicate, mismatched, or unrelated repository routes. Keep this
   record task/aggregate-scoped rather than creating a branch registry. Also
   require project-owned readiness evidence, count allowed direct deliveries
   toward the achieved outcome, require either a meaningful destination-to-source

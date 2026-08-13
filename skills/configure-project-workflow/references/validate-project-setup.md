@@ -85,16 +85,18 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   overrides only from project configuration or the exact task at per-repository
   granularity, require one resolved record keyed by exact task or aggregate
   anchor plus repository, and reject any requirement for a persisted branch
-  registry. Require its typed `values` location to hold concrete fields for the
-  exact runtime record. Confirm the handoff records both branches, routing source, verified
+  registry. Require its typed, task-or-aggregate-scoped `values` collection to
+  hold exactly one concrete route for every selected repository and no unrelated
+  routes. Confirm the handoff records both branches, routing source, verified
   creation-source branch or not-applicable, and the base revision, and forbid
   force or history rewrite when establishing or resuming an intended base.
   When `deliver-reviewed-change` is absent, reject enabled aggregate promotion;
   the section may be absent or remain explicitly disabled for template
   compatibility. When aggregate promotion is enabled, require its typed policy
   reference to the exact aggregate-and-repository resolved runtime routing
-  record's `values` location and require that record to validate non-empty
-  anchor, repository, source, destination, and routing-source values; ownership
+  record's `values` collection and require every item to validate non-empty
+  anchor, repository, source, destination, and routing-source values. Require
+  exact coverage of the selected repository set with no duplicates; ownership
   labels or field-name metadata alone are insufficient. Require a
   delivery-owned source/helper worktree for review and corrections, including
   materialization from a verified remote-only source, and reject reuse of a
@@ -207,7 +209,8 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   enabled, require project-owned source, destination, and readiness; count
   allowed direct-delivery evidence; prohibit empty promotion pull requests;
   resolve concrete per-repository source and destination values through the
-  configured typed runtime routing-record values reference;
+  configured typed runtime routing-record values reference, with exactly one
+  matching route per selected repository and no unrelated entries;
   synchronize the destination into the source or a safe helper before review;
   create or reuse and validate a delivery-owned source/helper worktree before
   review, including when the source initially exists only as a remote ref;
