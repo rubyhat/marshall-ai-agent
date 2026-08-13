@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.9.0...v0.10.0) (2026-08-13)
+
+
+### Новые возможности
+
+* **workflow:** support Epic branch promotion ([#73](https://github.com/rubyhat/marshall-ai-agent/issues/73)) ([b21e0aa](https://github.com/rubyhat/marshall-ai-agent/commit/b21e0aa253d1b22dba90fa03662285627ce6da4f)), closes [#72](https://github.com/rubyhat/marshall-ai-agent/issues/72)
+
+
+### Документация
+
+* add agent skill design manifesto ([3f211ee](https://github.com/rubyhat/marshall-ai-agent/commit/3f211ee98d0a7d28476bc1406a123563ff1c5211))
+
 ## [0.9.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.8.3...v0.9.0) (2026-08-10)
 
 
