@@ -290,7 +290,10 @@ When `deliver-reviewed-change` is selected, generate:
   scope bound to the task-or-aggregate anchor, equivalent contract, readiness,
   direct-delivery evidence, branches, exact per-repository pre-review
   destination revisions, and candidate manifest. Preserve the
-  ordinary task-only scope binding unchanged for backward compatibility;
+  ordinary task-only scope binding unchanged for backward compatibility. Keep
+  the aggregate anchor active through per-PR synchronization and cleanup, and
+  apply done status or closure only after every selected repository route is
+  satisfied and every required repository PR is merged;
 - one immutable delivery baseline bound to the exact task, specification or
   equivalent contract, acceptance criteria, non-goals, initial complete diff
   manifest, and initial diff statistics;

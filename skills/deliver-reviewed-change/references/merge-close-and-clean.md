@@ -41,10 +41,17 @@ the paused-heartbeat cleanup blocker without deleting uncertain state.
 
 Through `manage-project-work`:
 
-- apply the configured done status;
-- close the exact implementation Issue when policy requires it;
-- for aggregate promotion, reconcile the aggregate or Epic anchor only from
-  project-owned readiness and the achieved outcome, not child count alone;
+- for ordinary task delivery, apply the configured done status and close the
+  exact implementation Issue when policy requires it;
+- after each repository PR in aggregate promotion, retain per-PR provider
+  verification, synchronization, recording, and safe cleanup, but keep the
+  aggregate or Epic anchor active while any selected repository route remains
+  unsatisfied or unmerged;
+- only after every selected repository route is proven satisfied and every
+  required repository PR is merged, reconcile the aggregate or Epic anchor
+  from project-owned readiness and the achieved outcome, apply its configured
+  done status, and close it when policy requires. Child count alone is not
+  completion evidence;
 - preserve completed child-task state and do not close unrelated tasks;
 - read back Issue and Project state.
 

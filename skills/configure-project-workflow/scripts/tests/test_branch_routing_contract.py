@@ -483,6 +483,11 @@ class BranchRoutingContractTest(unittest.TestCase):
         self.assertIn("ordinary delivery pushes to that source branch", pull_request)
         self.assertIn("Only when execution prepared the target locally", pull_request)
         self.assertIn("provider-supported non-overwriting creation", pull_request)
+        self.assertIn("target_revision_or_absent", readiness)
+        self.assertIn(
+            "target_creation_source_branch_or_not_applicable", readiness
+        )
+        self.assertIn("Stop before local review or commit", readiness)
         self.assertIn("non-committing strategy", readiness)
         self.assertIn("first point where newly prepared", pull_request)
         self.assertIn("mark that\n   repository route satisfied", readiness)
@@ -492,6 +497,9 @@ class BranchRoutingContractTest(unittest.TestCase):
         self.assertIn("repository owned by the exact pull request", cleanup)
         self.assertIn("Previously\n  completed repositories", cleanup)
         self.assertIn("rerun every invalidated local\n  review", cleanup)
+        self.assertIn("keep the\n  aggregate or Epic anchor active", cleanup)
+        self.assertIn("only after every selected repository route", cleanup)
+        self.assertIn("every\n  required repository PR is merged", cleanup)
         self.assertIn("update the actual merged target branch", cleanup)
         self.assertIn("Do not remove an aggregate or integration source branch", cleanup)
 

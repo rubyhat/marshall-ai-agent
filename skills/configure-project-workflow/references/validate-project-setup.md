@@ -224,8 +224,10 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   prohibit routing promotion corrections through a completed child worktree;
   require an aggregate-specific immutable review scope bound to the aggregate
   anchor, readiness, direct-delivery evidence, exact per-repository pre-review
-  destination revisions, and complete candidate manifest;
-  and preserve the standard review, CI, merge-authority, and no-force gates.
+  destination revisions, and complete candidate manifest; preserve the standard
+  review, CI, merge-authority, and no-force gates; retain per-PR synchronization
+  and cleanup, but forbid aggregate done status or closure until every selected
+  repository route is satisfied and every required repository PR is merged.
 - Confirm reviewer context is bound to the exact task contract, acceptance
   criteria, non-goals, initial diff manifest and statistics. Generalized
   hardening, unsubstantiated edge cases, unrelated defects, and unexplained

@@ -13,6 +13,13 @@ For ordinary task delivery, confirm:
 - the execution handoff's intended base and target still match current policy;
 - the handoff identifies the routing source and verified base-creation source
   branch or explicit not-applicable value;
+- fetch or otherwise read back the intended target and require the handoff's
+  `target_revision_or_absent` to match its exact remote revision or verified
+  absence. For an absent target, require a non-empty verified
+  `target_creation_source_branch_or_not_applicable` naming its clean creation
+  base; for an existing target, require explicit not-applicable creation
+  provenance. Stop before local review or commit when either value is missing,
+  stale, contradictory, or cannot be read back;
 - task status and the handoff from implementation.
 
 For aggregate promotion, confirm instead:
