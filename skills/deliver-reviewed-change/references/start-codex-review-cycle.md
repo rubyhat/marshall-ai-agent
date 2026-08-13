@@ -13,7 +13,7 @@ Bind every review generation to one exact pull request head.
 
 Before requesting review, capture:
 
-- Task ID and Issue;
+- task ID or aggregate result anchor, plus its Issue or equivalent tracker anchor;
 - repository and PR URL/number;
 - authorized endpoint;
 - current PR state;
@@ -78,7 +78,7 @@ cadence and verify the saved automation. Until a request exists, set
 Its prompt must contain a compact machine-readable state block with:
 
 ```yaml
-task_id:
+task_id_or_aggregate_anchor:
 repository:
 pr_url:
 authorized_endpoint:
@@ -95,7 +95,7 @@ in_progress_heartbeat_count:
 explicit_error_count:
 github_counter_scope: pull_request
 delivery_baseline:
-  task_id:
+  task_id_or_aggregate_anchor:
   issue:
   specification_or_equivalent_contract:
   specification_revision_or_not_applicable:
@@ -105,6 +105,8 @@ delivery_baseline:
   worktrees:
   branches:
   target_branches:
+  aggregate_readiness_evidence_or_not_applicable:
+  direct_delivery_evidence_or_not_applicable:
   initial_diff_manifest:
   initial_diff_stats:
 delivery_baseline_fingerprint:

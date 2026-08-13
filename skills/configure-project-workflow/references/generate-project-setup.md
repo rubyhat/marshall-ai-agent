@@ -219,7 +219,22 @@ When `publish-planning-change` is selected, generate:
 When `execute-project-task` is selected, generate:
 
 - the implementation-start tracker checkpoint after readiness succeeds and
-  before implementation worktree or feature-branch creation.
+  before implementation worktree or feature-branch creation;
+- one root `branch_routing` contract whose compatibility fallback uses the
+  repository default branch as both task base and pull-request target, whose
+  optional overrides are owned by project configuration or the exact task at
+  per-repository granularity, and whose one resolved runtime record is keyed by
+  exact task or aggregate anchor plus repository. Require that record to carry
+  a typed `values` location for the exact anchor, repository, intended base,
+  intended target, and the verified creation-source branch when first-use
+  establishment is needed; do not create a persisted branch registry;
+- an execution handoff that records repository, task branch, intended base,
+  intended target, routing source, creation-source branch or not-applicable,
+  and base revision;
+- safe first-use and resume semantics for an intended base branch: derive a
+  missing branch only from a verified project-selected base, resume an existing
+  branch only after ownership and ancestry checks, stop on a remote-ref race,
+  and never authorize force or history rewrite.
 - when `publish-planning-change` is not selected, keep the required
   `implementation` section empty and omit publication evidence, publication
   ancestry and manifest gates, `publication_upgrade_required`, and every
@@ -239,6 +254,29 @@ during implementation invalidates the selected publication evidence, stops
 
 When `deliver-reviewed-change` is selected, generate:
 
+- actual-target delivery routing: PR creation, review comparison, post-merge
+  synchronization, and cleanup use the target resolved for that exact task and
+  repository rather than silently substituting the default branch. Existing
+  targets are observed and reconciled but never pushed or committed to directly
+  during delivery; ordinary pushes are limited to the delivery source branch;
+- an `aggregate_promotion` policy disabled by default. When the project enables
+  it, require a typed reference to the ordinary resolved runtime routing record,
+  keyed by aggregate anchor plus repository, and require that record to resolve
+  and validate concrete aggregate source, destination, and routing-source values
+  in that record's typed `values` location. Keep this
+  record task/aggregate-scoped rather than creating a branch registry. Also
+  require project-owned readiness evidence, count allowed direct deliveries
+  toward the achieved outcome, require either a meaningful destination-to-source
+  diff or proof that the result is already integrated, integrate the current
+  target on the source or a safe helper before review, materialize and validate
+  a delivery-owned source/helper worktree even when the source exists only on
+  the remote, forbid reuse of a completed child-task worktree for promotion
+  corrections, and reuse the ordinary review, CI, merge-authority, and no-force
+  gates;
+- when aggregate promotion is enabled, require a separate aggregate review
+  scope bound to the task-or-aggregate anchor, equivalent contract, readiness,
+  direct-delivery evidence, branches, and candidate manifest. Preserve the
+  ordinary task-only scope binding unchanged for backward compatibility;
 - one immutable delivery baseline bound to the exact task, specification or
   equivalent contract, acceptance criteria, non-goals, initial complete diff
   manifest, and initial diff statistics;
@@ -306,10 +344,11 @@ When `deliver-reviewed-change` is selected, generate:
   unexplained material cumulative diff growth.
 
 Require the local reviewer and reviewer-visible pull-request context to receive
-the exact task contract, acceptance criteria, non-goals, and complete current
-diff without implementation discussion or an intended verdict. Require every
-actionable finding to name a concrete current-task failure or credible mandatory
-risk before it may authorize a correction package.
+the exact task or aggregate result contract, acceptance criteria, non-goals,
+and complete current diff against the actual target without implementation
+discussion or an intended verdict. Require every actionable finding to name a
+concrete current-delivery failure or credible mandatory risk before it may
+authorize a correction package.
 
 Do not copy project-specific values from an example project.
 

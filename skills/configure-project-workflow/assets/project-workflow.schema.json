@@ -1069,6 +1069,217 @@
       },
       "additionalProperties": true
     },
+    "branch_routing": {
+      "type": "object",
+      "required": [
+        "fallback",
+        "override_scope",
+        "execution_handoff",
+        "safety"
+      ],
+      "properties": {
+        "fallback": {
+          "type": "object",
+          "required": ["task_base", "pull_request_target"],
+          "properties": {
+            "task_base": {"const": "repository_default_branch"},
+            "pull_request_target": {"const": "resolved_task_base_branch"}
+          },
+          "additionalProperties": true
+        },
+        "override_scope": {
+          "type": "object",
+          "required": [
+            "owner",
+            "granularity",
+            "resolution_precedence",
+            "resolved_record",
+            "branch_registry_required"
+          ],
+          "properties": {
+            "owner": {"const": "project_configuration_or_task_contract"},
+            "granularity": {"const": "exact_task_and_repository"},
+            "resolution_precedence": {
+              "const": ["exact_task_contract", "project_configuration"]
+            },
+            "resolved_record": {
+              "type": "object",
+              "required": ["key", "required_context"],
+              "properties": {
+                "key": {
+                  "const": ["task_or_aggregate_anchor", "repository"]
+                },
+                "required_context": {
+                  "const": [
+                    "task_or_aggregate_anchor",
+                    "repository",
+                    "intended_base_branch",
+                    "intended_target_branch",
+                    "base_creation_source_branch_or_not_applicable"
+                  ]
+                },
+                "values": {
+                  "type": "object",
+                  "properties": {
+                    "task_or_aggregate_anchor": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "repository": {"type": "string", "minLength": 1},
+                    "intended_base_branch": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "intended_target_branch": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "base_creation_source_branch_or_not_applicable": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "aggregate_source_branch": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "aggregate_destination_branch": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "routing_source": {"type": "string", "minLength": 1}
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "branch_registry_required": {"const": false}
+          },
+          "additionalProperties": true
+        },
+        "execution_handoff": {
+          "type": "object",
+          "required": ["required_context"],
+          "properties": {
+            "required_context": {
+              "const": [
+                "repository",
+                "task_branch",
+                "intended_base_branch",
+                "intended_target_branch",
+                "routing_source",
+                "base_creation_source_branch_or_not_applicable",
+                "base_revision"
+              ]
+            }
+          },
+          "additionalProperties": true
+        },
+        "safety": {
+          "type": "object",
+          "required": [
+            "missing_intended_base",
+            "existing_intended_base",
+            "remote_ref_race",
+            "force_or_history_rewrite_allowed"
+          ],
+          "properties": {
+            "missing_intended_base": {
+              "const": "establish_from_verified_project_base_without_rewrite"
+            },
+            "existing_intended_base": {
+              "const": "resume_after_ownership_and_ancestry_verification"
+            },
+            "remote_ref_race": {"const": "stop_and_reconcile"},
+            "force_or_history_rewrite_allowed": {"const": false}
+          },
+          "additionalProperties": true
+        },
+        "aggregate_promotion": {
+          "type": "object",
+          "required": ["enabled"],
+          "properties": {
+            "enabled": {"type": "boolean", "default": false},
+            "source_and_target_owner": {"const": "project_policy"},
+            "route_resolution": {
+              "type": "object",
+              "required": [
+                "policy_reference",
+                "record_key",
+                "required_context"
+              ],
+              "properties": {
+                "policy_reference": {
+                  "const": "branch_routing.override_scope.resolved_record.values"
+                },
+                "record_key": {
+                  "const": ["task_or_aggregate_anchor", "repository"]
+                },
+                "required_context": {
+                  "const": [
+                    "aggregate_source_branch",
+                    "aggregate_destination_branch",
+                    "routing_source"
+                  ]
+                }
+              },
+              "additionalProperties": true
+            },
+            "readiness_owner": {"const": "project_policy"},
+            "delivery_workspace": {
+              "type": "object",
+              "required": [
+                "owner",
+                "remote_only_source_action",
+                "correction_worktree",
+                "completed_child_worktree_reuse_allowed"
+              ],
+              "properties": {
+                "owner": {"const": "delivery_workflow"},
+                "remote_only_source_action": {
+                  "const": "materialize_delivery_owned_source_or_helper_worktree"
+                },
+                "correction_worktree": {
+                  "const": "delivery_owned_source_or_helper"
+                },
+                "completed_child_worktree_reuse_allowed": {"const": false}
+              },
+              "additionalProperties": true
+            },
+            "allowed_direct_delivery_evidence_counts": {"const": true},
+            "meaningful_diff_or_proven_already_integrated_required": {"const": true},
+            "integrate_current_target_before_review": {"const": true},
+            "conflicts_resolved_on_source_or_helper": {"const": true},
+            "reuse_standard_review_ci_and_merge_gates": {"const": true}
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "enabled": {"const": true}
+                },
+                "required": ["enabled"]
+              },
+              "then": {
+                "required": [
+                  "source_and_target_owner",
+                  "route_resolution",
+                  "readiness_owner",
+                  "delivery_workspace",
+                  "allowed_direct_delivery_evidence_counts",
+                  "meaningful_diff_or_proven_already_integrated_required",
+                  "integrate_current_target_before_review",
+                  "conflicts_resolved_on_source_or_helper",
+                  "reuse_standard_review_ci_and_merge_gates"
+                ]
+              }
+            }
+          ],
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
     "review": {
       "type": "object",
       "required": [
@@ -1122,6 +1333,39 @@
             "material_cumulative_diff_growth_stops_for_analysis": {
               "const": true
             }
+          },
+          "additionalProperties": true
+        },
+        "aggregate_scope_binding": {
+          "type": "object",
+          "required": [
+            "exact_aggregate_contract_required",
+            "required_context",
+            "initial_diff_baseline_required",
+            "baseline_immutable_for_delivery_attempt"
+          ],
+          "properties": {
+            "exact_aggregate_contract_required": {"const": true},
+            "required_context": {
+              "const": [
+                "task_or_aggregate_anchor",
+                "issue",
+                "specification_or_equivalent_contract",
+                "specification_revision_or_not_applicable",
+                "acceptance_criteria",
+                "non_goals",
+                "repositories",
+                "worktrees",
+                "branches",
+                "target_branches",
+                "aggregate_readiness_evidence",
+                "direct_delivery_evidence",
+                "initial_diff_manifest",
+                "initial_diff_stats"
+              ]
+            },
+            "initial_diff_baseline_required": {"const": true},
+            "baseline_immutable_for_delivery_attempt": {"const": true}
           },
           "additionalProperties": true
         },
@@ -1501,6 +1745,54 @@
     {
       "if": {
         "properties": {
+          "branch_routing": {
+            "required": ["aggregate_promotion"],
+            "properties": {
+              "aggregate_promotion": {
+                "required": ["enabled"],
+                "properties": {
+                  "enabled": {"const": true}
+                }
+              }
+            }
+          }
+        },
+        "required": ["branch_routing"]
+      },
+      "then": {
+        "properties": {
+          "branch_routing": {
+            "properties": {
+              "override_scope": {
+                "properties": {
+                  "resolved_record": {
+                    "required": ["values"],
+                    "properties": {
+                      "values": {
+                        "required": [
+                          "task_or_aggregate_anchor",
+                          "repository",
+                          "aggregate_source_branch",
+                          "aggregate_destination_branch",
+                          "routing_source"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "review": {
+            "required": ["aggregate_scope_binding"]
+          }
+        },
+        "required": ["review"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
           "workflow_kit": {
             "properties": {
               "selected_modules": {
@@ -1582,6 +1874,32 @@
             "properties": {
               "aliases": {
                 "not": {"required": ["--publish-spec"]}
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "workflow_kit": {
+            "properties": {
+              "selected_modules": {
+                "not": {"contains": {"const": "deliver-reviewed-change"}}
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "branch_routing": {
+            "properties": {
+              "aggregate_promotion": {
+                "properties": {
+                  "enabled": {"const": false}
+                }
               }
             }
           }

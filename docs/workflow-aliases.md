@@ -278,7 +278,14 @@ task lookup, status transition, Git, dependency и file mutations и реком�
 - после успешного readiness переводит exact task в configured implementation
   status и только затем создаёт или возобновляет worktree и feature branch;
 - выбирает только затронутые repositories;
-- создаёт или возобновляет isolated task workspaces;
+- для каждого repository отдельно разрешает intended base и PR target из
+  project/task policy; без override обеими ветками остаётся repository default;
+- безопасно подготавливает отсутствующий intended base от проверенной
+  project-selected основы или возобновляет существующий после ownership и
+  ancestry checks, не применяя force либо history rewrite;
+- создаёт или возобновляет isolated task workspaces и фиксирует base, target и
+  base revision в local-review handoff вместе с routing source и проверенной
+  creation-source branch либо явным not-applicable;
 - защищает параллельную работу;
 - пишет task-scoped код;
 - выполняет relevant quality gates;
@@ -296,14 +303,27 @@ revision, но и с текущим specification-owner authority base. Лока
 
 Не разрешает commit, push, PR, merge, deploy, production mutation или cleanup.
 
-### `--deliver-task <Task ID, Issue URL, PR URL, spec path или current task>`
+### `--deliver-task <Task ID, Epic/result anchor, Issue URL, PR URL, spec path или current task>`
 
 Команда доступна только в разговоре без активного planning/no-delivery lock.
 Конфликтующий профиль блокирует review fixes, commit, push, PR actions,
 heartbeat, merge, tracker mutations и cleanup.
 
 Проводит точную задачу через configured independent review и delivery flow.
-Точная конечная точка может быть сужена дополнительным текстом пользователя.
+PR, review comparison, post-merge synchronization и cleanup используют
+фактический target из execution handoff, а не неявно ветку по умолчанию. Точная
+конечная точка может быть сужена дополнительным текстом пользователя.
+
+Когда project policy включает aggregate promotion, тот же alias может доставить
+готовую integration-ветку в настроенный canonical target как самостоятельный
+результат Epic или другого aggregate anchor. Readiness, source/target и учёт
+разрешённых прямых доставок остаются проектными фактами; skill не сканирует
+автоматически всех детей и не повторяет delivery одной из завершённых задач.
+Перед review актуальный target интегрируется в source либо safe helper, а
+конфликты не исправляются прямыми commit в target. При отсутствии meaningful
+diff и доказанном уже достигнутом результате workflow не создаёт пустую ветку
+или PR. Promotion сохраняет обычные local/GitHub review, CI, merge authority,
+no-force и cleanup gates.
 
 До первого local review фиксирует immutable delivery baseline: Task ID,
 specification или эквивалентный contract, acceptance criteria, non-goals,

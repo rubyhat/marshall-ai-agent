@@ -1,20 +1,27 @@
 ---
 name: deliver-reviewed-change
-description: Deliver an exact current implementation task from an uncommitted local-review handoff through independent local review, intentional commit and push, pull-request creation, review-feedback handling, GitHub Codex review monitoring, authorized merge, tracker closure, synchronization, and workspace cleanup. Use when the user explicitly asks to review, publish, deliver, finish, or merge the current task; invokes `--deliver-task` with a Task ID, Issue URL, PR URL, spec path, or current task anchor; asks to resume or address feedback on that exact task's pull request; or when a configured heartbeat resumes its active review cycle. Verify active conversation authority before review or delivery mutations and respect narrower requested endpoints. Do not use for initial implementation, unrelated pull requests, generic GitHub orientation, force-push, deployment, production mutations, or broad repository cleanup.
+description: Deliver an exact implementation task or project-configured aggregate integration branch through local review, commit and push, pull-request creation, GitHub Codex review, authorized merge, synchronization, and safe cleanup. Use when the user asks to review, publish, deliver, finish, or merge the current task; promote a ready Epic or integration branch into its configured target; invokes `--deliver-task` with a Task ID, Epic/result anchor, Issue URL, PR URL, spec path, or current task; resumes feedback on that exact pull request; or when its configured heartbeat resumes the review cycle. Verify active conversation authority and narrower endpoints before mutations. Do not use for initial implementation, unrelated pull requests, generic GitHub orientation, force-push, deployment, production mutations, or broad repository cleanup.
 ---
 
 # Deliver Reviewed Change
 
-Move one exact implementation task through review and delivery without losing task identity, scope, review-cycle state, or merge authority.
+Move one exact implementation task or configured aggregate result through
+review and delivery without losing identity, scope, review-cycle state, or
+merge authority.
 
 ## Keep the responsibility narrow
 
-- Receive verified uncommitted changes from `execute-project-task` or an equivalent configured local-review handoff.
-- Own independent local review, finding assessment, commit, push, pull-request creation, review monitoring, authorized merge, operational closure, sync, and task-workspace cleanup.
-- Preserve the agreed specification and non-goals while addressing findings.
+- Receive verified uncommitted changes from `execute-project-task`, or receive
+  an exact project-defined aggregate branch, target, and readiness contract for
+  a standalone promotion delivery.
+- Own independent local review, finding assessment, commit, push, pull-request creation, review monitoring, authorized merge, operational closure, sync, and delivery-workspace cleanup.
+- Preserve the agreed task specification or aggregate contract and non-goals while addressing findings.
 - Do not perform initial feature implementation, silently expand scope, select an unrelated pull request, force-push, deploy, mutate production, or bypass required gates.
 - Do not absorb a planning/specification publication pull request; route it to
   `publish-planning-change` and preserve the implementation Issue as open.
+- Do not disguise aggregate promotion as a repeated delivery of one completed
+  child task. Bind it to the aggregate result or Epic anchor supplied by project
+  policy.
 - Use `manage-project-work` for lifecycle mutations and `record-project-context` for durable findings or closing state.
 
 ## Resolve active conversation authority first
@@ -44,14 +51,17 @@ Choose one mode:
 - `start`: begin from verified uncommitted changes;
 - `resume`: continue an exact existing branch or pull request;
 - `monitor`: execute one heartbeat decision for an exact persisted review cycle;
-- `complete`: resume an exact clean and authorized delivery through merge and cleanup.
+- `complete`: resume an exact clean and authorized delivery through merge and cleanup;
+- `promote`: prepare and deliver one exact configured aggregate integration
+  branch into its configured target as a standalone result.
 
 Resolve the authorized endpoint from the user's request:
 
 - a narrow request such as “open a PR” stops at that endpoint;
 - after the active-conversation gate passes, `--deliver-task` authorizes the
-  configured full lifecycle for the exact current task, including merge and
-  cleanup when all gates and merge-ownership rules pass;
+  configured full lifecycle for the exact current task or configured aggregate
+  promotion anchor, including merge and cleanup when all gates and
+  merge-ownership rules pass;
 - a heartbeat inherits the existing endpoint and cannot broaden it;
 - ambiguity about task, pull request, repository, or merge target blocks mutations.
 
@@ -62,6 +72,8 @@ The alias does not authorize force-push, unrelated pull requests, Project schema
 Read project instructions and workflow configuration. Resolve:
 
 - task, Issue, specification, branch, worktree, and repository mapping;
+- intended task bases, actual pull-request targets, and any configured
+  aggregate-promotion source and destination per repository;
 - required local-review command, model, fallback, rubric, and architecture gates;
 - commit, push, PR description, target branch, linkage, and status policy;
 - GitHub review trigger, reviewer actor matching, acknowledgment reactions, channels, verdict and error patterns;
@@ -69,7 +81,9 @@ Read project instructions and workflow configuration. Resolve:
 - separate local and GitHub correction-round budgets, delivery-baseline
   binding, retained histories, and scope-drift stop conditions;
 - CI and merge gates, merge authorization, dependency order, and multi-repository policy;
-- post-merge synchronization, task closure, recording, and cleanup rules.
+- post-merge synchronization, task closure, recording, and cleanup rules;
+- project-owned aggregate readiness, allowed direct-delivery evidence,
+  meaningful-diff handling, and aggregate tracker reconciliation rules.
 
 Keep project names, paths, models, commands, languages, status labels, bot identities, intervals, and retry counts out of this reusable skill.
 
@@ -79,14 +93,25 @@ Keep project names, paths, models, commands, languages, status labels, bot ident
 
 Read [verify-delivery-readiness.md](references/verify-delivery-readiness.md).
 
-Confirm the exact task, authorized endpoint, repository/worktree/branch mapping, current diff, specification, gate evidence, task status, and ownership. Do not absorb unrelated dirty changes.
+Confirm the exact task or aggregate result, authorized endpoint,
+repository/worktree/branch mapping, resolved source and target, current diff,
+contract, gate evidence, tracker state, and ownership. In promotion mode,
+materialize and validate a delivery-owned source/helper worktree, prepare it
+against the current target without mutating the target branch directly, and
+route review corrections through that worktree rather than a completed child
+task workspace. Return an already-integrated result without creating an empty
+pull request. Do not absorb unrelated dirty changes.
 
 ### 2. Run independent local review
 
 Read [run-independent-local-review.md](references/run-independent-local-review.md).
 Read [bound-review-correction-cycles.md](references/bound-review-correction-cycles.md).
 
-Use a fresh configured reviewer without implementation discussion history. Evaluate every finding against code, tests, architecture, specification, and scope. Fix real findings locally, rerun affected gates, and repeat review as required. Do not commit until the local-review gate passes or an allowed blocker is explicit.
+Use a fresh configured reviewer without implementation discussion history.
+Evaluate every finding against code, tests, architecture, the exact task or
+aggregate contract, and scope. Fix real findings locally, rerun affected gates,
+and repeat review as required. Do not commit until the local-review gate passes
+or an allowed blocker is explicit.
 
 This is the only active full local-review phase. Creating or proving the exact
 pull request closes it after its passed evidence is bound to the delivery
@@ -97,7 +122,11 @@ for a routine GitHub correction.
 
 Read [commit-push-and-open-pr.md](references/commit-push-and-open-pr.md).
 
-Create intentional task-scoped commits, push without force, create or reuse the exact pull request, verify target and head branches, link the task, and apply the configured PR-review status through `manage-project-work`. Read back external mutations.
+Create intentional scoped commits, push without force, create or reuse the exact
+pull request against the resolved actual target, verify target and head
+branches, link the exact task or aggregate anchor, and apply the configured
+PR-review checkpoint through `manage-project-work`. Read back external
+mutations.
 
 Before entering GitHub review, require bound evidence that the pre-PR local gate
 passed. A pull request without that evidence stops as
@@ -214,7 +243,7 @@ CI/merge state only when the authorized endpoint permits it.
 
 Read [merge-close-and-clean.md](references/merge-close-and-clean.md).
 
-Verify clean review, required checks, current head, dependency order, and merge authority immediately before merge. Merge only the exact current task pull request. Then close/reconcile the task, synchronize configured local branches, run the recording closing cycle, and remove task worktrees/branches only after merge and safety checks.
+Verify clean review, required checks, current head, dependency order, and merge authority immediately before merge. Merge only the exact current delivery pull request. Then reconcile the task or aggregate result, synchronize the actual target branch, run the recording closing cycle, and remove only delivery-owned worktrees or branches after merge and safety checks. Preserve an integration branch that project policy still treats as shared or reusable.
 
 Report any dirty workspace, unavailable tracker, failed sync, or cleanup blocker without destroying unfamiliar work.
 
@@ -222,7 +251,7 @@ Report any dirty workspace, unavailable tracker, failed sync, or cleanup blocker
 
 Persist at least:
 
-- task and pull-request identity;
+- task or aggregate-result identity and pull-request identity;
 - authorized endpoint;
 - heartbeat automation status;
 - current head SHA and generation;
@@ -246,7 +275,8 @@ exact PR is proven merged or closed.
 
 ## Coordinate with adjacent skills
 
-- Receive the local-review handoff from `execute-project-task`.
+- Receive the local-review handoff from `execute-project-task`, or the exact
+  project-owned aggregate source, target, contract, and readiness evidence.
 - Use `manage-project-work` for PR, merge-readiness, done, and closure checkpoints.
 - Use `record-project-context` for durable findings, active handoff, and the closing cycle.
 - Return material scope or contract changes to `shape-project-work` or `write-task-spec`.

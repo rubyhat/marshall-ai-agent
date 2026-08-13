@@ -9,8 +9,9 @@ evidence, the active local-review phase is closed.
 Give the reviewer only what is needed:
 
 - applicable project and repository instructions;
-- exact task specification;
-- complete uncommitted diff;
+- exact task specification or aggregate promotion contract;
+- complete candidate diff against the resolved actual target, including
+  committed integration history plus any uncommitted delivery-owned changes;
 - immutable delivery baseline with initial manifest and diff statistics;
 - configured review rubric and domain gates;
 - root project context access when review runs from a nested worktree.
@@ -65,7 +66,9 @@ Local review passes when:
 - any allowed external blocker is visible;
 - the task still matches its specification and authorized endpoint.
 
-Keep changes uncommitted until this gate succeeds.
+Keep new delivery-owned corrections uncommitted until this gate succeeds. In
+promotion mode, preserve existing source-branch history; review it as part of
+the candidate instead of rewriting it into a synthetic uncommitted task diff.
 
 Do not invoke this workflow for a routine GitHub correction package. Post-PR
 routine corrections use deterministic verification and the next full-head

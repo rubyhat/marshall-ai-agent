@@ -1,4 +1,4 @@
 interface:
   display_name: "Deliver Reviewed Change"
-  short_description: "Проводит review и доставляет изменения"
-  default_prompt: "Use $deliver-reviewed-change to review, publish, monitor, and safely complete delivery of the exact current project task."
+  short_description: "Доставляет задачу или aggregate-ветку"
+  default_prompt: "Use $deliver-reviewed-change to review, publish, monitor, and safely complete delivery of the exact current project task or configured aggregate integration branch."

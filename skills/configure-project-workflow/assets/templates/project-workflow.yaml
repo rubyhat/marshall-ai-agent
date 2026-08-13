@@ -360,6 +360,79 @@ implementation:
       workspace_created: false
       next_action_template: "--publish-spec <TASK_ID>"
 
+# Keep the fallback values for existing projects. Project or task policy may
+# override base and target independently for one exact repository.
+branch_routing:
+  fallback:
+    task_base: repository_default_branch
+    pull_request_target: resolved_task_base_branch
+  override_scope:
+    owner: project_configuration_or_task_contract
+    granularity: exact_task_and_repository
+    resolution_precedence:
+      - exact_task_contract
+      - project_configuration
+    # This describes one resolved task/repository record; it is not a branch
+    # registry and does not persist unrelated task routes.
+    resolved_record:
+      key:
+        - task_or_aggregate_anchor
+        - repository
+      required_context:
+        - task_or_aggregate_anchor
+        - repository
+        - intended_base_branch
+        - intended_target_branch
+        - base_creation_source_branch_or_not_applicable
+      # Populate one exact resolved record at runtime or from the exact task
+      # contract. This remains a single task/aggregate record, not a registry.
+      values: {}
+    branch_registry_required: false
+  execution_handoff:
+    required_context:
+      - repository
+      - task_branch
+      - intended_base_branch
+      - intended_target_branch
+      - routing_source
+      - base_creation_source_branch_or_not_applicable
+      - base_revision
+  safety:
+    missing_intended_base: establish_from_verified_project_base_without_rewrite
+    existing_intended_base: resume_after_ownership_and_ancestry_verification
+    remote_ref_race: stop_and_reconcile
+    force_or_history_rewrite_allowed: false
+  # Keep only when `deliver-reviewed-change` is selected; enable only when the
+  # project explicitly uses aggregate integration branches.
+  aggregate_promotion:
+    enabled: false
+    source_and_target_owner: project_policy
+    # Resolve one concrete source/destination pair for the exact aggregate and
+    # repository from the ordinary runtime routing record; this is not a
+    # persisted branch registry.
+    route_resolution:
+      policy_reference: branch_routing.override_scope.resolved_record.values
+      record_key:
+        - task_or_aggregate_anchor
+        - repository
+      required_context:
+        - aggregate_source_branch
+        - aggregate_destination_branch
+        - routing_source
+    readiness_owner: project_policy
+    # Promotion review and corrections always use a delivery-owned worktree,
+    # including when the configured source exists only as a remote branch.
+    delivery_workspace:
+      owner: delivery_workflow
+      remote_only_source_action: materialize_delivery_owned_source_or_helper_worktree
+      correction_worktree: delivery_owned_source_or_helper
+      completed_child_worktree_reuse_allowed: false
+    allowed_direct_delivery_evidence_counts: true
+    meaningful_diff_or_proven_already_integrated_required: true
+    integrate_current_target_before_review: true
+    conflicts_resolved_on_source_or_helper: true
+    reuse_standard_review_ci_and_merge_gates: true
+
 # Keep this section only when `deliver-reviewed-change` is selected.
 review:
   scope_binding:
@@ -383,6 +456,27 @@ review:
     speculative_or_general_hardening_is_non_actionable: true
     material_scope_or_contract_change_returns_to_owner: true
     material_cumulative_diff_growth_stops_for_analysis: true
+  # Keep this binding when aggregate promotion is enabled. Ordinary task
+  # delivery continues to use scope_binding above.
+  aggregate_scope_binding:
+    exact_aggregate_contract_required: true
+    required_context:
+      - task_or_aggregate_anchor
+      - issue
+      - specification_or_equivalent_contract
+      - specification_revision_or_not_applicable
+      - acceptance_criteria
+      - non_goals
+      - repositories
+      - worktrees
+      - branches
+      - target_branches
+      - aggregate_readiness_evidence
+      - direct_delivery_evidence
+      - initial_diff_manifest
+      - initial_diff_stats
+    initial_diff_baseline_required: true
+    baseline_immutable_for_delivery_attempt: true
   correction_policy:
     round_unit: review_driven_correction_package
     separate_local_and_github_counters: true

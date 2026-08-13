@@ -6,7 +6,7 @@ Run this sequence only when the authorized endpoint includes full delivery.
 
 Confirm:
 
-- exact repository and pull request belong to the current task;
+- exact repository and pull request belong to the current task or aggregate result;
 - current head SHA equals the clean reviewed head;
 - no new actionable review event appeared after the clean verdict;
 - required CI and branch-protection checks pass, or a configured external-provider exception is evidenced and the merge can proceed without bypassing branch protection;
@@ -35,14 +35,19 @@ Through `manage-project-work`:
 
 - apply the configured done status;
 - close the exact implementation Issue when policy requires it;
-- reconcile parent state only from acceptance and remaining scope, not child count alone;
+- for aggregate promotion, reconcile the aggregate or Epic anchor only from
+  project-owned readiness and the achieved outcome, not child count alone;
+- preserve completed child-task state and do not close unrelated tasks;
 - read back Issue and Project state.
 
 Do not close unrelated or parent work automatically.
 
 ## Synchronize safely
 
-Fetch and update configured local default branches to the merge commit. If unrelated dirty changes prevent safe synchronization:
+Fetch and update the actual merged target branch to the merge commit. The target
+may be an intermediate integration branch for task delivery or the repository
+default branch for aggregate promotion. Do not silently substitute the default
+branch. If unrelated dirty changes prevent safe synchronization:
 
 - preserve them;
 - record the exact blocker;
@@ -59,12 +64,16 @@ Run the `record-project-context` closing cycle:
 3. remove transient content from the rolling task note;
 4. delete the note only when no unique unresolved state remains.
 
-Then remove task worktrees and local task branches only when:
+Then remove delivery-owned worktrees and local task branches only when:
 
 - merge is verified;
 - no unique uncommitted changes remain;
 - default branch or remote refs establish recoverability;
 - no other task owns the workspace or branch;
 - project cleanup policy permits removal.
+
+Do not remove an aggregate or integration source branch merely because one
+child task merged into it. Remove or retain it only according to explicit
+project lifecycle policy after the aggregate delivery is proven complete.
 
 Report merge, task closure, sync, recording, and cleanup independently. A partial completion must remain visible.
