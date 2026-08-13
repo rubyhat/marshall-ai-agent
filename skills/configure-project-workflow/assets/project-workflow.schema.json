@@ -1120,10 +1120,16 @@
                 },
                 "values": {
                   "type": "array",
-                  "minItems": 1,
                   "uniqueItems": true,
                   "items": {
                     "type": "object",
+                    "required": [
+                      "task_or_aggregate_anchor",
+                      "repository",
+                      "intended_base_branch",
+                      "intended_target_branch",
+                      "base_creation_source_branch_or_not_applicable"
+                    ],
                     "properties": {
                       "task_or_aggregate_anchor": {
                         "type": "string",
@@ -1774,6 +1780,7 @@
                     "required": ["values"],
                     "properties": {
                       "values": {
+                        "minItems": 1,
                         "items": {
                           "required": [
                             "task_or_aggregate_anchor",

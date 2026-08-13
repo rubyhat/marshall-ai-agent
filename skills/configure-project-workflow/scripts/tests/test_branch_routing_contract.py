@@ -56,6 +56,9 @@ def branch_routing_contract():
                     {
                         "task_or_aggregate_anchor": "MAI-EPIC-BRANCH-WORKFLOW-72",
                         "repository": "rubyhat/marshall-ai-agent",
+                        "intended_base_branch": "integration/epic-72",
+                        "intended_target_branch": "main",
+                        "base_creation_source_branch_or_not_applicable": "main",
                         "aggregate_source_branch": "integration/epic-72",
                         "aggregate_destination_branch": "main",
                         "routing_source": "project_configuration",
@@ -192,7 +195,23 @@ class BranchRoutingContractTest(unittest.TestCase):
         self.assertFalse(override["branch_registry_required"]["const"])
         values = override["resolved_record"]["properties"]["values"]
         self.assertEqual("array", values["type"])
-        self.assertEqual(1, values["minItems"])
+        self.assertNotIn("minItems", values)
+        self.assertEqual(
+            [
+                "task_or_aggregate_anchor",
+                "repository",
+                "intended_base_branch",
+                "intended_target_branch",
+                "base_creation_source_branch_or_not_applicable",
+            ],
+            values["items"]["required"],
+        )
+        enabled_values = schema["allOf"][0]["then"]["properties"][
+            "branch_routing"
+        ]["properties"]["override_scope"]["properties"]["resolved_record"][
+            "properties"
+        ]["values"]
+        self.assertEqual(1, enabled_values["minItems"])
         for field in (
             "task_or_aggregate_anchor",
             "repository",
@@ -234,9 +253,35 @@ class BranchRoutingContractTest(unittest.TestCase):
         config = load_delivery_fixture()
         config["branch_routing"] = branch_routing_contract()
         config["branch_routing"]["aggregate_promotion"] = {"enabled": False}
+        config["branch_routing"]["override_scope"]["resolved_record"][
+            "values"
+        ] = []
 
         errors = list(Draft202012Validator(schema).iter_errors(config))
         self.assertEqual([], [error.message for error in errors])
+
+    def test_schema_requires_ordinary_fields_on_every_populated_route(self):
+        if Draft202012Validator is None:
+            self.skipTest("jsonschema is unavailable")
+
+        schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+        config = load_delivery_fixture()
+        config["branch_routing"] = branch_routing_contract()
+        config["branch_routing"]["aggregate_promotion"] = {"enabled": False}
+        route = config["branch_routing"]["override_scope"]["resolved_record"][
+            "values"
+        ][0]
+        for field in (
+            "aggregate_source_branch",
+            "aggregate_destination_branch",
+            "routing_source",
+        ):
+            del route[field]
+
+        validator = Draft202012Validator(schema)
+        self.assertEqual([], list(validator.iter_errors(config)))
+        del route["intended_target_branch"]
+        self.assertTrue(list(validator.iter_errors(config)))
 
     def test_schema_rejects_history_rewrite_permission(self):
         if Draft202012Validator is None:
@@ -327,6 +372,9 @@ class BranchRoutingContractTest(unittest.TestCase):
             {
                 "task_or_aggregate_anchor": "MAI-EPIC-BRANCH-WORKFLOW-72",
                 "repository": "rubyhat/consumer-repository",
+                "intended_base_branch": "integration/epic-72",
+                "intended_target_branch": "main",
+                "base_creation_source_branch_or_not_applicable": "main",
                 "aggregate_source_branch": "integration/epic-72",
                 "aggregate_destination_branch": "main",
                 "routing_source": "exact_task_contract",
@@ -403,6 +451,9 @@ class BranchRoutingContractTest(unittest.TestCase):
         self.assertIn("ordinary delivery pushes to that source branch", pull_request)
         self.assertIn("Only when execution prepared the target locally", pull_request)
         self.assertIn("provider-supported non-overwriting creation", pull_request)
+        self.assertIn("exact destination revision", readiness)
+        self.assertIn("pre-review destination revision", cleanup)
+        self.assertIn("rerun every invalidated local review", cleanup)
         self.assertIn("update the actual merged target branch", cleanup)
         self.assertIn("Do not remove an aggregate or integration source branch", cleanup)
 

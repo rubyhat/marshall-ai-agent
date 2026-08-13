@@ -85,10 +85,13 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   overrides only from project configuration or the exact task at per-repository
   granularity, require one resolved record keyed by exact task or aggregate
   anchor plus repository, and reject any requirement for a persisted branch
-  registry. Require its typed, task-or-aggregate-scoped `values` collection to
-  hold exactly one concrete route for every selected repository and no unrelated
-  routes. Confirm the handoff records both branches, routing source, verified
-  creation-source branch or not-applicable, and the base revision, and forbid
+  registry. Permit its typed, task-or-aggregate-scoped `values` collection to
+  remain empty while no concrete route is active. When populated, require every
+  item to carry the anchor, repository, intended base, intended target, and
+  creation-source branch or explicit not-applicable value, with exactly one
+  concrete route for every selected repository and no unrelated routes. Confirm
+  the handoff records both branches, routing source, verified creation-source
+  branch or not-applicable, and the base revision, and forbid
   force or history rewrite when establishing or resuming an intended base.
   When `deliver-reviewed-change` is absent, reject enabled aggregate promotion;
   the section may be absent or remain explicitly disabled for template

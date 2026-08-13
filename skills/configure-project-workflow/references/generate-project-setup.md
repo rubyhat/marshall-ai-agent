@@ -225,11 +225,12 @@ When `execute-project-task` is selected, generate:
   optional overrides are owned by project configuration or the exact task at
   per-repository granularity, and whose one resolved runtime record is keyed by
   exact task or aggregate anchor plus repository. Require that record to carry
-  a typed, bounded `values` collection scoped to the exact task or aggregate,
-  with one route for every selected repository and no unrelated routes. Each
-  route carries the exact anchor, repository, intended base, intended target,
-  and verified creation-source branch when first-use establishment is needed;
-  do not create a persisted branch registry;
+  a typed, bounded `values` collection scoped to the exact task or aggregate.
+  Permit that generated collection to remain empty while no concrete route is
+  active. When populated, require one route for every selected repository and
+  no unrelated routes; every item carries the exact anchor, repository,
+  intended base, intended target, and verified creation-source branch or an
+  explicit not-applicable value. Do not create a persisted branch registry;
 - an execution handoff that records repository, task branch, intended base,
   intended target, routing source, creation-source branch or not-applicable,
   and base revision;

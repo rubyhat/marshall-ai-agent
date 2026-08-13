@@ -13,6 +13,12 @@ Confirm:
 - dependencies and multi-repository merge order are satisfied;
 - pull request is open and mergeable;
 - merge authority matches project policy;
+- for aggregate promotion, the current fetched destination revision for every
+  selected repository exactly equals the pre-review destination revision bound
+  to the clean generation. If any destination advanced, stop before merge,
+  integrate the new destination on the delivery-owned source or helper,
+  recompute the candidate manifest, and rerun every invalidated local review,
+  GitHub Codex review, CI, and mergeability gate;
 - [finalize-codex-review-state.md](finalize-codex-review-state.md) returned
   `pause_merge_ready` for the exact current PR and its heartbeat remains paused.
 

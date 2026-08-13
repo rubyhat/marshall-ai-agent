@@ -50,7 +50,10 @@ For aggregate promotion:
    empty, mismatched, ambiguous, or belongs to an unrelated repository;
 2. fetch or otherwise verify the current destination ref and the source ref
    when it exists. Stop if the destination is missing or either existing ref's
-   ownership is ambiguous;
+   ownership is ambiguous. Capture the exact destination revision for every
+   selected repository in delivery state before synchronization, and carry it
+   through the immutable review input and GitHub review state so it can be
+   revalidated immediately before merge;
 3. when the source is absent, evaluate the project-approved direct-delivery
    evidence first. If it proves that the complete aggregate outcome is already
    present in the destination, return `Already integrated` before any source
@@ -94,7 +97,8 @@ aggregate anchor and contract, acceptance criteria, non-goals, repositories,
 source branches, target branches, plus a complete initial candidate diff
 path/status/content-hash manifest and diff statistics. For promotion, compute
 that manifest from the destination-to-source candidate after synchronization
-and include aggregate readiness and direct-delivery evidence.
+and include aggregate readiness, direct-delivery evidence, and the exact
+pre-review destination revision for every selected repository.
 
 Initialize only the local correction counter and retain its ordered history.
 Persist and read back one compact machine-readable delivery-state block containing

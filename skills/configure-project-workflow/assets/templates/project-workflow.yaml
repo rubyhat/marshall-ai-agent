@@ -384,8 +384,10 @@ branch_routing:
         - intended_base_branch
         - intended_target_branch
         - base_creation_source_branch_or_not_applicable
-      # Populate the exact task/aggregate-scoped repository routes at runtime or
-      # from the exact task contract. This bounded collection is not a registry.
+      # Keep this empty while no concrete route is active. When populated at
+      # runtime or from the exact task contract, every item carries the anchor,
+      # repository, intended base, intended target, and creation-source value.
+      # This bounded exact-task/aggregate collection is not a registry.
       values: []
     branch_registry_required: false
   execution_handoff:
