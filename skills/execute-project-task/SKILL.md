@@ -123,10 +123,10 @@ Read [create-or-resume-task-workspace.md](references/create-or-resume-task-works
 
 Select only repositories that will be modified. Include a root or coordination repository only when its files are implementation deliverables. Resolve the intended task base and pull-request target independently for every selected repository. When no project or task override exists, use the repository default branch for both. Reuse an existing workspace only after verifying its task identity, branch routing, worktree registration, and working state.
 
-For each selected repository, retain the routing source and the verified base-
-creation source branch when establishment was required. Carry both into the
-delivery handoff; use an explicit not-applicable value when the base already
-existed.
+For each selected repository, retain the routing source, exact target revision
+or explicit absence, and separate verified base- and target-creation source
+branches when establishment was required. Carry them into the delivery handoff;
+use explicit not-applicable provenance only for refs that already existed.
 
 For more than one repository, also read [create-multi-repo-worktrees.md](references/create-multi-repo-worktrees.md).
 

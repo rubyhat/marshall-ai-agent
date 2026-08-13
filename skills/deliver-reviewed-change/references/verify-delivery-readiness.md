@@ -70,9 +70,13 @@ For aggregate promotion:
    and verify it, then materialize the local branch/worktree without rewriting
    history. Do not reuse a completed child task's worktree for promotion review
    or corrections;
-6. integrate the current destination into the source branch or a safe
-   delivery-owned helper branch before review. Resolve conflicts and required
-   corrections there, never by committing directly to the destination;
+6. prepare integration of the current destination into the source branch or a
+   safe delivery-owned helper before review using a non-committing strategy.
+   Leave synchronization and conflict-resolution changes uncommitted for the
+   independent local-review gate; do not use a default committing merge or
+   create the synchronization commit until the later authorized commit phase.
+   Resolve conflicts and required corrections there, never by committing
+   directly to the destination;
 7. never force, reset, or rewrite an existing shared source branch; if it moved,
    reconcile the new history and rerun the gate;
 8. inspect the delivery worktree's branch, registration, ownership, status,

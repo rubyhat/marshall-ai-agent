@@ -46,7 +46,8 @@ Track per repository:
 - branch and worktree path;
 - base commit;
 - intended base and pull-request target;
-- routing source and verified base-creation source branch or not-applicable;
+- routing source, exact target revision or explicit absence, and separate
+  verified base- and target-creation source branches or not-applicable values;
 - changed surfaces;
 - gate results;
 - blockers and dependency state.

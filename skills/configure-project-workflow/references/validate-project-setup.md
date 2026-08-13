@@ -88,10 +88,12 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   registry. Permit its typed, task-or-aggregate-scoped `values` collection to
   remain empty while no concrete route is active. When populated, require every
   item to carry the anchor, repository, intended base, intended target, and
-  creation-source branch or explicit not-applicable value, with exactly one
-  concrete route for every selected repository and no unrelated routes. Confirm
-  the handoff records both branches, routing source, verified creation-source
-  branch or not-applicable, and the base revision, and forbid
+  base creation-source branch or explicit not-applicable value, plus the
+  target's exact revision or explicit absence and target creation-source branch
+  or not-applicable value, with exactly one concrete route for every selected
+  repository and no unrelated routes. Confirm the handoff records both branches,
+  routing source, both creation-provenance values, target revision or absence,
+  and the base revision, and forbid
   force or history rewrite when establishing or resuming an intended base.
   When `deliver-reviewed-change` is absent, reject enabled aggregate promotion;
   the section may be absent or remain explicitly disabled for template
@@ -214,12 +216,14 @@ Do not install a parser or dependency automatically. If no YAML parser is safely
   resolve concrete per-repository source and destination values through the
   configured typed runtime routing-record values reference, with exactly one
   matching route per selected repository and no unrelated entries;
-  synchronize the destination into the source or a safe helper before review;
+  prepare destination synchronization on the source or a safe helper without
+  committing before review, and commit it only after the local gate passes;
   create or reuse and validate a delivery-owned source/helper worktree before
   review, including when the source initially exists only as a remote ref;
   prohibit routing promotion corrections through a completed child worktree;
   require an aggregate-specific immutable review scope bound to the aggregate
-  anchor, readiness, direct-delivery evidence, and complete candidate manifest;
+  anchor, readiness, direct-delivery evidence, exact per-repository pre-review
+  destination revisions, and complete candidate manifest;
   and preserve the standard review, CI, merge-authority, and no-force gates.
 - Confirm reviewer context is bound to the exact task contract, acceptance
   criteria, non-goals, initial diff manifest and statistics. Generalized

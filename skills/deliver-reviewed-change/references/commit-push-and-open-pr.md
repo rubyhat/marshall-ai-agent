@@ -15,7 +15,9 @@ Stage only task files. Do not include unrelated dirty changes. Verify the create
 
 In aggregate promotion mode, preserve the source branch's existing commits.
 Commit only delivery-owned synchronization, conflict resolution, or review
-corrections that are not already committed. Do not squash, reset, rebase, or
+corrections that passed the independent local-review gate while uncommitted.
+This authorized commit phase is the first point where newly prepared
+synchronization may be committed. Do not squash, reset, rebase, or
 otherwise rewrite shared integration history merely to make the promotion look
 like an ordinary task delivery.
 
@@ -32,8 +34,10 @@ like an ordinary task delivery.
   and rerun any gate or independent-review evidence invalidated by a material
   comparison change or conflict.
 - Only when execution prepared the target locally and the remote target is
-  still absent, require its recorded verified creation base, then use a
-  provider-supported non-overwriting creation and read back the resulting
+  still absent, require both its recorded `target_revision_or_absent` evidence
+  and verified target-creation source branch, prove that the prepared local
+  target still equals that clean creation base without candidate changes, then
+  use a provider-supported non-overwriting creation and read back the resulting
   remote revision. If another owner creates the ref during that operation,
   stop and reconcile ownership and ancestry instead of overwriting it.
 - Push the delivery source branch without force.

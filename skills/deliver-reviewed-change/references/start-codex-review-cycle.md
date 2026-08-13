@@ -20,6 +20,8 @@ Before requesting review, capture:
 - current head SHA;
 - review-generation number;
 - immutable delivery-baseline fingerprint;
+- for aggregate promotion, the exact pre-review destination revision keyed by
+  every selected repository;
 - local correction state and this PR's GitHub correction counter and history;
 - required checks to rerun after code changes;
 - configured reviewer matching and response patterns.
@@ -107,6 +109,7 @@ delivery_baseline:
   target_branches:
   aggregate_readiness_evidence_or_not_applicable:
   direct_delivery_evidence_or_not_applicable:
+  pre_review_destination_revisions_or_not_applicable:
   initial_diff_manifest:
   initial_diff_stats:
 delivery_baseline_fingerprint:
@@ -153,6 +156,8 @@ Read back the created or reactivated automation and confirm:
 - repository, immutable PR identity, and head SHA are correct;
 - GitHub counter scope is the exact pull request;
 - baseline, counters, histories, and terminal rules are present;
+- aggregate promotion baseline and heartbeat state contain the same complete
+  per-repository pre-review destination-revision mapping;
 - state is `request_not_created`, status is active, and no request identity is
   fabricated;
 - reactivation reused the same automation identity and preserved the same PR's

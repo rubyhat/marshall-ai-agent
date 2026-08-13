@@ -51,6 +51,8 @@ def branch_routing_contract():
                     "intended_base_branch",
                     "intended_target_branch",
                     "base_creation_source_branch_or_not_applicable",
+                    "target_revision_or_absent",
+                    "target_creation_source_branch_or_not_applicable",
                 ],
                 "values": [
                     {
@@ -59,6 +61,10 @@ def branch_routing_contract():
                         "intended_base_branch": "integration/epic-72",
                         "intended_target_branch": "main",
                         "base_creation_source_branch_or_not_applicable": "main",
+                        "target_revision_or_absent": "verified_target_revision",
+                        "target_creation_source_branch_or_not_applicable": (
+                            "not_applicable"
+                        ),
                         "aggregate_source_branch": "integration/epic-72",
                         "aggregate_destination_branch": "main",
                         "routing_source": "project_configuration",
@@ -75,6 +81,8 @@ def branch_routing_contract():
                 "intended_target_branch",
                 "routing_source",
                 "base_creation_source_branch_or_not_applicable",
+                "target_revision_or_absent",
+                "target_creation_source_branch_or_not_applicable",
                 "base_revision",
             ]
         },
@@ -114,6 +122,7 @@ def branch_routing_contract():
             "allowed_direct_delivery_evidence_counts": True,
             "meaningful_diff_or_proven_already_integrated_required": True,
             "integrate_current_target_before_review": True,
+            "pre_review_integration_commit_allowed": False,
             "conflicts_resolved_on_source_or_helper": True,
             "reuse_standard_review_ci_and_merge_gates": True,
         },
@@ -136,6 +145,7 @@ def aggregate_scope_binding():
             "target_branches",
             "aggregate_readiness_evidence",
             "direct_delivery_evidence",
+            "pre_review_destination_revisions",
             "initial_diff_manifest",
             "initial_diff_stats",
         ],
@@ -176,6 +186,11 @@ class BranchRoutingContractTest(unittest.TestCase):
             "delivery_workspace",
             promotion["allOf"][0]["then"]["required"],
         )
+        self.assertFalse(
+            promotion["properties"]["pre_review_integration_commit_allowed"][
+                "const"
+            ]
+        )
         route_resolution = routing["properties"]["aggregate_promotion"][
             "properties"
         ]["route_resolution"]
@@ -203,6 +218,8 @@ class BranchRoutingContractTest(unittest.TestCase):
                 "intended_base_branch",
                 "intended_target_branch",
                 "base_creation_source_branch_or_not_applicable",
+                "target_revision_or_absent",
+                "target_creation_source_branch_or_not_applicable",
             ],
             values["items"]["required"],
         )
@@ -281,6 +298,14 @@ class BranchRoutingContractTest(unittest.TestCase):
         validator = Draft202012Validator(schema)
         self.assertEqual([], list(validator.iter_errors(config)))
         del route["intended_target_branch"]
+        self.assertTrue(list(validator.iter_errors(config)))
+
+        config = load_delivery_fixture()
+        config["branch_routing"] = branch_routing_contract()
+        config["branch_routing"]["aggregate_promotion"] = {"enabled": False}
+        del config["branch_routing"]["override_scope"]["resolved_record"][
+            "values"
+        ][0]["target_creation_source_branch_or_not_applicable"]
         self.assertTrue(list(validator.iter_errors(config)))
 
     def test_schema_rejects_history_rewrite_permission(self):
@@ -375,6 +400,10 @@ class BranchRoutingContractTest(unittest.TestCase):
                 "intended_base_branch": "integration/epic-72",
                 "intended_target_branch": "main",
                 "base_creation_source_branch_or_not_applicable": "main",
+                "target_revision_or_absent": "verified_target_revision",
+                "target_creation_source_branch_or_not_applicable": (
+                    "not_applicable"
+                ),
                 "aggregate_source_branch": "integration/epic-72",
                 "aggregate_destination_branch": "main",
                 "routing_source": "exact_task_contract",
@@ -416,11 +445,14 @@ class BranchRoutingContractTest(unittest.TestCase):
             "repository default branch for both",
             "intended task base and pull-request target",
             "without force, reset, or history rewrite",
-            "remote branch appears or moves before delivery",
+            "remote base or target branch appears or moves before delivery",
         ):
             self.assertIn(fragment, execution_skill + workspace)
         self.assertIn("repository's project- or task-defined intended base", multi_repo)
         self.assertIn("rather than\n  a branch inferred from another repository", multi_repo)
+        self.assertIn("verify the intended target independently", workspace)
+        self.assertIn("target revision or\n    explicit absence", workspace)
+        self.assertIn("target-creation source branches", workspace)
 
     def test_delivery_contract_uses_actual_target_and_aggregate_mode(self):
         delivery_skill = (DELIVERY_ROOT / "SKILL.md").read_text(encoding="utf-8")
@@ -451,6 +483,8 @@ class BranchRoutingContractTest(unittest.TestCase):
         self.assertIn("ordinary delivery pushes to that source branch", pull_request)
         self.assertIn("Only when execution prepared the target locally", pull_request)
         self.assertIn("provider-supported non-overwriting creation", pull_request)
+        self.assertIn("non-committing strategy", readiness)
+        self.assertIn("first point where newly prepared", pull_request)
         self.assertIn("exact destination revision", readiness)
         self.assertIn("pre-review destination revision", cleanup)
         self.assertIn("rerun every invalidated local review", cleanup)
@@ -474,10 +508,14 @@ class BranchRoutingContractTest(unittest.TestCase):
             "remote_only_source_action: materialize_delivery_owned_source_or_helper_worktree",
             "completed_child_worktree_reuse_allowed: false",
             "meaningful_diff_or_proven_already_integrated_required: true",
+            "pre_review_integration_commit_allowed: false",
             "base_creation_source_branch_or_not_applicable",
+            "target_revision_or_absent",
+            "target_creation_source_branch_or_not_applicable",
             "branch_registry_required: false",
             "aggregate_scope_binding:",
             "aggregate_readiness_evidence",
+            "pre_review_destination_revisions",
             "safe helper",
             "не создаёт пустую ветку\nили PR",
         ):

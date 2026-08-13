@@ -384,9 +384,12 @@ branch_routing:
         - intended_base_branch
         - intended_target_branch
         - base_creation_source_branch_or_not_applicable
+        - target_revision_or_absent
+        - target_creation_source_branch_or_not_applicable
       # Keep this empty while no concrete route is active. When populated at
       # runtime or from the exact task contract, every item carries the anchor,
-      # repository, intended base, intended target, and creation-source value.
+      # repository, intended base/target, their revision/absence evidence, and
+      # the applicable base/target creation-source provenance.
       # This bounded exact-task/aggregate collection is not a registry.
       values: []
     branch_registry_required: false
@@ -398,6 +401,8 @@ branch_routing:
       - intended_target_branch
       - routing_source
       - base_creation_source_branch_or_not_applicable
+      - target_revision_or_absent
+      - target_creation_source_branch_or_not_applicable
       - base_revision
   safety:
     missing_intended_base: establish_from_verified_project_base_without_rewrite
@@ -432,6 +437,7 @@ branch_routing:
     allowed_direct_delivery_evidence_counts: true
     meaningful_diff_or_proven_already_integrated_required: true
     integrate_current_target_before_review: true
+    pre_review_integration_commit_allowed: false
     conflicts_resolved_on_source_or_helper: true
     reuse_standard_review_ci_and_merge_gates: true
 
@@ -475,6 +481,7 @@ review:
       - target_branches
       - aggregate_readiness_evidence
       - direct_delivery_evidence
+      - pre_review_destination_revisions
       - initial_diff_manifest
       - initial_diff_stats
     initial_diff_baseline_required: true

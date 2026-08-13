@@ -1115,7 +1115,9 @@
                     "repository",
                     "intended_base_branch",
                     "intended_target_branch",
-                    "base_creation_source_branch_or_not_applicable"
+                    "base_creation_source_branch_or_not_applicable",
+                    "target_revision_or_absent",
+                    "target_creation_source_branch_or_not_applicable"
                   ]
                 },
                 "values": {
@@ -1128,7 +1130,9 @@
                       "repository",
                       "intended_base_branch",
                       "intended_target_branch",
-                      "base_creation_source_branch_or_not_applicable"
+                      "base_creation_source_branch_or_not_applicable",
+                      "target_revision_or_absent",
+                      "target_creation_source_branch_or_not_applicable"
                     ],
                     "properties": {
                       "task_or_aggregate_anchor": {
@@ -1145,6 +1149,14 @@
                         "minLength": 1
                       },
                       "base_creation_source_branch_or_not_applicable": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "target_revision_or_absent": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "target_creation_source_branch_or_not_applicable": {
                         "type": "string",
                         "minLength": 1
                       },
@@ -1180,6 +1192,8 @@
                 "intended_target_branch",
                 "routing_source",
                 "base_creation_source_branch_or_not_applicable",
+                "target_revision_or_absent",
+                "target_creation_source_branch_or_not_applicable",
                 "base_revision"
               ]
             }
@@ -1260,6 +1274,7 @@
             "allowed_direct_delivery_evidence_counts": {"const": true},
             "meaningful_diff_or_proven_already_integrated_required": {"const": true},
             "integrate_current_target_before_review": {"const": true},
+            "pre_review_integration_commit_allowed": {"const": false},
             "conflicts_resolved_on_source_or_helper": {"const": true},
             "reuse_standard_review_ci_and_merge_gates": {"const": true}
           },
@@ -1280,6 +1295,7 @@
                   "allowed_direct_delivery_evidence_counts",
                   "meaningful_diff_or_proven_already_integrated_required",
                   "integrate_current_target_before_review",
+                  "pre_review_integration_commit_allowed",
                   "conflicts_resolved_on_source_or_helper",
                   "reuse_standard_review_ci_and_merge_gates"
                 ]
@@ -1371,6 +1387,7 @@
                 "target_branches",
                 "aggregate_readiness_evidence",
                 "direct_delivery_evidence",
+                "pre_review_destination_revisions",
                 "initial_diff_manifest",
                 "initial_diff_stats"
               ]

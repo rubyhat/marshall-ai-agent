@@ -42,8 +42,9 @@ Provide:
 
 - exact task anchor and readiness result;
 - repository, worktree, task branch, intended base, intended pull-request
-  target, routing source, verified base-creation source branch or
-  not-applicable, and base-revision mapping;
+  target, routing source, verified base- and target-creation source branches or
+  not-applicable values, target revision or explicit absence, and base-revision
+  mapping;
 - concise implemented outcome;
 - relevant gate results, including blocked or accepted exceptions;
 - material assumptions, risks, and known limitations;

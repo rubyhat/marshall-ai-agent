@@ -67,8 +67,11 @@ Local review passes when:
 - the task still matches its specification and authorized endpoint.
 
 Keep new delivery-owned corrections uncommitted until this gate succeeds. In
-promotion mode, preserve existing source-branch history; review it as part of
-the candidate instead of rewriting it into a synthetic uncommitted task diff.
+promotion mode, keep newly prepared destination synchronization and conflict
+resolution uncommitted through this gate, then create their commit only in the
+authorized commit phase. Preserve existing source-branch history; review it as
+part of the candidate instead of rewriting it into a synthetic uncommitted task
+diff.
 
 Do not invoke this workflow for a routine GitHub correction package. Post-PR
 routine corrections use deterministic verification and the next full-head

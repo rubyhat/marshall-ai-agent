@@ -54,30 +54,38 @@ When a workspace does not exist:
    policy authorizes first-use establishment, derive it from the verified
    configured creation base, prove that no conflicting local or remote branch
    appeared, and create or prepare it without force, reset, or history rewrite;
-5. when file-backed planning publication is configured and this repository also
+5. verify the intended target independently. When it exists, record its exact
+   revision and an explicit not-applicable target-creation source. When it is
+   absent, require a verified project-selected target creation base, record the
+   explicit absence and creation-source branch, and prepare a clean local target
+   ref at exactly that base without candidate changes. If policy cannot prove
+   this provenance, stop before workspace creation; do not defer an unresolvable
+   absent target to delivery and do not push it during execution;
+6. when file-backed planning publication is configured and this repository also
    owns the canonical task specification, verify that the base contains or
    descends from the ordinary merged revision in the complete current
    capture-contract publication record;
-6. when file-backed planning publication is configured and the specification
+7. when file-backed planning publication is configured and the specification
    owner is a different repository, verify the recorded matching exact-task
    ordinary tuple with Task ID, owner repository, canonical spec path, merged
    revision, capture-contract revision, publication-attempt ID,
    normalized-result hash, and complete matched reviewer session set instead of
    requiring impossible shared Git ancestry;
-7. derive the configured task branch and workspace path;
-8. ensure the task branch, intended base, intended target, and workspace do not
+8. derive the configured task branch and workspace path;
+9. ensure the task branch, intended base, intended target, and workspace do not
    collide with another task or owner;
-9. create the feature branch and worktree from the resolved intended base;
-10. verify branch, `HEAD`, base revision, intended target, worktree
-    registration, and clean initial state. Retain the verified creation-source
-    branch when the base was established, or an explicit not-applicable value
-    when it already existed.
+10. create the feature branch and worktree from the resolved intended base;
+11. verify branch, `HEAD`, base revision, intended target, target revision or
+    explicit absence, worktree registration, and clean initial state. Retain
+    separate verified base- and target-creation source branches when either ref
+    was prepared, or explicit not-applicable values when they already existed.
 
 The intended base and pull-request target may be the same integration branch,
 but do not assume that they are. If first-use preparation remains local because
 execution authority excludes push, record the missing remote branch as an
-explicit delivery gate. If a remote branch appears or moves before delivery,
-reconcile its ownership and ancestry instead of overwriting it.
+explicit delivery gate together with its verified creation-source provenance.
+If a remote base or target branch appears or moves before delivery, reconcile
+its ownership and ancestry instead of overwriting it.
 
 Apply the following evidence rules only when file-backed planning publication is
 configured. Historical legacy derived revisions and cross-repository legacy

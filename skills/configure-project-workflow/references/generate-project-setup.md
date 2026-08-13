@@ -230,14 +230,21 @@ When `execute-project-task` is selected, generate:
   active. When populated, require one route for every selected repository and
   no unrelated routes; every item carries the exact anchor, repository,
   intended base, intended target, and verified creation-source branch or an
-  explicit not-applicable value. Do not create a persisted branch registry;
+  explicit not-applicable value for the base, plus the target's exact revision
+  or absence and its verified creation-source branch or not-applicable value.
+  Do not create a persisted branch registry;
 - an execution handoff that records repository, task branch, intended base,
-  intended target, routing source, creation-source branch or not-applicable,
-  and base revision;
+  intended target, routing source, base and target creation-source branches or
+  not-applicable values, target revision or explicit absence, and base
+  revision;
 - safe first-use and resume semantics for an intended base branch: derive a
   missing branch only from a verified project-selected base, resume an existing
   branch only after ownership and ancestry checks, stop on a remote-ref race,
   and never authorize force or history rewrite.
+- safe target preparation: record an existing target's exact revision; when an
+  independently resolved target is absent, require a verified project-selected
+  creation base, prepare only that clean target base locally without candidate
+  changes, and carry its provenance to delivery for non-overwriting creation;
 - when `publish-planning-change` is not selected, keep the required
   `implementation` section empty and omit publication evidence, publication
   ancestry and manifest gates, `publication_upgrade_required`, and every
@@ -271,15 +278,17 @@ When `deliver-reviewed-change` is selected, generate:
   record task/aggregate-scoped rather than creating a branch registry. Also
   require project-owned readiness evidence, count allowed direct deliveries
   toward the achieved outcome, require either a meaningful destination-to-source
-  diff or proof that the result is already integrated, integrate the current
-  target on the source or a safe helper before review, materialize and validate
+  diff or proof that the result is already integrated, prepare the current
+  target on the source or a safe helper without committing before review and
+  commit it only after the local gate passes, materialize and validate
   a delivery-owned source/helper worktree even when the source exists only on
   the remote, forbid reuse of a completed child-task worktree for promotion
   corrections, and reuse the ordinary review, CI, merge-authority, and no-force
   gates;
 - when aggregate promotion is enabled, require a separate aggregate review
   scope bound to the task-or-aggregate anchor, equivalent contract, readiness,
-  direct-delivery evidence, branches, and candidate manifest. Preserve the
+  direct-delivery evidence, branches, exact per-repository pre-review
+  destination revisions, and candidate manifest. Preserve the
   ordinary task-only scope binding unchanged for backward compatibility;
 - one immutable delivery baseline bound to the exact task, specification or
   equivalent contract, acceptance criteria, non-goals, initial complete diff
