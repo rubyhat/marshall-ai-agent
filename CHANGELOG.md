@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/rubyhat/marshall-ai-agent/compare/v0.10.0...v0.10.1) (2026-08-26)
+
+
+### Документация
+
+* архивировать эксперимент marshall-ai-agent ([#74](https://github.com/rubyhat/marshall-ai-agent/issues/74)) ([8ddcc61](https://github.com/rubyhat/marshall-ai-agent/commit/8ddcc619b488290ac11dd20f9a39801a0d47ea48))
+
 ## [0.10.0](https://github.com/rubyhat/marshall-ai-agent/compare/v0.9.0...v0.10.0) (2026-08-13)
 
 
