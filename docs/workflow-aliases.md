@@ -1,5 +1,10 @@
 # Быстрые команды workflow kit
 
+> **Archive notice, 2026-08-27.** Ниже описан historical alias contract
+> завершённого эксперимента. Эти aliases больше не являются active workflow и
+> не должны устанавливаться или переноситься в другие проекты. См.
+> [ретроспективу эксперимента](experiment-retrospective.md).
+
 ## Что такое alias
 
 Workflow alias — короткий plain-text trigger в формате

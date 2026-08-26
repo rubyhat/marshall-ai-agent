@@ -1,5 +1,10 @@
 # Версионирование и релизы
 
+> **Archive notice, 2026-08-27.** Этот release process сохранён только как
+> historical evidence. Новые versions, tags и releases не публикуются;
+> `v0.10.0` остаётся последним release. См.
+> [ретроспективу эксперимента](experiment-retrospective.md).
+
 ## Модель
 
 Репозиторий выпускается как единый workflow kit. Один Git tag представляет

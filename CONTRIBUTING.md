@@ -1,5 +1,11 @@
 # Участие в разработке
 
+> **Archive notice, 2026-08-27.** Repository завершён и переведён в
+> archived/read-only state. Ниже сохранён historical contribution process; он
+> больше не разрешает новые changes, Pull Requests, releases или workflow
+> adoption. Итоговое решение описано в
+> [`docs/experiment-retrospective.md`](docs/experiment-retrospective.md).
+
 Этот репозиторий хранит единый совместимый набор reusable skills для Codex.
 Изменения должны сохранять границы ответственности skills, воспроизводимость
 установки и понятную историю совместимости.
